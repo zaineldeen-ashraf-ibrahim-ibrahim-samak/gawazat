@@ -26,18 +26,30 @@ function createReportHandlers(store) {
         const manifest = state.manifest || [];
         const boarding = state.boarding_records || {};
 
+        const scanHistory = state.scan_history || [];
+
+        // Build a set of passport numbers that were scanned more than once
+        const scanCounts = {};
+        scanHistory.forEach(rec => {
+          const k = rec.passport_number_normalized || rec.passport_number;
+          if (k) scanCounts[k] = (scanCounts[k] || 0) + 1;
+        });
+
         let filtered = manifest;
         if (kind === 'entered') {
           filtered = manifest.filter(p => boarding[p.passport_number_normalized]);
         } else if (kind === 'pending') {
           filtered = manifest.filter(p => !boarding[p.passport_number_normalized]);
+        } else if (kind === 'warnings') {
+          filtered = manifest.filter(p => (scanCounts[p.passport_number_normalized] || 0) > 1);
         }
 
         const data = {
           voyage: state.voyage || {},
           passengers: filtered.map(p => ({
             ...p,
-            is_entered: boarding[p.passport_number_normalized] !== undefined
+            is_entered:   boarding[p.passport_number_normalized] !== undefined,
+            is_duplicate: (scanCounts[p.passport_number_normalized] || 0) > 1,
           }))
         };
 

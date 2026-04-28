@@ -19,6 +19,8 @@
     "setup-assets": "node scripts/download-assets.js"
   },
   "dependencies": {
+    "arabic-reshaper": "^1.1.0",
+    "bidi-js": "^1.0.3",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.13.1",
     "electron-log": "^5.0.0",

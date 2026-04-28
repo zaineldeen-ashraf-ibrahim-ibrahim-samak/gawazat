@@ -36,8 +36,9 @@ async function init() {
         <!-- Navigation -->
         <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background-color: var(--panel);">
           <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="#/">
-              <img src="assets/icon.png" alt="" class="me-2" style="width:24px;height:24px;object-fit:contain;vertical-align:-6px;" />${displayName}
+            <a class="navbar-brand fw-bold d-flex align-items-center fs-4" href="#/">
+              <img src="assets/icon.png" alt="" class="me-3" style="width:40px;height:40px;object-fit:contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" />
+              <span style="letter-spacing: 0.5px;">${displayName}</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
               <span class="navbar-toggler-icon"></span>

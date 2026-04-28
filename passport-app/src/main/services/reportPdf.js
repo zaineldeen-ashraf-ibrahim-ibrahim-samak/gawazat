@@ -1,104 +1,229 @@
 /**
  * Report PDF Service
  * Generates Arabic RTL PDF reports using pdfmake.
+ *
+ * Arabic pipeline:
+ *   1. arabic-reshaper  — connects letters (ا ل ن → الن)
+ *   2. pdfmake rtl:true — handles paragraph/column direction
+ *
+ * bidi-js character reordering is intentionally NOT used here.
+ * pdfmake's rtl flag manages visual order at the layout level;
+ * applying getReorderedString on top of reshaped text reverses
+ * individual characters and produces garbage output.
  */
 
-const PdfPrinter = require('pdfmake/js/printer').default;
+const pdfmake = require('pdfmake');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 const logger = require('./logger');
+const ArabicReshaper = require('arabic-reshaper');
 
-// Font configuration
-// Note: Amiri-Regular.ttf must be present in the assets/fonts directory
+const FONTS_DIR = path.join(__dirname, '..', '..', '..', 'renderer', 'assets', 'fonts');
+
 const fonts = {
   Amiri: {
-    normal: path.join(__dirname, '..', '..', '..', 'renderer', 'assets', 'fonts', 'Amiri-Regular.ttf'),
-    bold: path.join(__dirname, '..', '..', '..', 'renderer', 'assets', 'fonts', 'Amiri-Bold.ttf'),
-  }
+    normal:      path.join(FONTS_DIR, 'Amiri-Regular.ttf'),
+    bold:        path.join(FONTS_DIR, 'Amiri-Bold.ttf'),
+    italics:     path.join(FONTS_DIR, 'Amiri-Regular.ttf'), // no italic variant — fallback to regular
+    bolditalics: path.join(FONTS_DIR, 'Amiri-Bold.ttf'),
+  },
 };
 
-let printer = null;
+let fontsReady = false;
 
-function getPrinter() {
-  if (!printer) {
-    // Verify font files exist before creating printer
-    const normalFont = fonts.Amiri.normal;
-    const boldFont = fonts.Amiri.bold;
-    if (!fs.existsSync(normalFont)) {
-      logger.warn(`Font not found: ${normalFont} — run 'npm run setup-assets' to download`);
-    }
-    if (!fs.existsSync(boldFont)) {
-      // Fallback: use normal as bold if bold isn't available
-      fonts.Amiri.bold = fonts.Amiri.normal;
-    }
-    printer = new PdfPrinter(fonts);
+function initFonts() {
+  if (fontsReady) return;
+  if (!fs.existsSync(fonts.Amiri.normal)) {
+    logger.warn(`Font missing: ${fonts.Amiri.normal} — run 'npm run setup-assets'`);
   }
-  return printer;
+  if (!fs.existsSync(fonts.Amiri.bold)) {
+    fonts.Amiri.bold = fonts.Amiri.normal; // fallback
+  }
+  pdfmake.setFonts(fonts);
+  fontsReady = true;
+}
+
+/** Shape Arabic text for PDF rendering. No bidi reordering — pdfmake handles that via rtl:true. */
+function ar(str) {
+  return ArabicReshaper.convertArabic(String(str ?? ''));
+}
+
+/** Formatted date string in Arabic locale */
+function dateAr(date = new Date()) {
+  return date.toLocaleDateString('ar-EG', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+}
+
+const KIND_TITLES = {
+  full:     'تقرير شامل للمسافرين',
+  entered:  'قائمة المسافرين المُدخَلين',
+  pending:  'قائمة المسافرين في الانتظار',
+  warnings: 'تقرير التحذيرات والإدخالات المكررة',
+};
+
+const STATUS_LABELS = {
+  entered:  'تم الدخول',
+  pending:  'في الانتظار',
+  warning:  'تحذير',
+  rejected: 'مرفوض',
+};
+
+function passengerStatus(p) {
+  if (p.is_duplicate) return STATUS_LABELS.warning;
+  if (p.is_entered)   return STATUS_LABELS.entered;
+  return STATUS_LABELS.pending;
 }
 
 /**
- * Generate a PDF report
- * @param {string} kind - 'full' | 'entered' | 'pending' | 'warnings'
- * @param {Object} data - Voyage and Passenger data
- * @param {string} savePath - Where to save the PDF
+ * Generate a PDF report.
+ * @param {'full'|'entered'|'pending'|'warnings'} kind
+ * @param {{ voyage: Object, passengers: Object[] }} data
+ * @param {string} savePath
  */
 async function generateReport(kind, data, savePath) {
-  try {
-    const { voyage, passengers, stats } = data;
-    
-    const docDefinition = {
-      content: [
-        { text: `تقرير ${config.appName}`, style: 'header' },
-        { text: `سفينة: ${voyage.ship_name || '---'}`, style: 'subheader' },
-        { text: `التاريخ: ${new Date().toLocaleDateString('ar-EG')}`, style: 'subheader' },
-        { text: '\n' },
-        {
-          table: {
-            headerRows: 1,
-            widths: ['*', '*', '*', '*'],
-            body: [
-              ['الحالة', 'الجنسية', 'الاسم', 'رقم الجواز'],
-              ...passengers.map(p => [
-                p.is_entered ? 'تم الدخول' : 'في الانتظار',
-                p.nationality,
-                p.name,
-                p.passport_number
-              ])
-            ]
-          },
-          layout: 'lightHorizontalLines'
-        }
-      ],
-      defaultStyle: {
-        font: 'Amiri',
-        alignment: 'right'
+  initFonts();
+
+  const { voyage, passengers } = data;
+  const title    = KIND_TITLES[kind] ?? KIND_TITLES.full;
+  const shipName = voyage.ship_name || '---';
+  const today    = dateAr();
+  const total    = passengers.length;
+
+  // Table header row (RTL: rightmost column first in the array = rightmost on page)
+  const headerRow = [
+    ar('الحالة'),
+    ar('الجنسية'),
+    ar('تاريخ الميلاد'),
+    ar('الجنس'),
+    ar('الاسم'),
+    ar('رقم الجواز'),
+  ].map(text => ({
+    text,
+    style: 'tableHeader',
+    alignment: 'center',
+  }));
+
+  const dataRows = passengers.map((p, i) => [
+    { text: ar(passengerStatus(p)), alignment: 'center', style: 'tableCell' },
+    { text: ar(p.nationality  ?? ''), alignment: 'right',  style: 'tableCell' },
+    { text: p.date_of_birth   ?? '',  alignment: 'center', style: 'tableCell' },
+    { text: ar(p.gender === 'M' ? 'ذكر' : p.gender === 'F' ? 'أنثى' : (p.gender ?? '')), alignment: 'center', style: 'tableCell' },
+    { text: ar(p.name         ?? ''), alignment: 'right',  style: 'tableCell' },
+    { text: p.passport_number ?? '',  alignment: 'center', style: 'tableCell' },
+  ]);
+
+  const docDefinition = {
+    pageSize: 'A4',
+    pageOrientation: 'portrait',
+    pageMargins: [30, 50, 30, 40],
+    rtl: true,
+
+    content: [
+      // App name
+      {
+        text: ar(config.appName),
+        style: 'appTitle',
+        alignment: 'center',
+        margin: [0, 0, 0, 4],
       },
-      styles: {
-        header: {
-          fontSize: 22,
-          bold: true,
-          margin: [0, 0, 0, 10]
+      // Report title
+      {
+        text: ar(title),
+        style: 'header',
+        alignment: 'center',
+        margin: [0, 0, 0, 12],
+      },
+      // Meta info
+      {
+        columns: [
+          { text: ar(`التاريخ: ${today}`),        style: 'meta', alignment: 'right' },
+          { text: ar(`إجمالي: ${total} مسافر`),   style: 'meta', alignment: 'center' },
+          { text: ar(`السفينة: ${shipName}`),      style: 'meta', alignment: 'left' },
+        ],
+        margin: [0, 0, 0, 16],
+      },
+      // Passenger table
+      {
+        table: {
+          headerRows: 1,
+          widths: [55, 60, 60, 30, '*', 70],
+          body: [headerRow, ...dataRows],
         },
-        subheader: {
-          fontSize: 16,
-          bold: true,
-          margin: [0, 10, 0, 5]
-        }
+        layout: {
+          hLineWidth: (i) => (i === 0 || i === 1) ? 1.5 : 0.5,
+          vLineWidth: () => 0.5,
+          hLineColor: () => '#334155',
+          vLineColor: () => '#cbd5e1',
+          fillColor: (rowIndex) => {
+            if (rowIndex === 0) return '#1e3a5f';
+            return rowIndex % 2 === 0 ? '#f8fafc' : null;
+          },
+        },
       },
-      rtl: true
-    };
+      // Footer note
+      {
+        text: ar(`* تم إنشاء هذا التقرير تلقائياً بواسطة ${config.appName}`),
+        style: 'footerNote',
+        margin: [0, 20, 0, 0],
+        alignment: 'right',
+      },
+    ],
 
-    const pdfDoc = getPrinter().createPdfKitDocument(docDefinition);
-    pdfDoc.pipe(fs.createWriteStream(savePath));
-    pdfDoc.end();
+    defaultStyle: {
+      font: 'Amiri',
+      fontSize: 10,
+      alignment: 'right',
+    },
 
-    return new Promise((resolve, reject) => {
-      pdfDoc.on('end', () => resolve({ ok: true }));
-      pdfDoc.on('error', (err) => reject(err));
-    });
+    styles: {
+      appTitle: {
+        font: 'Amiri',
+        fontSize: 14,
+        bold: true,
+        color: '#1e3a5f',
+      },
+      header: {
+        font: 'Amiri',
+        fontSize: 18,
+        bold: true,
+        color: '#0f2744',
+      },
+      meta: {
+        font: 'Amiri',
+        fontSize: 11,
+        color: '#374151',
+      },
+      tableHeader: {
+        font: 'Amiri',
+        fontSize: 10,
+        bold: true,
+        color: '#ffffff',
+        fillColor: '#1e3a5f',
+        margin: [2, 4, 2, 4],
+      },
+      tableCell: {
+        font: 'Amiri',
+        fontSize: 9,
+        margin: [2, 3, 2, 3],
+        color: '#1f2937',
+      },
+      footerNote: {
+        font: 'Amiri',
+        fontSize: 8,
+        color: '#9ca3af',
+      },
+    },
+  };
+
+  try {
+    const pdfDoc = pdfmake.createPdf(docDefinition);
+    await pdfDoc.write(savePath);
+    logger.info(`PDF written: ${savePath} (${total} passengers, kind=${kind})`);
+    return { ok: true };
   } catch (err) {
-    logger.error(`PDF Generation failed: ${err.message}`);
+    logger.error(`PDF generation failed: ${err.message}`);
     throw err;
   }
 }

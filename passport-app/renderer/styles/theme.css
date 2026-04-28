@@ -55,8 +55,8 @@ body { overflow: hidden; }
 
 .navbar-brand {
   color: var(--accent) !important;
-  font-weight: 700 !important;
-  font-size: 1.2rem !important;
+  font-weight: 900 !important;
+  font-size: 1.6rem !important;
   letter-spacing: 0.5px;
 }
 
