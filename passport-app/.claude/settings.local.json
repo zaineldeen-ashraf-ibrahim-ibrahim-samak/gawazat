@@ -4,7 +4,9 @@
       "Bash(git fetch *)",
       "Bash(gh api *)",
       "WebFetch(domain:api.github.com)",
-      "Bash(grep -vE \"\\(^\\\\s*//|t\\\\\\(|\\\\\\\\\\\\$\\\\{\\)\")"
+      "Bash(grep -vE \"\\(^\\\\s*//|t\\\\\\(|\\\\\\\\\\\\$\\\\{\\)\")",
+      "Bash(node -e \"console.log\\(Object.keys\\(require\\('pdfmake'\\)\\)\\)\")",
+      "Bash(node *)"
     ]
   }
 }

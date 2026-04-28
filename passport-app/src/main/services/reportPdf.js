@@ -3,7 +3,7 @@
  * Generates Arabic RTL PDF reports using pdfmake.
  */
 
-const PdfPrinter = require('pdfmake');
+const PdfPrinter = require('pdfmake/js/printer').default;
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
