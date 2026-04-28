@@ -22,7 +22,7 @@ async function createWindow() {
     frame: true,
     title: config.appName,
     backgroundColor: '#0b1d3a',
-    icon: path.join(__dirname, '..', 'renderer', 'assets', 'icon.ico'),
+    icon: config.appIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

@@ -1,16 +1,21 @@
 # Electron Builder Configuration for Windows x64 NSIS
 # Code signing is configured separately by the deploy team for production builds.
 # Development builds will not be signed.
+#
+# Branding is controlled via .env:
+#   APP_NAME  → productName (Arabic)
+#   APP_ID    → appId
+#   APP_ICON  → win.icon
 
-appId: eg.portsaid.gawazat
-productName: بوابة المسافرين
+appId: ${env.APP_ID}
+productName: ${env.APP_NAME}
 directories:
   output: dist
 win:
   target:
     - nsis
   x64: true
-  icon: renderer/assets/icon.ico
+  icon: ${env.APP_ICON}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
@@ -23,3 +28,4 @@ files:
   - renderer/**
   - package.json
   - package-lock.json
+  - .env

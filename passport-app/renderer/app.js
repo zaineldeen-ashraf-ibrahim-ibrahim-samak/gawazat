@@ -16,12 +16,6 @@ async function init() {
     // Read app name from env config (via preload bridge)
     const appName = window.api?.config?.appName || t('app.title');
     const currentLang = document.documentElement.lang || 'ar';
-    if (currentLang === 'ar') {
-      document.getElementById('btn-lang-ar').classList.replace('btn-outline-light', 'btn-light');
-    } else {
-      document.getElementById('btn-lang-en').classList.replace('btn-outline-light', 'btn-light');
-    }
-
     const displayName = currentLang === 'en'
       ? (window.api?.config?.appNameEn || 'Passenger Gate')
       : appName;
@@ -118,7 +112,12 @@ async function init() {
       init();
     });
 
-
+    // Highlight the active language button
+    if (currentLang === 'ar') {
+      document.getElementById('btn-lang-ar').classList.replace('btn-outline-light', 'btn-light');
+    } else {
+      document.getElementById('btn-lang-en').classList.replace('btn-outline-light', 'btn-light');
+    }
 
     // Global keyboard shortcut: Ctrl+/ or ⌘+/ to open help modal (cross-platform)
     window.addEventListener('keydown', (e) => {
