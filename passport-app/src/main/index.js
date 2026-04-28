@@ -54,6 +54,12 @@ async function createWindow() {
 
 async function initialize() {
   try {
+    // Log config from .env
+    logger.info(`App: ${config.appName} (${config.appNameEn})`);
+    logger.info(`Icon: ${config.appIcon}`);
+    logger.info(`Env loaded from: ${config.envFilePath}`);
+    logger.info(`Mode: ${config.isDev ? 'development' : 'production'}`);
+
     // Set up CSP headers
     setCspHeaders();
 

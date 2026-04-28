@@ -2,17 +2,54 @@
  * Environment Configuration Loader
  * Reads .env file and exposes app config values.
  * No external dependencies — pure Node.js.
+ *
+ * In production, the .env is searched in this order:
+ *   1. Next to the executable (portable override — operator can edit)
+ *   2. Inside the app's userData dir (per-machine override)
+ *   3. Inside the asar/app bundle (default from build)
+ *
+ * In development, the .env is read from the project root.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { app } = require('electron');
 
+// ─── Resolve app root (works in both dev and production/asar) ────────
 const APP_ROOT = path.join(__dirname, '..', '..', '..');
-const envPath = path.join(APP_ROOT, '.env');
 
-// Parse .env file (only sets values NOT already in process.env)
-if (fs.existsSync(envPath)) {
-  const content = fs.readFileSync(envPath, 'utf-8');
+/**
+ * Find the best .env file.
+ * Priority: exe directory > userData > app bundle
+ */
+function findEnvFile() {
+  const candidates = [];
+
+  if (app && app.isPackaged) {
+    // 1. Next to the .exe / .app (portable override)
+    const exeDir = path.dirname(app.getPath('exe'));
+    candidates.push(path.join(exeDir, '.env'));
+
+    // 2. In userData (per-machine, survives updates)
+    candidates.push(path.join(app.getPath('userData'), '.env'));
+  }
+
+  // 3. Inside the app bundle / project root (dev or fallback)
+  candidates.push(path.join(APP_ROOT, '.env'));
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+  return null;
+}
+
+// ─── Parse .env file ─────────────────────────────────────────────────
+
+const envFile = findEnvFile();
+if (envFile) {
+  const content = fs.readFileSync(envFile, 'utf-8');
   content.split('\n').forEach(line => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) return;
@@ -20,37 +57,44 @@ if (fs.existsSync(envPath)) {
     if (eqIdx === -1) return;
     const key = trimmed.slice(0, eqIdx).trim();
     const value = trimmed.slice(eqIdx + 1).trim();
+    // Only set if not already defined (process.env takes precedence)
     if (!process.env[key]) {
       process.env[key] = value;
     }
   });
 }
 
-/**
- * Resolve icon path — supports both relative (to APP_ROOT) and absolute paths
- */
+// ─── Icon path resolution ────────────────────────────────────────────
+
 function resolveIconPath() {
   const envIcon = process.env.APP_ICON || 'renderer/assets/icon.ico';
-  // If absolute path, use as-is; otherwise resolve relative to app root
-  const resolved = path.isAbsolute(envIcon)
-    ? envIcon
-    : path.join(APP_ROOT, envIcon);
-  return resolved;
+
+  // Absolute path → use as-is
+  if (path.isAbsolute(envIcon)) return envIcon;
+
+  // Relative path → resolve against app root
+  const resolved = path.join(APP_ROOT, envIcon);
+  if (fs.existsSync(resolved)) return resolved;
+
+  // Fallback: try next to exe (production)
+  if (app && app.isPackaged) {
+    const exeIcon = path.join(path.dirname(app.getPath('exe')), envIcon);
+    if (fs.existsSync(exeIcon)) return exeIcon;
+  }
+
+  return resolved; // return even if missing — Electron will show default icon
 }
 
-/**
- * Get app configuration from environment.
- * All values have sensible defaults.
- * Change APP_NAME, APP_NAME_EN, APP_ICON in .env to rebrand the app.
- */
+// ─── Exported config ─────────────────────────────────────────────────
+
 const config = {
-  /** Arabic app name — used in window title, navbar, reports */
+  /** Arabic app name — window title, navbar, PDF reports */
   appName: process.env.APP_NAME || 'بوابة المسافرين',
 
-  /** English app name */
+  /** English app name — used when lang=en */
   appNameEn: process.env.APP_NAME_EN || 'Passenger Gate',
 
-  /** Resolved icon path (absolute) */
+  /** Absolute icon path (resolved from APP_ICON) */
   appIcon: resolveIconPath(),
 
   /** Electron builder app ID */
@@ -67,6 +111,9 @@ const config = {
 
   /** Default Penta scanner URL */
   pentaUrl: process.env.PENTA_URL || 'http://localhost:8085',
+
+  /** Path to the .env file that was loaded (for logging) */
+  envFilePath: envFile || '(none)',
 };
 
 module.exports = config;
