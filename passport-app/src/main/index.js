@@ -40,8 +40,8 @@ async function createWindow() {
   // Load the app from file
   mainWindow.loadFile(path.join(__dirname, '..', '..', 'renderer', 'index.html'));
 
-  // Open DevTools in development
-  if (config.isDev || process.argv.includes('--debug')) {
+  // Open DevTools only when explicitly requested via --debug flag
+  if (process.argv.includes('--debug')) {
     mainWindow.webContents.openDevTools();
   }
 
