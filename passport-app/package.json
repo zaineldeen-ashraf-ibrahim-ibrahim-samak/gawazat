@@ -15,7 +15,8 @@
     "build-win": "electron-builder --win --x64",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "postinstall": "node scripts/copy-vendor.js"
+    "postinstall": "node scripts/copy-vendor.js && node scripts/download-assets.js",
+    "setup-assets": "node scripts/download-assets.js"
   },
   "dependencies": {
     "bootstrap": "^5.3.3",

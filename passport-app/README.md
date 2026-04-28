@@ -46,13 +46,82 @@ Produces `dist/بوابة المسافرين Setup x.y.z.exe` (NSIS, x64, AR/EN 
 
 > **Note**: Code signing is disabled in development; production builds require a code-signing cert configured via `electron-builder`.
 
+### Required Assets
+
+All assets below must exist before packaging. Items marked ❌ are **not yet included** and must be added manually.
+
+#### Vendor JavaScript (`renderer/vendor/`)
+
+| File | Size | Status | Source | Used By |
+|------|------|--------|--------|---------|
+| `bootstrap.bundle.min.js` | ~81 KB | ✅ Present | `node_modules/bootstrap/dist/js/` | Dropdowns, modals, tooltips |
+| `i18next.min.js` | ~49 KB | ✅ Present | `node_modules/i18next/` | Arabic/English translations |
+
+#### Vendor CSS (`renderer/styles/vendor/`)
+
+| File | Size | Status | Source | Used By |
+|------|------|--------|--------|---------|
+| `bootstrap.rtl.min.css` | ~233 KB | ✅ Present | `node_modules/bootstrap/dist/css/` | Arabic RTL layout (default) |
+| `bootstrap.min.css` | ~233 KB | ✅ Present | `node_modules/bootstrap/dist/css/` | English LTR layout |
+| `bootstrap-icons.css` | ~100 KB | ✅ Present | `node_modules/bootstrap-icons/font/` | Icon font stylesheet |
+
+#### Vendor Fonts (`renderer/styles/vendor/fonts/`)
+
+| File | Size | Status | Source | Used By |
+|------|------|--------|--------|---------|
+| `bootstrap-icons.woff` | ~180 KB | ✅ Present | `node_modules/bootstrap-icons/font/fonts/` | Icon glyphs |
+| `bootstrap-icons.woff2` | ~134 KB | ✅ Present | `node_modules/bootstrap-icons/font/fonts/` | Icon glyphs (compressed) |
+
+#### Arabic Fonts for PDF Reports (`renderer/assets/fonts/`)
+
+| File | Status | Source | Used By |
+|------|--------|--------|---------|
+| `Amiri-Regular.ttf` | ❌ **Missing** | [Google Fonts — Amiri](https://fonts.google.com/specimen/Amiri) | `reportPdf.js` — Arabic text in PDF reports |
+| `Amiri-Bold.ttf` | ❌ **Missing** | [Google Fonts — Amiri](https://fonts.google.com/specimen/Amiri) | `reportPdf.js` — Bold Arabic text in PDF reports |
+
+> **To fix**: Download Amiri from Google Fonts and place both `.ttf` files in `renderer/assets/fonts/`. Without them, PDF report generation will fail.
+
+#### Audio Cues (`renderer/assets/audio/`)
+
+| File | Status | Source | Used By |
+|------|--------|--------|---------|
+| `success.wav` | ❌ **Missing** | Any short chime sound effect | Green scan result audio cue |
+| `warning.wav` | ❌ **Missing** | Any short alert sound effect | Yellow/Orange scan result audio cue |
+
+> **To fix**: Place short `.wav` sound files (~1 second each). The audio component is defined in `components/audio.js` (T024). If omitted, the app works silently.
+
+#### Application Icon (`renderer/assets/`)
+
+| File | Status | Source | Used By |
+|------|--------|--------|---------|
+| `icon.ico` | ❌ **Missing** | 256×256 `.ico` file with dark-navy palette | BrowserWindow icon + Windows installer icon |
+
+> **To fix**: Create a 256×256 `.ico` file and place at `renderer/assets/icon.ico`. Referenced in `src/main/index.js` and `electron-builder.yml`.
+
+#### i18n Locale Files (`renderer/i18n/locales/`)
+
+| File | Status | Used By |
+|------|--------|---------|
+| `ar.json` | ✅ Present (68 keys) | Arabic translations (source of truth) |
+| `en.json` | ✅ Present (68 keys) | English translations |
+
+#### App Theme (`renderer/styles/`)
+
+| File | Status | Used By |
+|------|--------|---------|
+| `theme.css` | ✅ Present | Dark-navy premium theme, all CSS overrides |
+
+#### Google Fonts (loaded at runtime via CSS `@import`)
+
+| Font | Status | Used By |
+|------|--------|---------|
+| [Cairo](https://fonts.google.com/specimen/Cairo) | 🌐 Remote (runtime) | Main UI text — Arabic + Latin. Loaded from `fonts.googleapis.com` via `theme.css`. Falls back to system fonts if offline. |
+
 ### Packaging Checklist
 
-1. Ensure `renderer/assets/fonts/Amiri-Regular.ttf` and `Amiri-Bold.ttf` are present (required for PDF Arabic rendering).
-2. Ensure `renderer/vendor/` contains `bootstrap.bundle.min.js` and `i18next.min.js`.
-3. Ensure `renderer/styles/vendor/` contains both `bootstrap.rtl.min.css` and `bootstrap.min.css`.
-4. Run `npm test` — all tests must pass before building.
-5. Run `npm run build-win` — the output will be in the `dist/` directory.
+1. Download & add all ❌ **missing** assets listed above.
+2. Run `npm test` — all tests must pass before building.
+3. Run `npm run build-win` — the output will be in the `dist/` directory.
 
 ## Project Structure
 
