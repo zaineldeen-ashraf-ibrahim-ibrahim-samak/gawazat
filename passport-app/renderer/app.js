@@ -21,7 +21,7 @@ async function init() {
     } else {
       document.getElementById('btn-lang-en').classList.replace('btn-outline-light', 'btn-light');
     }
-    v
+
     const displayName = currentLang === 'en'
       ? (window.api?.config?.appNameEn || 'Passenger Gate')
       : appName;
