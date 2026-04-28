@@ -34,7 +34,7 @@ export async function renderScanHistory(container) {
                 <tr><td colspan="5" class="text-center p-5 text-muted">${t('common.empty')}</td></tr>
               ` : events.map(e => `
                 <tr>
-                  <td class="text-muted small">${e.timestamp.replace('T', ' ').split('.')[0]}</td>
+                  <td class="text-muted small">${(e.at || '').replace('T', ' ').split('.')[0]}</td>
                   <td>${getOutcomeBadge(e.outcome)}</td>
                   <td><code>${e.passport_number_normalized || '---'}</code></td>
                   <td class="fw-bold">${e.passenger_name}</td>

@@ -9,9 +9,11 @@ const api = {
   // Manifest operations
   manifest: {
     import: (args) => ipcRenderer.invoke('manifest:import', args),
+    preview: (args) => ipcRenderer.invoke('manifest:preview', args),
     downloadTemplate: (args) => ipcRenderer.invoke('manifest:downloadTemplate', args),
     list: (args) => ipcRenderer.invoke('manifest:list', args),
     exportFiltered: (args) => ipcRenderer.invoke('manifest:exportFiltered', args),
+    toggleEntered: (args) => ipcRenderer.invoke('manifest:toggleEntered', args),
   },
 
   // Scanning operations

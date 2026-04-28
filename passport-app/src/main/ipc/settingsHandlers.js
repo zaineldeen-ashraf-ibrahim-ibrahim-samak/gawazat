@@ -18,7 +18,7 @@ function createSettingsHandlers(store) {
      */
     get: async () => {
       const state = store.getState();
-      return state.appSettings || {};
+      return state.settings || {};
     },
 
     /**
@@ -28,8 +28,8 @@ function createSettingsHandlers(store) {
     set: async (newSettings) => {
       try {
         store.mutate(draft => {
-          draft.appSettings = {
-            ...(draft.appSettings || {}),
+          draft.settings = {
+            ...(draft.settings || {}),
             ...newSettings
           };
         });

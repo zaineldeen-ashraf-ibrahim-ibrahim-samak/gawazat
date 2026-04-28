@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron');
+const { ipcMain, dialog, BrowserWindow } = require('electron');
 const logger = require('../services/logger');
 
 /**
@@ -7,7 +7,34 @@ const logger = require('../services/logger');
  */
 
 function registerAllHandlers(handlers) {
-  // Manifest handlers
+  // ── Dialog handlers (Electron native dialogs) ──
+  ipcMain.handle('dialog:openFile', async (event, args) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(win, {
+      title: args?.title || 'Open File',
+      filters: args?.filters || [],
+      properties: ['openFile']
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+    return { filePath: result.filePaths[0] };
+  });
+
+  ipcMain.handle('dialog:saveFile', async (event, args) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showSaveDialog(win, {
+      title: args?.title || 'Save File',
+      defaultPath: args?.defaultPath || '',
+      filters: args?.filters || []
+    });
+    if (result.canceled) {
+      return null;
+    }
+    return { filePath: result.filePath };
+  });
+
+  // ── Manifest handlers ──
   const manifestHandlers = handlers.manifest;
   if (manifestHandlers) {
     ipcMain.handle('manifest:import', (event, args) => manifestHandlers.import(args));
@@ -18,7 +45,7 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('manifest:exportFiltered', (event, args) => manifestHandlers.exportFiltered(args));
   }
 
-  // Scan handlers
+  // ── Scan handlers ──
   const scanHandlers = handlers.scan;
   if (scanHandlers) {
     ipcMain.handle('scan:submitMrz', (event, args) => scanHandlers.submitMrz(args));
@@ -26,7 +53,7 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('regula:setMode', (event, args) => scanHandlers.setMode(args));
   }
 
-  // Pending approval handlers
+  // ── Pending approval handlers ──
   const pendingHandlers = handlers.pending;
   if (pendingHandlers) {
     ipcMain.handle('pending:list', (event, args) => pendingHandlers.list(args));
@@ -34,21 +61,21 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('pending:reject', (event, args) => pendingHandlers.reject(args));
   }
 
-  // History handlers
+  // ── History handlers ──
   const historyHandlers = handlers.history;
   if (historyHandlers) {
     ipcMain.handle('history:list', (event, args) => historyHandlers.list(args));
     ipcMain.handle('history:export', (event, args) => historyHandlers.export(args));
   }
 
-  // Reports handlers
+  // ── Reports handlers ──
   const reportHandlers = handlers.reports;
   if (reportHandlers) {
     ipcMain.handle('reports:generatePdf', (event, args) => reportHandlers.generatePdf(args));
     ipcMain.handle('reports:print', (event, args) => reportHandlers.print(args));
   }
 
-  // Settings handlers
+  // ── Settings handlers ──
   const settingsHandlers = handlers.settings;
   if (settingsHandlers) {
     ipcMain.handle('settings:get', (event, args) => settingsHandlers.get(args));
@@ -56,7 +83,7 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('session:clear', (event, args) => settingsHandlers.clearSession(args));
   }
 
-  // Dashboard handlers
+  // ── Dashboard handlers ──
   const dashboardHandlers = handlers.dashboard;
   if (dashboardHandlers) {
     ipcMain.handle('dashboard:stats', (event, args) => dashboardHandlers.stats(args));

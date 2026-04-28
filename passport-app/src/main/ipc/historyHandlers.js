@@ -61,7 +61,7 @@ function createHistoryHandlers(store) {
         events.forEach(e => {
           const passenger = e.passenger_id ? passengerMap.get(e.passenger_id) : null;
           data.push([
-            e.timestamp,
+            e.at,
             e.outcome,
             e.mode,
             e.passport_number_normalized || '',

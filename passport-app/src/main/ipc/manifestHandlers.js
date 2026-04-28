@@ -56,13 +56,12 @@ function createManifestHandlers(store) {
 
         // Create a new voyage (atomically replace the current one)
         const state = store.getState();
-        const settings = state.appSettings || {};
+        const settings = state.settings || {};
 
-        const voyage = makeVoyage({
-          ship_name: settings.ship_name || '',
-          port_name: settings.port_name || 'Port Said',
-          imported_at: new Date().toISOString()
-        });
+        const voyage = makeVoyage(
+          settings.ship_name || '',
+          settings.port_name || 'Port Said'
+        );
 
         // Create passenger records
         const passengers = passingRows.map(row => {

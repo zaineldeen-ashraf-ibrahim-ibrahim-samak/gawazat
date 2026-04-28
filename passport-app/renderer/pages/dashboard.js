@@ -54,7 +54,7 @@ export async function renderDashboard(container) {
                     <div class="d-flex justify-content-between align-items-start">
                       <div>
                         <div class="fw-bold">${e.passenger_name}</div>
-                        <small class="text-muted">${e.timestamp.split('T')[1].split('.')[0]}</small>
+                        <small class="text-muted">${(e.at || '').split('T')[1]?.split('.')[0] || ''}</small>
                       </div>
                       ${getOutcomeBadge(e.outcome)}
                     </div>

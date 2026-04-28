@@ -18,7 +18,7 @@ let storeInstance = null;
  */
 function initRegula(store) {
   storeInstance = store;
-  const settings = store.getState().appSettings || {};
+  const settings = store.getState().settings || {};
   mode = settings.scan_mode || 'keyboard';
   
   if (mode === 'api') {
@@ -42,7 +42,7 @@ function setMode(newMode) {
 function startPolling() {
   if (pollingInterval) return;
   
-  const settings = storeInstance.getState().appSettings || {};
+  const settings = storeInstance.getState().settings || {};
   const url = settings.regula_url || 'http://localhost:8080';
   const intervalMs = settings.regula_poll_ms || 500;
 

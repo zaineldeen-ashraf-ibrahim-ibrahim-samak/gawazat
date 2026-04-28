@@ -34,26 +34,21 @@ async function init() {
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
               <div class="navbar-nav me-auto">
-                <a class="nav-link" href="#/dashboard">${t('nav.dashboard')}</a>
-                <a class="nav-link" href="#/import">${t('nav.import')}</a>
-                <a class="nav-link" href="#/scan">${t('nav.scan')}</a>
-                <a class="nav-link" href="#/passengers">${t('nav.passengerList')}</a>
-                <a class="nav-link" href="#/history">${t('nav.scanHistory')}</a>
-                <a class="nav-link" href="#/reports">${t('nav.reports')}</a>
-                <a class="nav-link" href="#/pending">${t('nav.pendingApproval')}</a>
+                <a class="nav-link" href="#/dashboard"><i class="bi bi-speedometer2 me-1"></i>${t('nav.dashboard')}</a>
+                <a class="nav-link" href="#/import"><i class="bi bi-file-earmark-arrow-up me-1"></i>${t('nav.import')}</a>
+                <a class="nav-link" href="#/scan"><i class="bi bi-upc-scan me-1"></i>${t('nav.scan')}</a>
+                <a class="nav-link" href="#/passengers"><i class="bi bi-people me-1"></i>${t('nav.passengerList')}</a>
+                <a class="nav-link" href="#/history"><i class="bi bi-clock-history me-1"></i>${t('nav.scanHistory')}</a>
+                <a class="nav-link" href="#/reports"><i class="bi bi-file-earmark-pdf me-1"></i>${t('nav.reports')}</a>
+                <a class="nav-link" href="#/pending"><i class="bi bi-hourglass-split me-1"></i>${t('nav.pendingApproval')}</a>
               </div>
-              <div class="navbar-nav ms-auto">
+              <div class="navbar-nav ms-auto align-items-center">
                 <a class="nav-link" href="#/settings">
                   <i class="bi bi-gear-fill me-1"></i>${t('nav.settings')}
                 </a>
-                <div class="nav-item dropdown">
-                   <button class="btn btn-link nav-link dropdown-toggle" id="langDropdown" data-bs-toggle="dropdown">
-                     ${t('settings.language')}
-                   </button>
-                   <ul class="dropdown-menu dropdown-menu-end">
-                     <li><button class="dropdown-item" onclick="window.setAppLanguage('ar')">العربية</button></li>
-                     <li><button class="dropdown-item" onclick="window.setAppLanguage('en')">English</button></li>
-                   </ul>
+                <div class="btn-group ms-2">
+                  <button class="btn btn-sm btn-outline-light" id="btn-lang-ar">العربية</button>
+                  <button class="btn btn-sm btn-outline-light" id="btn-lang-en">English</button>
                 </div>
               </div>
             </div>
@@ -71,12 +66,23 @@ async function init() {
 
     app.innerHTML = html;
 
-    // Expose language switcher to window for onclick handlers
-    window.setAppLanguage = async (lang) => {
-      await setLanguage(lang);
-      // Re-render nav (simplest way to update translations in nav)
-      init(); 
-    };
+    // Language switcher event listeners (NOT inline onclick — CSP blocks those)
+    document.getElementById('btn-lang-ar').addEventListener('click', async () => {
+      await setLanguage('ar');
+      init();
+    });
+    document.getElementById('btn-lang-en').addEventListener('click', async () => {
+      await setLanguage('en');
+      init();
+    });
+
+    // Highlight the active language button
+    const currentLang = document.documentElement.lang || 'ar';
+    if (currentLang === 'ar') {
+      document.getElementById('btn-lang-ar').classList.replace('btn-outline-light', 'btn-light');
+    } else {
+      document.getElementById('btn-lang-en').classList.replace('btn-outline-light', 'btn-light');
+    }
 
     // Initialize Router
     initRouter(document.getElementById('content-area'));
