@@ -139,6 +139,15 @@ async function initialize() {
 
 app.on('ready', async () => {
   try {
+    // Set dock icon on macOS (BrowserWindow.icon doesn't affect the dock)
+    if (process.platform === 'darwin' && app.dock && config.appIcon) {
+      try {
+        app.dock.setIcon(config.appIcon);
+      } catch (e) {
+        logger.warn('Could not set dock icon:', e.message);
+      }
+    }
+
     await initialize();
     createWindow();
   } catch (err) {

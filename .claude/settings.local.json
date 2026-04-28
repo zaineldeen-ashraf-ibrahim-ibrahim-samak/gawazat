@@ -9,7 +9,9 @@
       "Bash(iconutil -c icns /Users/placeholder/Desktop/gwazat/gawazat-master/passport-app/renderer/assets/icon.iconset -o /Users/placeholder/Desktop/gwazat/gawazat-master/passport-app/renderer/assets/icon.icns)",
       "Bash(cp /tmp/source_icon.png /Users/placeholder/Desktop/gwazat/gawazat-master/passport-app/renderer/assets/icon_source.png)",
       "Bash(python3 -)",
-      "Bash(pip3 install *)"
+      "Bash(pip3 install *)",
+      "Bash(node -e ' *)",
+      "Bash(node *)"
     ]
   }
 }
