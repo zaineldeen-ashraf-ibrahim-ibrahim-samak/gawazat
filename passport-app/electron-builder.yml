@@ -9,13 +9,12 @@
 
 appId: ${env.APP_ID}
 productName: ${env.APP_NAME}
+defaultArch: x64
 directories:
   output: dist
 win:
   target:
-    - target: nsis
-      arch:
-        - x64
+    - nsis
   icon: ${env.APP_ICON}
 nsis:
   oneClick: false
