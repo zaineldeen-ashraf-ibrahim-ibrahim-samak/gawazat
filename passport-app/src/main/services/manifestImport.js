@@ -5,7 +5,7 @@
  */
 
 const XLSX = require('xlsx');
-const { normalizePassportNumber } = require('../shared/normalize');
+const { normalizePassportNumber } = require('../../shared/normalize');
 
 /**
  * @typedef {Object} ImportError

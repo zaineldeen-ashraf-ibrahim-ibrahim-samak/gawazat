@@ -1,7 +1,336 @@
-// Placeholder manifest handlers - will be implemented in Phase 3
-module.exports = {
-  import: async () => ({ ok: false, error: 'Not implemented' }),
-  downloadTemplate: async () => ({ ok: false, error: 'Not implemented' }),
-  list: async () => [],
-  exportFiltered: async () => ({ ok: false, error: 'Not implemented' }),
-};
+/**
+ * IPC Handlers for Manifest Management
+ * Handles: import, downloadTemplate, list, exportFiltered
+ */
+
+const path = require('path');
+const fs = require('fs');
+const XLSX = require('xlsx');
+const { parseFile } = require('../services/manifestImport');
+const { makePassenger, makeVoyage } = require('../../shared/entities');
+const { rebuildIndices } = require('../store/indices');
+const logger = require('../services/logger');
+
+/**
+ * Create manifest handlers for the current store instance
+ * @param {Object} store - EncryptedStore instance
+ * @returns {Object} Handlers object
+ */
+function createManifestHandlers(store) {
+  return {
+    /**
+     * Import an Excel manifest file
+     * @param {{filePath: string}} args - Path to Excel file
+     * @returns {Promise<{ok: boolean, voyage?: Voyage, passengers?: Passenger[], errors?: ImportError[], message?: string}>}
+     */
+    import: async (args) => {
+      try {
+        const { filePath } = args;
+
+        if (!filePath || typeof filePath !== 'string') {
+          return { ok: false, message: 'Invalid file path' };
+        }
+
+        // Parse and validate the file
+        const parseResult = parseFile(filePath);
+
+        if (parseResult.errors.length > 0) {
+          logger.warn(`Import validation errors: ${parseResult.errors.length} total`);
+          return {
+            ok: false,
+            errors: parseResult.errors,
+            message: `File contains ${parseResult.errors.length} validation error(s)`
+          };
+        }
+
+        // Extract passing rows
+        const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
+
+        if (passingRows.length === 0) {
+          return {
+            ok: false,
+            message: 'No valid rows in file',
+            errors: parseResult.rows.filter(r => r.outcome === 'Error').flatMap(r => r.errors)
+          };
+        }
+
+        // Create a new voyage (atomically replace the current one)
+        const state = store.getState();
+        const settings = state.appSettings || {};
+
+        const voyage = makeVoyage({
+          ship_name: settings.ship_name || '',
+          port_name: settings.port_name || 'Port Said',
+          imported_at: new Date().toISOString()
+        });
+
+        // Create passenger records
+        const passengers = passingRows.map(row => {
+          return makePassenger({
+            passport_number: row.passport_number,
+            passport_number_normalized: row.passport_number_normalized,
+            name: row.name,
+            gender: row.gender,
+            nationality: row.nationality,
+            date_of_birth: row.date_of_birth,
+            vessel: row.vessel,
+            seat: row.seat,
+            source: 'manifest'
+          });
+        });
+
+        // Atomically update store: replace voyage and manifest
+        store.mutate((draft) => {
+          draft.voyage = voyage;
+          draft.manifest = passengers;
+          // Clear previous scan events, boarding records, pending entries
+          draft.scan_events = [];
+          draft.boarding_records = {};
+          draft.pending_approval = [];
+        });
+
+        // Rebuild indices
+        rebuildIndices(store.getState());
+
+        logger.info(`Imported ${passengers.length} passengers for voyage ${voyage.id}`);
+
+        return {
+          ok: true,
+          voyage,
+          passengers,
+          errors: [] // Return any warnings/non-blocking issues if needed
+        };
+      } catch (err) {
+        logger.error(`Import failed: ${err.message}`);
+        return {
+          ok: false,
+          message: `Import failed: ${err.message}`
+        };
+      }
+    },
+
+    /**
+     * Download a blank template Excel file
+     * @param {{savePath: string}} args - Where to save the template
+     * @returns {Promise<{ok: boolean, message?: string}>}
+     */
+    downloadTemplate: async (args) => {
+      try {
+        const { savePath } = args;
+
+        if (!savePath || typeof savePath !== 'string') {
+          return { ok: false, message: 'Invalid save path' };
+        }
+
+        // Create sheet 1: Template with header row only
+        const templateData = [
+          [
+            'رقم الجواز',     // passport_number
+            'الاسم',           // name
+            'النوع',           // gender
+            'الجنسية',         // nationality
+            'تاريخ الميلاد',   // date_of_birth
+            'السفينة',         // vessel (optional)
+            'المقعد'           // seat (optional)
+          ],
+          // One sample row for reference
+          [
+            'EG123456',
+            'محمد علي أحمد',
+            'M',
+            'EGY',
+            '1990-05-15',
+            '',
+            ''
+          ]
+        ];
+
+        const wsTemplate = XLSX.utils.aoa_to_sheet(templateData);
+        wsTemplate['!cols'] = [
+          { wch: 15 }, // passport
+          { wch: 25 }, // name
+          { wch: 10 }, // gender
+          { wch: 10 }, // nationality
+          { wch: 15 }, // DOB
+          { wch: 15 }, // vessel
+          { wch: 10 }  // seat
+        ];
+
+        // Create sheet 2: Instructions
+        const instructionsData = [
+          ['الحقل', 'الصيغة', 'ملاحظات', ''],
+          ['رقم الجواز', 'نص، ≥5 أحرف', 'مطلوب', ''],
+          ['الاسم', 'نص', 'مطلوب', ''],
+          ['النوع', 'M/F أو Male/Female أو ذكر/أنثى', 'مطلوب', ''],
+          ['الجنسية', 'كود ISO 3 أحرف (مثل EGY)', 'مطلوب', ''],
+          ['تاريخ الميلاد', 'YYYY-MM-DD أو تاريخ Excel', 'مطلوب، يجب أن يكون في الماضي', ''],
+          ['السفينة', 'نص', 'اختياري', ''],
+          ['المقعد', 'نص', 'اختياري', '']
+        ];
+
+        const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
+        wsInstructions['!cols'] = [{ wch: 30 }, { wch: 40 }, { wch: 50 }, { wch: 20 }];
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, wsTemplate, 'Template');
+        XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions');
+
+        // Ensure directory exists
+        const dir = path.dirname(savePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+
+        // Write file
+        XLSX.write(wb, { bookType: 'xlsx', type: 'file', file: savePath });
+
+        logger.info(`Template saved to ${savePath}`);
+        return { ok: true };
+      } catch (err) {
+        logger.error(`Template download failed: ${err.message}`);
+        return { ok: false, message: `Template download failed: ${err.message}` };
+      }
+    },
+
+    /**
+     * List passengers with optional filtering
+     * @param {{filter?: string, search?: string}} args - Filter and search options
+     * @returns {Promise<Passenger[]>}
+     */
+    list: async (args) => {
+      try {
+        const { filter, search } = args || {};
+        const state = store.getState();
+        const manifest = state.manifest || [];
+        const boarding = state.boarding_records || {};
+
+        let results = manifest;
+
+        // Apply status filter
+        if (filter === 'entered') {
+          results = results.filter(p => {
+            const normalized = p.passport_number_normalized;
+            return boarding[normalized] !== undefined;
+          });
+        } else if (filter === 'pending') {
+          results = results.filter(p => {
+            const normalized = p.passport_number_normalized;
+            return boarding[normalized] === undefined;
+          });
+        } else if (filter === 'M' || filter === 'F') {
+          // Gender filter
+          results = results.filter(p => p.gender === filter);
+        }
+        // 'all' means no additional filtering
+
+        // Apply search filter
+        if (search && typeof search === 'string') {
+          const searchLower = search.trim().toLowerCase();
+          results = results.filter(p => {
+            return (
+              p.name.toLowerCase().includes(searchLower) ||
+              p.passport_number_normalized.toLowerCase().includes(searchLower) ||
+              (p.passport_number && p.passport_number.toLowerCase().includes(searchLower))
+            );
+          });
+        }
+
+        return results;
+      } catch (err) {
+        logger.error(`List failed: ${err.message}`);
+        return [];
+      }
+    },
+
+    /**
+     * Export filtered passengers to Excel
+     * @param {{filter?: string, search?: string, savePath: string}} args
+     * @returns {Promise<{ok: boolean, count?: number, message?: string}>}
+     */
+    exportFiltered: async (args) => {
+      try {
+        const { filter, search, savePath } = args || {};
+
+        if (!savePath) {
+          return { ok: false, message: 'Save path is required' };
+        }
+
+        // Get filtered list
+        const passengers = await this.list({ filter, search });
+
+        if (passengers.length === 0) {
+          return { ok: false, message: 'No passengers to export' };
+        }
+
+        // Build export data with boarding status
+        const state = store.getState();
+        const boarding = state.boarding_records || {};
+
+        const headers = [
+          'رقم الجواز',
+          'الاسم',
+          'النوع',
+          'الجنسية',
+          'تاريخ الميلاد',
+          'السفينة',
+          'المقعد',
+          'حالة الدخول',
+          'وقت الدخول'
+        ];
+
+        const data = [headers];
+
+        for (const p of passengers) {
+          const normalized = p.passport_number_normalized;
+          const boardingRecord = boarding[normalized];
+          const boardingStatus = boardingRecord ? 'تم الدخول' : 'في الانتظار';
+          const enteredAt = boardingRecord ? boardingRecord.entered_at : '';
+
+          data.push([
+            p.passport_number,
+            p.name,
+            p.gender,
+            p.nationality,
+            p.date_of_birth,
+            p.vessel || '',
+            p.seat || '',
+            boardingStatus,
+            enteredAt
+          ]);
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws['!cols'] = [
+          { wch: 15 }, // passport
+          { wch: 25 }, // name
+          { wch: 10 }, // gender
+          { wch: 10 }, // nationality
+          { wch: 15 }, // dob
+          { wch: 15 }, // vessel
+          { wch: 10 }, // seat
+          { wch: 15 }, // status
+          { wch: 20 }  // entered_at
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Passengers');
+
+        const dir = path.dirname(savePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+
+        XLSX.write(wb, { bookType: 'xlsx', type: 'file', file: savePath });
+
+        logger.info(`Exported ${passengers.length} passengers to ${savePath}`);
+        return { ok: true, count: passengers.length };
+      } catch (err) {
+        logger.error(`Export failed: ${err.message}`);
+        return { ok: false, message: `Export failed: ${err.message}` };
+      }
+    }
+  };
+}
+
+module.exports = { createManifestHandlers };

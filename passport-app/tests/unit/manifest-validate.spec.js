@@ -4,7 +4,7 @@ const path = require('path');
 const { parseFile, validateRow } = require('../../src/main/services/manifestImport');
 
 describe('Manifest Import Validation', () => {
-  const fixturesDir = path.join(__dirname, '../../fixtures');
+  const fixturesDir = path.join(__dirname, '../fixtures');
 
   describe('validateRow', () => {
     it('should validate a correct passenger row', () => {
@@ -81,7 +81,7 @@ describe('Manifest Import Validation', () => {
 
       testCases.forEach((gender, idx) => {
         const row = {
-          passport_number: `EG${idx}`,
+          passport_number: `EG0000${idx}`, // Make sure normalized length >= 5
           name: `Name ${idx}`,
           gender,
           nationality: 'EGY',
