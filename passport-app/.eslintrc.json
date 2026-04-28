@@ -12,5 +12,13 @@
   "rules": {
     "no-unused-vars": ["warn", { "args": "none" }],
     "no-console": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["tests/**/*.spec.js"],
+      "env": {
+        "mocha": true
+      }
+    }
+  ]
 }

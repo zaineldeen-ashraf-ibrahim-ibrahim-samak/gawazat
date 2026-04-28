@@ -1,3 +1,4 @@
+/* eslint-env mocha */
 const { expect } = require('chai');
 const { normalizePassportNumber } = require('../../src/shared/normalize');
 

@@ -1,3 +1,4 @@
+/* eslint-env mocha */
 const { expect } = require('chai');
 const { parseMrz } = require('../../src/shared/mrz');
 

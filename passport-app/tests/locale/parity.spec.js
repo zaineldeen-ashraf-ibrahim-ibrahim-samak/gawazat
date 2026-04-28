@@ -1,3 +1,4 @@
+/* eslint-env mocha */
 const { expect } = require('chai');
 const ar = require('../../renderer/i18n/locales/ar.json');
 const en = require('../../renderer/i18n/locales/en.json');
