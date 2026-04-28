@@ -31,10 +31,10 @@ async function createWindow() {
 
   // Load the app
   const isDev = process.env.NODE_ENV === 'development';
-  const url = isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '..', 'renderer', 'index.html')}`;
+  const url = isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '..', '..', 'renderer', 'index.html')}`;
   
   // For now, since we don't have a dev server, load from file
-  mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, '..', '..', 'renderer', 'index.html'));
 
   // Open DevTools in development
   if (isDev || process.argv.includes('--debug')) {

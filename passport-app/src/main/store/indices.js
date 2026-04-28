@@ -1,4 +1,4 @@
-const { normalizePassportNumber } = require('../shared/normalize');
+const { normalizePassportNumber } = require('../../shared/normalize');
 
 /**
  * Rebuild in-memory indices from state

@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { app, safeStorage } = require('electron');
-const { makeVoyage, makeAppSettings } = require('../shared/entities');
-const logger = require('./logger');
+const { makeVoyage, makeAppSettings } = require('../../shared/entities');
+const logger = require('../services/logger');
 
 /**
  * Encrypted JSON store for all application state
