@@ -13,8 +13,9 @@ directories:
   output: dist
 win:
   target:
-    - nsis
-  x64: true
+    - target: nsis
+      arch:
+        - x64
   icon: ${env.APP_ICON}
 nsis:
   oneClick: false
