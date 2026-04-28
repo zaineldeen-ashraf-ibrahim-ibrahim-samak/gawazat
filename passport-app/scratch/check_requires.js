@@ -1,28 +1,59 @@
+// Test all module requires and factory initialization
 const path = require('path');
 
-// Mock store
 const store = {
   getState: () => ({
+    schemaVersion: 1,
+    voyage: null,
     manifest: [],
-    boarding_records: {},
     scan_events: [],
+    boarding_records: {},
     pending_approval: [],
-    appSettings: {}
+    settings: {
+      scan_mode: 'keyboard',
+      regula_url: 'http://localhost:8080',
+      ship_name: '',
+      auto_reset_seconds: 3,
+    }
   }),
-  mutate: () => {}
+  mutate: (fn) => {}
 };
 
-try {
-  console.log('Testing factory functions...');
-  const manifest = require('../src/main/ipc/manifestHandlers').createManifestHandlers(store);
-  const scan = require('../src/main/ipc/scanHandlers').createScanHandlers(store);
-  const pending = require('../src/main/ipc/pendingHandlers').createPendingHandlers(store);
-  const history = require('../src/main/ipc/historyHandlers').createHistoryHandlers(store);
-  const reports = require('../src/main/ipc/reportHandlers').createReportHandlers(store);
-  const settings = require('../src/main/ipc/settingsHandlers').createSettingsHandlers(store);
-  const dashboard = require('../src/main/ipc/dashboardHandlers').createDashboardHandlers(store);
-  console.log('All factory functions executed successfully');
-} catch (err) {
-  console.error('Factory failed:', err);
-  process.exit(1);
+const tests = [
+  ['manifestHandlers', '../src/main/ipc/manifestHandlers', 'createManifestHandlers'],
+  ['scanHandlers', '../src/main/ipc/scanHandlers', 'createScanHandlers'],
+  ['pendingHandlers', '../src/main/ipc/pendingHandlers', 'createPendingHandlers'],
+  ['historyHandlers', '../src/main/ipc/historyHandlers', 'createHistoryHandlers'],
+  ['reportHandlers', '../src/main/ipc/reportHandlers', 'createReportHandlers'],
+  ['settingsHandlers', '../src/main/ipc/settingsHandlers', 'createSettingsHandlers'],
+  ['dashboardHandlers', '../src/main/ipc/dashboardHandlers', 'createDashboardHandlers'],
+];
+
+let allPassed = true;
+for (const [name, modPath, factory] of tests) {
+  try {
+    const mod = require(modPath);
+    const handlers = mod[factory](store);
+    const methods = Object.keys(handlers);
+    console.log(`✓ ${name}: ${methods.join(', ')}`);
+  } catch (err) {
+    console.error(`✗ ${name}: ${err.message}`);
+    allPassed = false;
+  }
 }
+
+// Check entities
+try {
+  const entities = require('../src/shared/entities');
+  const event = entities.makeScanEvent({ passport_number_normalized: 'TEST123', passenger_id: 'pid1', outcome: 'green' });
+  console.log(`✓ makeScanEvent: passport_number_normalized=${event.passport_number_normalized}, passenger_id=${event.passenger_id}, at=${event.at}`);
+  
+  const boarding = entities.makeBoardingRecord({ passenger_id: 'pid1', passport_number_normalized: 'TEST123', scan_event_id: 'sid1' });
+  console.log(`✓ makeBoardingRecord: passenger_id=${boarding.passenger_id}, last_scan_event_id=${boarding.last_scan_event_id}`);
+} catch (err) {
+  console.error(`✗ entities: ${err.message}`);
+  allPassed = false;
+}
+
+console.log(allPassed ? '\n✓ ALL TESTS PASSED' : '\n✗ SOME TESTS FAILED');
+process.exit(allPassed ? 0 : 1);

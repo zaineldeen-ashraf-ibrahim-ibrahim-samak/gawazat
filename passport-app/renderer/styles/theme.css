@@ -1,35 +1,43 @@
-/* Seaport Passport Scanner Theme */
-/* Dark navy palette matching the design */
+/* ═══════════════════════════════════════════════════════
+   Seaport Passport Scanner — Premium Dark Theme
+   ═══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
 
 :root {
-  --bg: #0b1d3a;
-  --panel: #102a4c;
+  --bg: #060e1a;
+  --bg-secondary: #0c1929;
+  --panel: #0f2240;
+  --panel-hover: #142d54;
   --accent: #f4b942;
+  --accent-glow: rgba(244, 185, 66, 0.15);
   --green: #22c55e;
+  --green-glow: rgba(34, 197, 94, 0.12);
   --yellow: #eab308;
   --orange: #f97316;
   --red: #ef4444;
   --text: #e6edf7;
+  --text-dim: #8ba3c7;
   --border: #1e3a5f;
+  --border-glow: rgba(30, 58, 95, 0.6);
+  --radius: 12px;
+  --transition: all 0.2s ease;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   margin: 0;
   padding: 0;
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
   height: 100%;
   width: 100%;
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-  overflow: hidden;
-}
+body { overflow: hidden; }
 
 #app {
   height: 100%;
@@ -37,76 +45,276 @@ body {
   flex-direction: column;
 }
 
-/* Bootstrap overrides */
-.btn-primary {
-  background-color: var(--accent);
+/* ── NAVBAR ── */
+.navbar {
+  background: linear-gradient(135deg, var(--panel) 0%, var(--bg-secondary) 100%) !important;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  backdrop-filter: blur(12px);
+}
+
+.navbar-brand {
+  color: var(--accent) !important;
+  font-weight: 700 !important;
+  font-size: 1.2rem !important;
+  letter-spacing: 0.5px;
+}
+
+.navbar .nav-link {
+  color: var(--text-dim) !important;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.6rem 0.8rem !important;
+  border-radius: 8px;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.navbar .nav-link:hover {
+  color: var(--text) !important;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.navbar .nav-link i {
+  opacity: 0.7;
+}
+
+.navbar .nav-link:hover i {
+  opacity: 1;
+}
+
+/* Language toggle buttons */
+.btn-group .btn-outline-light {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.75rem;
+  border-color: var(--border);
+  color: var(--text-dim);
+  transition: var(--transition);
+}
+
+.btn-group .btn-outline-light:hover {
+  background: var(--accent);
   border-color: var(--accent);
   color: var(--bg);
 }
 
-.btn-primary:hover {
-  background-color: #e6a830;
-  border-color: #e6a830;
+.btn-group .btn-light {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--bg) !important;
+  font-weight: 700;
+}
+
+/* ── CARDS ── */
+.card {
+  background: linear-gradient(180deg, var(--panel) 0%, var(--bg-secondary) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.card:hover {
+  border-color: rgba(244, 185, 66, 0.3);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── BUTTONS ── */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, #e6a830 100%);
+  border: none;
   color: var(--bg);
+  font-weight: 700;
+  border-radius: 8px;
+  transition: var(--transition);
+  box-shadow: 0 2px 8px rgba(244, 185, 66, 0.25);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #e6a830 0%, #d49520 100%);
+  color: var(--bg);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(244, 185, 66, 0.35);
+}
+
+.btn-outline-info {
+  border-color: var(--border);
+  color: var(--text-dim);
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.btn-outline-info:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+.btn-outline-secondary {
+  border-color: var(--border);
+  color: var(--text-dim);
+  border-radius: 8px;
+}
+
+.btn-outline-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-dim);
+  color: var(--text);
+}
+
+.btn-outline-danger {
+  border-radius: 8px;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--green) 0%, #16a34a 100%);
+  border: none;
+  font-weight: 700;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
 }
 
 .btn-danger {
   background-color: var(--red);
   border-color: var(--red);
+  border-radius: 8px;
 }
 
-.card {
-  background-color: var(--panel);
-  border-color: var(--border);
-  color: var(--text);
-}
-
+/* ── TABLES ── */
 .table {
   color: var(--text);
 }
 
 .table-dark {
-  background-color: var(--panel);
-  color: var(--text);
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text);
+  --bs-table-border-color: var(--border);
 }
 
-.table-dark tbody + tbody,
-.table-dark td,
-.table-dark th {
-  border-color: var(--border);
+.table-dark thead th {
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border);
 }
 
-.form-control {
-  background-color: var(--panel);
-  border-color: var(--border);
-  color: var(--text);
+.table-dark tbody tr {
+  transition: var(--transition);
 }
 
-.form-control:focus {
-  background-color: var(--panel);
-  border-color: var(--accent);
-  color: var(--text);
-  box-shadow: 0 0 0 0.2rem rgba(244, 185, 66, 0.25);
+.table-dark tbody tr:hover {
+  background: rgba(244, 185, 66, 0.04);
 }
 
-.nav {
-  background-color: var(--panel);
-  border-bottom: 1px solid var(--border);
+.table-dark td {
+  border-color: rgba(30, 58, 95, 0.4);
+  padding: 0.75rem;
+  vertical-align: middle;
 }
 
-.nav-link {
+/* ── FORMS ── */
+.form-control,
+.form-select {
+  background-color: var(--bg) !important;
+  border: 1px solid var(--border) !important;
   color: var(--text) !important;
-  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  transition: var(--transition);
 }
 
-.nav-link:hover,
-.nav-link.active {
-  background-color: var(--bg);
-  color: var(--accent) !important;
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow) !important;
 }
 
-.alert {
-  border-color: var(--border);
+.form-label {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+
+/* ── BADGES ── */
+.badge {
+  font-weight: 600;
+  padding: 0.35em 0.65em;
+  border-radius: 6px;
+}
+
+.bg-success { background-color: var(--green) !important; }
+.bg-warning { background-color: var(--yellow) !important; }
+.bg-danger { background-color: var(--red) !important; }
+.bg-orange { background-color: var(--orange) !important; }
+
+/* ── PROGRESS ── */
+.progress {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  transition: width 0.6s ease;
+}
+
+/* ── IMPORT PAGE ── */
+.import-dropzone {
+  border: 2px dashed var(--border) !important;
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  transition: var(--transition);
+  cursor: pointer;
+  min-height: 200px;
+}
+
+.import-dropzone:hover,
+.import-dropzone.border-primary {
+  border-color: var(--accent) !important;
+  background: var(--accent-glow);
+}
+
+/* ── SCAN PAGE ── */
+.page-scan .transition-all {
+  transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+
+/* Color utility classes */
+.text-green { color: var(--green) !important; }
+.text-yellow { color: var(--yellow) !important; }
+.text-orange { color: var(--orange) !important; }
+.text-red { color: var(--red) !important; }
+.text-accent { color: var(--accent) !important; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* ── ALERTS / EMPTY STATES ── */
+.text-muted {
+  color: var(--text-dim) !important;
 }
 
 .alert-info {
@@ -115,27 +323,44 @@ body {
   border-color: var(--accent);
 }
 
-/* Utility classes */
-.text-success {
-  color: var(--green) !important;
+/* ── DROPDOWN (for any remaining Bootstrap dropdowns) ── */
+.dropdown-menu {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-.text-warning {
-  color: var(--yellow) !important;
+.dropdown-item {
+  color: var(--text);
+  transition: var(--transition);
 }
 
-.text-danger {
-  color: var(--red) !important;
+.dropdown-item:hover {
+  background: rgba(244, 185, 66, 0.1);
+  color: var(--accent);
 }
 
-.bg-success {
-  background-color: rgba(34, 197, 94, 0.1) !important;
+/* ── LIST GROUP ── */
+.list-group-item {
+  transition: var(--transition);
 }
 
-.bg-warning {
-  background-color: rgba(234, 179, 8, 0.1) !important;
+.list-group-item:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
 }
 
-.bg-danger {
-  background-color: rgba(239, 68, 68, 0.1) !important;
+/* ── PAGE TITLE ── */
+h1 {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 1.8rem;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 992px) {
+  .navbar .nav-link {
+    padding: 0.5rem 0.6rem !important;
+    font-size: 0.8rem;
+  }
 }

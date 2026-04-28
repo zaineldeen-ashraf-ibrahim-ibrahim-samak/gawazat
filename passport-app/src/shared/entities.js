@@ -99,6 +99,8 @@ function makeScanEvent(data = {}) {
     mode: data.mode || 'keyboard',
     outcome: data.outcome || 'read-failed',
     mrz_fields: data.mrz_fields || {},
+    passport_number_normalized: data.passport_number_normalized || null,
+    passenger_id: data.passenger_id || null,
     linked_passport_number_normalized: data.linked_passport_number_normalized || null,
     linked_pending_id: data.linked_pending_id || null,
   };
@@ -106,11 +108,12 @@ function makeScanEvent(data = {}) {
 
 function makeBoardingRecord(data = {}) {
   return {
+    passenger_id: data.passenger_id || '',
     passport_number_normalized: data.passport_number_normalized || '',
     voyage_id: data.voyage_id || '',
     entered_at: new Date().toISOString(),
     via: data.via || 'auto',
-    last_scan_event_id: data.last_scan_event_id || '',
+    last_scan_event_id: data.scan_event_id || data.last_scan_event_id || '',
   };
 }
 
