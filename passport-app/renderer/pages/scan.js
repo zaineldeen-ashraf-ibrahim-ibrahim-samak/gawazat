@@ -93,10 +93,15 @@ export async function renderScan(container) {
     }
   };
 
-  // Global key shortcuts
+  // Global key shortcuts (cross-platform: Ctrl for Win/Linux, ⌘ for macOS)
   const keyHandler = (e) => {
     if (e.key === 'Escape') clearScan(autoResetSeconds);
-    if (e.key === 'F5') clearScan(autoResetSeconds);
+    if (e.key === 'F5') { e.preventDefault(); clearScan(autoResetSeconds); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      const undoBtn = document.getElementById('btn-undo');
+      if (undoBtn && !undoBtn.classList.contains('d-none')) undoBtn.click();
+    }
   };
   window.addEventListener('keydown', keyHandler);
   

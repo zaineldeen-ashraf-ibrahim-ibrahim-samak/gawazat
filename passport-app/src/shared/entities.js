@@ -131,9 +131,11 @@ function makePendingApprovalEntry(data = {}) {
 
 function makeAppSettings() {
   return {
-    scan_mode: 'api',
+    scan_mode: 'keyboard',
     regula_url: 'http://localhost:8080',
     regula_poll_ms: 500,
+    penta_url: 'http://localhost:8085',
+    penta_poll_ms: 500,
     ship_name: '',
     port_name: 'Port Said',
     auto_reset_seconds: 3,

@@ -5,8 +5,7 @@ out/
 .DS_Store
 coverage/
 userData/
-.env
-.env.local
+
 *.swp
 *.swo
 *~
