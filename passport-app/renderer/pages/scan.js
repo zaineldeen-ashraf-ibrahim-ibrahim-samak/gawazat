@@ -26,7 +26,7 @@ export async function renderScan(container) {
         <div id="scan-prompt" class="text-center">
           <i class="bi bi-person-bounding-box display-1 mb-4 text-muted"></i>
           <h2 class="display-4 mb-3">${t('scan.placeMrz')}</h2>
-          <p class="text-muted fs-4">F1: Scan | F5: Reset | Esc: Clear</p>
+          <p class="text-muted fs-4">${t('scan2.shortcutsHint')}</p>
         </div>
 
         <div id="scan-result" class="d-none w-100 text-center">

@@ -71,7 +71,33 @@
     }
   },
   "history": {
-    "export": "تصدير"
+    "export": "تصدير",
+    "table": {
+      "mode": "الوضع"
+    },
+    "badge": {
+      "manualEntered": "إدخال يدوي",
+      "undone": "تم التراجع",
+      "approvedManual": "موافقة (يدوي)",
+      "rejectedManual": "رفض (يدوي)"
+    }
+  },
+  "dashboard": {
+    "badge": {
+      "duplicate": "مكرر",
+      "error": "خطأ"
+    }
+  },
+  "shortcuts": {
+    "title": "اختصارات لوحة المفاتيح",
+    "submitMrz": "إرسال MRZ (في شاشة المسح)",
+    "clearResult": "مسح نتيجة القراءة",
+    "resetScan": "إعادة تعيين المسح",
+    "undo": "التراجع عن آخر إدخال (أخضر)",
+    "hint": "اضغط {{combo}} في أي وقت لإظهار/إخفاء هذه النافذة"
+  },
+  "scan2": {
+    "shortcutsHint": "F1: مسح | F5: إعادة | Esc: مسح النتيجة"
   },
   "reports": {
     "full": "تقرير كامل",

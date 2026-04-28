@@ -77,22 +77,22 @@ async function init() {
           <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark border-secondary text-white">
               <div class="modal-header border-secondary">
-                <h5 class="modal-title"><i class="bi bi-keyboard me-2"></i>${t('settings.language') === 'اللغة' ? 'اختصارات لوحة المفاتيح' : 'Keyboard Shortcuts'}</h5>
+                <h5 class="modal-title"><i class="bi bi-keyboard me-2"></i>${t('shortcuts.title')}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body p-0">
                 <table class="table table-dark table-hover mb-0">
                   <tbody>
-                    <tr><td class="text-end"><kbd>${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + /</kbd></td><td>Help / Shortcuts</td></tr>
-                    <tr><td class="text-end"><kbd>Enter</kbd></td><td>Submit MRZ (on Scan page)</td></tr>
-                    <tr><td class="text-end"><kbd>Escape</kbd></td><td>Clear scan result</td></tr>
-                    <tr><td class="text-end"><kbd>F5</kbd></td><td>Reset scan</td></tr>
-                    <tr><td class="text-end"><kbd>${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + Z</kbd></td><td>Undo last entry (green)</td></tr>
+                    <tr><td class="text-end"><kbd>${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + /</kbd></td><td>${t('shortcuts.title')}</td></tr>
+                    <tr><td class="text-end"><kbd>Enter</kbd></td><td>${t('shortcuts.submitMrz')}</td></tr>
+                    <tr><td class="text-end"><kbd>Escape</kbd></td><td>${t('shortcuts.clearResult')}</td></tr>
+                    <tr><td class="text-end"><kbd>F5</kbd></td><td>${t('shortcuts.resetScan')}</td></tr>
+                    <tr><td class="text-end"><kbd>${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + Z</kbd></td><td>${t('shortcuts.undo')}</td></tr>
                   </tbody>
                 </table>
               </div>
               <div class="modal-footer border-secondary justify-content-center">
-                <small class="text-muted">Press <kbd>${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + /</kbd> anytime to toggle this dialog</small>
+                <small class="text-muted">${t('shortcuts.hint', { combo: `<kbd>${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + /</kbd>` })}</small>
               </div>
             </div>
           </div>

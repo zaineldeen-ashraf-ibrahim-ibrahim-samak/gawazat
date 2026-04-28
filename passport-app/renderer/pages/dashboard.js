@@ -96,8 +96,8 @@ function getOutcomeBadge(outcome) {
   switch (outcome) {
     case 'green': return `<span class="badge bg-success">✓</span>`;
     case 'yellow': return `<span class="badge bg-warning text-dark">!</span>`;
-    case 'orange': return `<span class="badge bg-orange">X2</span>`;
-    case 'read-failed': return `<span class="badge bg-danger">ERR</span>`;
+    case 'orange': return `<span class="badge bg-orange">${t('dashboard.badge.duplicate')}</span>`;
+    case 'read-failed': return `<span class="badge bg-danger">${t('dashboard.badge.error')}</span>`;
     default: return `<span class="badge bg-secondary">${outcome}</span>`;
   }
 }

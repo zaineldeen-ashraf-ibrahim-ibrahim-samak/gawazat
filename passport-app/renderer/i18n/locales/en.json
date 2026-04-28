@@ -71,7 +71,33 @@
     }
   },
   "history": {
-    "export": "Export"
+    "export": "Export",
+    "table": {
+      "mode": "Mode"
+    },
+    "badge": {
+      "manualEntered": "Manual Entry",
+      "undone": "Undone",
+      "approvedManual": "Approved (Manual)",
+      "rejectedManual": "Rejected (Manual)"
+    }
+  },
+  "dashboard": {
+    "badge": {
+      "duplicate": "X2",
+      "error": "ERR"
+    }
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "submitMrz": "Submit MRZ (on Scan page)",
+    "clearResult": "Clear scan result",
+    "resetScan": "Reset scan",
+    "undo": "Undo last entry (green)",
+    "hint": "Press {{combo}} anytime to toggle this dialog"
+  },
+  "scan2": {
+    "shortcutsHint": "F1: Scan | F5: Reset | Esc: Clear"
   },
   "reports": {
     "full": "Full Report",

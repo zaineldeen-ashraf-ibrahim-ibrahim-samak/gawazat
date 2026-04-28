@@ -26,7 +26,7 @@ export async function renderScanHistory(container) {
                 <th>${t('import.table.status')}</th>
                 <th>${t('import.table.passport')}</th>
                 <th>${t('import.table.name')}</th>
-                <th>Mode</th>
+                <th>${t('history.table.mode')}</th>
               </tr>
             </thead>
             <tbody>
@@ -72,10 +72,10 @@ function getOutcomeBadge(outcome) {
     case 'yellow': return `<span class="badge bg-warning text-dark">${t('scan.yellow.title')}</span>`;
     case 'orange': return `<span class="badge bg-orange">${t('scan.orange.title')}</span>`;
     case 'read-failed': return `<span class="badge bg-danger">${t('scan.readFailed.title')}</span>`;
-    case 'manual-entered': return `<span class="badge bg-info text-dark">Manual Entry</span>`;
-    case 'operator-undone': return `<span class="badge bg-secondary">Undone</span>`;
-    case 'pending-approved': return `<span class="badge bg-success">Approved (Manual)</span>`;
-    case 'pending-rejected': return `<span class="badge bg-danger">Rejected (Manual)</span>`;
+    case 'manual-entered': return `<span class="badge bg-info text-dark">${t('history.badge.manualEntered')}</span>`;
+    case 'operator-undone': return `<span class="badge bg-secondary">${t('history.badge.undone')}</span>`;
+    case 'pending-approved': return `<span class="badge bg-success">${t('history.badge.approvedManual')}</span>`;
+    case 'pending-rejected': return `<span class="badge bg-danger">${t('history.badge.rejectedManual')}</span>`;
     default: return `<span class="badge bg-secondary">${outcome}</span>`;
   }
 }
