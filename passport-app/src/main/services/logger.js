@@ -2,10 +2,16 @@ const log = require('electron-log');
 const path = require('path');
 const { app } = require('electron');
 
-// Configure electron-log
-log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs', 'main.log');
-log.transports.file.maxSize = 5 * 1024 * 1024; // 5 MB
-log.transports.file.maxBackupSize = 5 * 1024 * 1024; // Keep max 5 files
+// Configure file transport
+log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), 'logs', 'main.log');
+log.transports.file.maxSize = 5 * 1024 * 1024; // 5 MB per file
+log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s}.{ms} [{level}] {text}';
+
+// In production: suppress console output (only write to file)
+// In dev: keep both console and file
+const isDev = process.env.NODE_ENV === 'development';
+log.transports.console.level = isDev ? 'debug' : false;
+log.transports.file.level = 'info';
 
 /**
  * PII redaction - strips sensitive fields from objects before logging
@@ -38,7 +44,10 @@ function redact(obj) {
 }
 
 /**
- * Create logger wrapper
+ * Production-safe logger
+ * - PII is always redacted
+ * - Console output suppressed in production
+ * - File logging always active
  */
 const logger = {
   info: (message, data) => {

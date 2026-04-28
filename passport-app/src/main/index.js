@@ -13,29 +13,47 @@ let mainWindow;
 let store;
 
 async function createWindow() {
-  // Security: Create window with locked-down settings
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    minWidth: 1280,
-    minHeight: 800,
+    minWidth: 1024,
+    minHeight: 700,
     frame: true,
     title: config.appName,
     backgroundColor: '#0b1d3a',
     icon: config.appIcon,
+    show: false, // Don't show until ready — prevents white flash
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      allowRunningInsecureContent: false,
+      enableRemoteModule: false,
     },
   });
 
-  mainWindow.webContents.on('console-message', (e, level, message, line, sourceId) => {
-    console.log(`[RENDERER LOG] ${message}`);
+  // ─── Production Security: Prevent navigation to external URLs ───
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    // Only allow file:// protocol (our local app)
+    if (!url.startsWith('file://')) {
+      event.preventDefault();
+      logger.warn(`Blocked navigation to: ${url}`);
+    }
   });
 
+  // ─── Production Security: Block new window creation ───
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    logger.warn(`Blocked window open: ${url}`);
+    return { action: 'deny' };
+  });
+
+  // ─── Show window when ready (smooth launch) ───
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    mainWindow.focus();
+  });
 
   // Load the app from file
   mainWindow.loadFile(path.join(__dirname, '..', '..', 'renderer', 'index.html'));
@@ -63,6 +81,12 @@ async function initialize() {
     // Set up CSP headers
     setCspHeaders();
 
+    // ─── Production Security: Disable permission requests ───
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+      // Deny all permission requests (camera, mic, geolocation, etc.)
+      callback(false);
+    });
+
     // Initialize encrypted store
     store = new EncryptedStore();
     await store.load();
@@ -77,28 +101,15 @@ async function initialize() {
     }
 
     // Register all IPC handlers
-    logger.info('Registering manifest handlers...');
     const manifestHandlers = require('./ipc/manifestHandlers').createManifestHandlers(store);
-    
-    logger.info('Registering scan handlers...');
     const scanHandlers = require('./ipc/scanHandlers').createScanHandlers(store);
-    
-    logger.info('Registering pending handlers...');
     const pendingHandlers = require('./ipc/pendingHandlers').createPendingHandlers(store);
-    
-    logger.info('Registering history handlers...');
     const historyHandlers = require('./ipc/historyHandlers').createHistoryHandlers(store);
-    
-    logger.info('Registering reports handlers...');
     const reportHandlers = require('./ipc/reportHandlers').createReportHandlers(store);
-    
-    logger.info('Registering settings handlers...');
     const settingsHandlers = require('./ipc/settingsHandlers').createSettingsHandlers(store);
-    
-    logger.info('Registering dashboard handlers...');
     const dashboardHandlers = require('./ipc/dashboardHandlers').createDashboardHandlers(store);
 
-    const handlers = {
+    registerAllHandlers({
       manifest: manifestHandlers,
       scan: scanHandlers,
       pending: pendingHandlers,
@@ -106,10 +117,7 @@ async function initialize() {
       reports: reportHandlers,
       settings: settingsHandlers,
       dashboard: dashboardHandlers,
-    };
-    
-    logger.info('Calling registerAllHandlers...');
-    registerAllHandlers(handlers);
+    });
 
     logger.info('IPC handlers registered');
 
@@ -124,7 +132,8 @@ async function initialize() {
   }
 }
 
-// App event handlers
+// ─── App Lifecycle ───────────────────────────────────────────────────
+
 app.on('ready', async () => {
   try {
     await initialize();
@@ -136,9 +145,8 @@ app.on('ready', async () => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  // Always quit on all platforms (this is a kiosk-style app, not a macOS multi-window app)
+  app.quit();
 });
 
 app.on('activate', () => {
@@ -147,11 +155,11 @@ app.on('activate', () => {
   }
 });
 
-// Handle app quit - save store
+// Save store before quitting
 app.on('before-quit', async () => {
   if (store) {
     try {
-      await store.save();
+      await store.forceSave();
       logger.info('Store saved on app quit');
     } catch (err) {
       logger.error('Failed to save store on quit:', err);
@@ -159,5 +167,17 @@ app.on('before-quit', async () => {
   }
 });
 
-// Export for testing
-module.exports = { createWindow, app, store };
+// ─── Process-level crash safety ──────────────────────────────────────
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception:', err.message);
+  logger.error(err.stack);
+  // Don't crash — try to save data first
+  if (store) {
+    try { store.save(); } catch (e) { /* last resort */ }
+  }
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled rejection:', reason);
+});
