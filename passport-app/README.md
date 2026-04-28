@@ -48,7 +48,7 @@ Produces `dist/بوابة المسافرين Setup x.y.z.exe` (NSIS, x64, AR/EN 
 
 ### Required Assets
 
-All assets below must exist before packaging. Items marked ❌ are **not yet included** and must be added manually.
+All assets are **auto-downloaded** on `npm install` (via `postinstall`) or manually via `npm run setup-assets`.
 
 #### Vendor JavaScript (`renderer/vendor/`)
 
@@ -74,29 +74,23 @@ All assets below must exist before packaging. Items marked ❌ are **not yet inc
 
 #### Arabic Fonts for PDF Reports (`renderer/assets/fonts/`)
 
-| File | Status | Source | Used By |
-|------|--------|--------|---------|
-| `Amiri-Regular.ttf` | ❌ **Missing** | [Google Fonts — Amiri](https://fonts.google.com/specimen/Amiri) | `reportPdf.js` — Arabic text in PDF reports |
-| `Amiri-Bold.ttf` | ❌ **Missing** | [Google Fonts — Amiri](https://fonts.google.com/specimen/Amiri) | `reportPdf.js` — Bold Arabic text in PDF reports |
-
-> **To fix**: Download Amiri from Google Fonts and place both `.ttf` files in `renderer/assets/fonts/`. Without them, PDF report generation will fail.
+| File | Size | Status | Source | Used By |
+|------|------|--------|--------|---------|
+| `Amiri-Regular.ttf` | ~430 KB | ✅ Auto-downloaded | [Google Fonts — Amiri](https://fonts.google.com/specimen/Amiri) | `reportPdf.js` — Arabic text in PDF reports |
+| `Amiri-Bold.ttf` | ~407 KB | ✅ Auto-downloaded | [Google Fonts — Amiri](https://fonts.google.com/specimen/Amiri) | `reportPdf.js` — Bold Arabic text in PDF reports |
 
 #### Audio Cues (`renderer/assets/audio/`)
 
-| File | Status | Source | Used By |
-|------|--------|--------|---------|
-| `success.wav` | ❌ **Missing** | Any short chime sound effect | Green scan result audio cue |
-| `warning.wav` | ❌ **Missing** | Any short alert sound effect | Yellow/Orange scan result audio cue |
-
-> **To fix**: Place short `.wav` sound files (~1 second each). The audio component is defined in `components/audio.js` (T024). If omitted, the app works silently.
+| File | Size | Status | Source | Used By |
+|------|------|--------|--------|---------|
+| `success.wav` | ~35 KB | ✅ Auto-generated | Two-tone chime (C5→E5, 400ms) | Green scan result audio cue |
+| `warning.wav` | ~52 KB | ✅ Auto-generated | Single tone (A3, 600ms) | Yellow/Orange scan result audio cue |
 
 #### Application Icon (`renderer/assets/`)
 
-| File | Status | Source | Used By |
-|------|--------|--------|---------|
-| `icon.ico` | ❌ **Missing** | 256×256 `.ico` file with dark-navy palette | BrowserWindow icon + Windows installer icon |
-
-> **To fix**: Create a 256×256 `.ico` file and place at `renderer/assets/icon.ico`. Referenced in `src/main/index.js` and `electron-builder.yml`.
+| File | Size | Status | Source | Used By |
+|------|------|--------|--------|---------|
+| `icon.ico` | ~4 KB | ✅ Auto-generated | 32×32 navy/gold shield | BrowserWindow icon + Windows installer icon |
 
 #### i18n Locale Files (`renderer/i18n/locales/`)
 
@@ -119,9 +113,10 @@ All assets below must exist before packaging. Items marked ❌ are **not yet inc
 
 ### Packaging Checklist
 
-1. Download & add all ❌ **missing** assets listed above.
-2. Run `npm test` — all tests must pass before building.
-3. Run `npm run build-win` — the output will be in the `dist/` directory.
+1. Run `npm install` — all assets are auto-downloaded by `postinstall`.
+2. Or run `npm run setup-assets` to re-download assets only.
+3. Run `npm test` — all tests must pass before building.
+4. Run `npm run build-win` — the output will be in the `dist/` directory.
 
 ## Project Structure
 
