@@ -3,7 +3,7 @@ require('dotenv').config();
 const { spawn } = require('child_process');
 const path = require('path');
 
-const args = process.argv.slice(2);
+const args = ['--config', 'electron-builder.config.js', ...process.argv.slice(2)];
 const bin = path.join(
   __dirname,
   '..',
