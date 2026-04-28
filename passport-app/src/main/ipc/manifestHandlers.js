@@ -203,7 +203,7 @@ function createManifestHandlers(store) {
         }
 
         // Write file
-        XLSX.write(wb, { bookType: 'xlsx', type: 'file', file: savePath });
+        XLSX.writeFile(wb, savePath);
 
         logger.info(`Template saved to ${savePath}`);
         return { ok: true };
@@ -341,7 +341,7 @@ function createManifestHandlers(store) {
           fs.mkdirSync(dir, { recursive: true });
         }
 
-        XLSX.write(wb, { bookType: 'xlsx', type: 'file', file: savePath });
+        XLSX.writeFile(wb, savePath);
 
         logger.info(`Exported ${passengers.length} passengers to ${savePath}`);
         return { ok: true, count: passengers.length };
