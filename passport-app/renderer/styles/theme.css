@@ -1,0 +1,141 @@
+/* Seaport Passport Scanner Theme */
+/* Dark navy palette matching the design */
+
+:root {
+  --bg: #0b1d3a;
+  --panel: #102a4c;
+  --accent: #f4b942;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --orange: #f97316;
+  --red: #ef4444;
+  --text: #e6edf7;
+  --border: #1e3a5f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Bootstrap overrides */
+.btn-primary {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.btn-primary:hover {
+  background-color: #e6a830;
+  border-color: #e6a830;
+  color: var(--bg);
+}
+
+.btn-danger {
+  background-color: var(--red);
+  border-color: var(--red);
+}
+
+.card {
+  background-color: var(--panel);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.table {
+  color: var(--text);
+}
+
+.table-dark {
+  background-color: var(--panel);
+  color: var(--text);
+}
+
+.table-dark tbody + tbody,
+.table-dark td,
+.table-dark th {
+  border-color: var(--border);
+}
+
+.form-control {
+  background-color: var(--panel);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.form-control:focus {
+  background-color: var(--panel);
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: 0 0 0 0.2rem rgba(244, 185, 66, 0.25);
+}
+
+.nav {
+  background-color: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-link {
+  color: var(--text) !important;
+  padding: 0.75rem 1rem;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background-color: var(--bg);
+  color: var(--accent) !important;
+}
+
+.alert {
+  border-color: var(--border);
+}
+
+.alert-info {
+  background-color: var(--panel);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* Utility classes */
+.text-success {
+  color: var(--green) !important;
+}
+
+.text-warning {
+  color: var(--yellow) !important;
+}
+
+.text-danger {
+  color: var(--red) !important;
+}
+
+.bg-success {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+}
+
+.bg-warning {
+  background-color: rgba(234, 179, 8, 0.1) !important;
+}
+
+.bg-danger {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
