@@ -14,7 +14,9 @@
       "Bash(node *)",
       "Bash(python3 -m json.tool)",
       "Bash(npm start *)",
-      "Bash(open *)"
+      "Bash(open *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)"
     ]
   }
 }

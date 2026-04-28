@@ -11,9 +11,11 @@ const logger = require('../services/logger');
 class EncryptedStore {
   constructor() {
     this.storePath = path.join(app.getPath('userData'), 'store.enc');
+    this.plainPath = path.join(app.getPath('userData'), 'store.json');
     this.state = this.getDefaultState();
     this.saveTimeout = null;
     this.saveDebouncedMs = 200;
+    this.encryptionAvailable = false;
   }
 
   getDefaultState() {
@@ -29,42 +31,68 @@ class EncryptedStore {
   }
 
   async load() {
-    if (!safeStorage.isEncryptionAvailable()) {
-      throw new Error('Encryption is not available on this system');
+    try {
+      this.encryptionAvailable = safeStorage.isEncryptionAvailable();
+    } catch (err) {
+      this.encryptionAvailable = false;
+      logger.warn('safeStorage check failed: ' + err.message);
+    }
+    if (!this.encryptionAvailable) {
+      logger.warn('Encryption unavailable — falling back to plaintext store');
     }
 
-    if (fs.existsSync(this.storePath)) {
+    const encryptedPath = this.storePath;
+    const plainPath = this.plainPath;
+
+    if (this.encryptionAvailable && fs.existsSync(encryptedPath)) {
       try {
-        const encrypted = fs.readFileSync(this.storePath);
+        const encrypted = fs.readFileSync(encryptedPath);
         const decrypted = safeStorage.decryptString(encrypted);
         this.state = JSON.parse(decrypted);
-        logger.info('Store loaded from disk');
+        logger.info('Store loaded (encrypted)');
+        return;
       } catch (err) {
-        logger.error('Failed to load store:', err.message);
-        // Fall back to default state
-        this.state = this.getDefaultState();
+        logger.error('Failed to load encrypted store: ' + err.message);
       }
-    } else {
-      // Initialize with default state
-      this.state = this.getDefaultState();
+    }
+
+    if (fs.existsSync(plainPath)) {
+      try {
+        this.state = JSON.parse(fs.readFileSync(plainPath, 'utf-8'));
+        logger.info('Store loaded (plaintext)');
+        return;
+      } catch (err) {
+        logger.error('Failed to load plaintext store: ' + err.message);
+      }
+    }
+
+    this.state = this.getDefaultState();
+    try {
       await this.save();
       logger.info('Store initialized with defaults');
+    } catch (err) {
+      logger.error('Initial store save failed: ' + err.message);
     }
   }
 
   async save() {
     try {
       const json = JSON.stringify(this.state);
-      const encrypted = safeStorage.encryptString(json);
-      
-      // Atomic write: write to temp file then rename
-      const tempPath = this.storePath + '.tmp';
-      fs.writeFileSync(tempPath, encrypted);
-      fs.renameSync(tempPath, this.storePath);
-      
+      let targetPath;
+      let payload;
+      if (this.encryptionAvailable) {
+        targetPath = this.storePath;
+        payload = safeStorage.encryptString(json);
+      } else {
+        targetPath = this.plainPath;
+        payload = json;
+      }
+      const tempPath = targetPath + '.tmp';
+      fs.writeFileSync(tempPath, payload);
+      fs.renameSync(tempPath, targetPath);
       logger.info('Store saved');
     } catch (err) {
-      logger.error('Failed to save store:', err.message);
+      logger.error('Failed to save store: ' + err.message);
       throw err;
     }
   }

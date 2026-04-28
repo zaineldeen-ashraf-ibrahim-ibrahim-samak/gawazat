@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-require('dotenv').config();
+try { require('dotenv').config(); } catch (_) { /* dotenv optional */ }
 const { spawn } = require('child_process');
 const path = require('path');
 

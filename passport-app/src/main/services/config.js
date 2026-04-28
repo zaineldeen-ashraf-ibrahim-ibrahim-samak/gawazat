@@ -32,6 +32,11 @@ function findEnvFile() {
 
     // 2. In userData (per-machine, survives updates)
     candidates.push(path.join(app.getPath('userData'), '.env'));
+
+    // 3. In resources dir (bundled via extraResources)
+    if (process.resourcesPath) {
+      candidates.push(path.join(process.resourcesPath, '.env'));
+    }
   }
 
   // 3. Inside the app bundle / project root (dev or fallback)
