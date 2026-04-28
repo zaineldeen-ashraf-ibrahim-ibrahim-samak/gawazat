@@ -98,13 +98,23 @@ passport-app/
 
 ## Keyboard Shortcuts
 
-| Shortcut     | Action                         |
-|-------------|--------------------------------|
-| `Ctrl + /`  | Open keyboard shortcuts help   |
-| `Enter`     | Submit MRZ scan                |
-| `Escape`    | Clear scan result              |
-| `F5`        | Reset scan page                |
-| `Ctrl + Z`  | Undo last entry (on green)     |
+| Shortcut (macOS / Windows) | Action                         |
+|---------------------------|--------------------------------|
+| `⌘ + /` / `Ctrl + /`     | Open keyboard shortcuts help   |
+| `Enter`                   | Submit MRZ scan                |
+| `Escape`                  | Clear scan result              |
+| `F5`                      | Reset scan page                |
+| `⌘ + Z` / `Ctrl + Z`     | Undo last entry (on green)     |
+
+## Supported Devices
+
+| Device | Mode | Description |
+|--------|------|-------------|
+| **Keyboard** | `keyboard` | Default. Operator types or pastes MRZ text directly. No hardware required. |
+| **Regula** | `regula` | Regula Document Reader SDK via local HTTP API (default: `localhost:8080`). |
+| **DESKO Penta** | `penta` | DESKO Penta Scanner via local Page Scan API (default: `localhost:8085`). |
+
+Configure the active device in **Settings → Scan Mode**. Device-specific URL and polling interval settings appear automatically.
 
 ## Smoke Test (5 Minutes)
 
