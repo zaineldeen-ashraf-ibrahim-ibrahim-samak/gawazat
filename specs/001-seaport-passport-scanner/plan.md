@@ -1,104 +1,147 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Seaport Passport Scanner Desktop Application
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
+**Branch**: `001-seaport-passport-scanner` | **Date**: 2026-04-28 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-seaport-passport-scanner/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Offline Windows desktop application for the Port Said seaport gate. An officer imports a passenger Excel manifest, scans arriving passengers via a Regula Baltija reader (keyboard-emulation OR local web-service mode), and the app verifies each passenger against the manifest with green/yellow/orange outcomes, an Undo window for greens, and a non-blocking Pending Approval queue for yellows so the gate never stalls. The app is built with Electron + vanilla JavaScript (ES2022) + Bootstrap 5 RTL, persists to a single `safeStorage`-encrypted JSON blob, generates Arabic-RTL PDF reports via `pdfmake` with embedded Amiri font, and is built from macOS to a Windows x64 NSIS installer via `electron-builder`. No portrait images are captured, stored, or printed (Regula in this deployment returns text-only MRZ fields).
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: JavaScript ES2022 (no TypeScript — see Complexity Tracking)
+**Primary Dependencies**: Electron (latest LTS), `xlsx` (SheetJS), `pdfmake` + Amiri font, `i18next` + `i18next-fs-backend`, `electron-log`, `uuid`, Bootstrap 5 RTL (CSS only, vendored locally)
+**Storage**: Single encrypted JSON blob at `<userData>/store.enc` via Electron `safeStorage` (Windows DPAPI under the hood). No SQLite — keeps macOS→Windows cross-build free of native modules.
+**Testing**: Mocha + Chai (unit), custom locale-parity test (Mocha), Playwright (`@playwright/test`) for Electron E2E
+**Target Platform**: Windows 10/11 x64 production; macOS used only as build host
+**Project Type**: Desktop application (Electron)
+**Performance Goals**: <500 ms per scan match (in-memory `Map` lookup), <10 s import for 600 rows, <5 s cold start (SC-001/2/5)
+**Constraints**: Fully offline (SC-006); CSP locks `connect-src` to `'self' http://localhost:*`; auto-save after every mutation (SC-007); zero PII in logs; no portrait/image data anywhere in the data path
+**Scale/Scope**: ~600 passengers per voyage, single workstation, single operator, 7 UI tabs (Dashboard, Import, Scan, Passenger List, Pending Approval, Scan History, Reports, Settings)
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*GATE: Must pass before Phase 0 research. Re-checked after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Check | Status |
+|---|---|---|
+| I. Bilingual i18n (AR/EN) | All strings via `i18next`, default RTL Arabic, locale-parity CI test | ✅ PASS |
+| II. UI Library First | Bootstrap 5 RTL CSS used for all components (no hand-rolled buttons/modals/tables) | ⚠️ PASS w/ exception — using CSS-only library, not a JS component framework. Justified in Complexity Tracking. |
+| III. Electron Desktop Delivery | Electron app with `contextIsolation`, `sandbox`, NSIS x64 installer | ✅ PASS |
+| IV. Test-First Discipline | Mocha+Chai unit + Playwright E2E + locale-parity gate | ✅ PASS |
+| V. Simplicity & YAGNI | Vanilla JS, single JSON store, no SQLite, no React/Vue | ⚠️ PASS w/ exception — TypeScript waived per user brief. Justified in Complexity Tracking. |
+
+Initial gate: PASS. Post-design re-check (after Phase 1): PASS.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-seaport-passport-scanner/
+├── plan.md              # This file
+├── spec.md              # Feature spec with clarifications
+├── research.md          # Phase 0 — 12 resolved technical decisions
+├── data-model.md        # Phase 1 — entities + state machines
+├── contracts/
+│   ├── regula-service.md
+│   ├── ipc-bridge.md
+│   └── excel-manifest.md
+├── quickstart.md        # Phase 1 — dev setup + smoke test
+├── checklists/
+│   └── requirements.md
+└── tasks.md             # Phase 2 — generated by /speckit.tasks
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
+passport-app/
+├── package.json
+├── electron-builder.yml
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
+│   ├── main/
+│   │   ├── index.js                  # Electron app lifecycle + BrowserWindow
+│   │   ├── preload.js                # contextBridge exposing window.api
+│   │   ├── ipc/
+│   │   │   ├── registry.js           # Central ipcMain.handle wiring
+│   │   │   ├── manifestHandlers.js
+│   │   │   ├── scanHandlers.js
+│   │   │   ├── pendingHandlers.js
+│   │   │   ├── historyHandlers.js
+│   │   │   ├── reportHandlers.js
+│   │   │   └── settingsHandlers.js
+│   │   ├── services/
+│   │   │   ├── manifestImport.js     # SheetJS parse + validate
+│   │   │   ├── scanProcessor.js      # match → outcome → events
+│   │   │   ├── regulaClient.js       # local HTTP polling state machine
+│   │   │   ├── reportPdf.js          # pdfmake RTL doc definitions
+│   │   │   ├── retention.js          # daily auto-purge
+│   │   │   ├── cspMiddleware.js
+│   │   │   └── logger.js             # electron-log + PII redactor
+│   │   └── store/
+│   │       ├── encryptedStore.js     # safeStorage + atomic write
+│   │       └── indices.js            # in-memory Maps rebuild
+│   └── shared/
+│       ├── normalize.js              # passport-number normalization
+│       ├── mrz.js                    # ICAO 9303 TD1/TD3 parser
+│       └── entities.js               # factories + JSDoc typedefs
+├── renderer/
+│   ├── index.html
+│   ├── app.js
+│   ├── router.js
 │   ├── pages/
-│   └── services/
+│   │   ├── dashboard.js
+│   │   ├── import.js
+│   │   ├── scan.js
+│   │   ├── passengerList.js
+│   │   ├── pendingApproval.js
+│   │   ├── scanHistory.js
+│   │   ├── reports.js
+│   │   └── settings.js
+│   ├── components/
+│   │   └── audio.js
+│   ├── i18n/
+│   │   ├── index.js
+│   │   └── locales/
+│   │       ├── ar.json
+│   │       └── en.json
+│   ├── styles/
+│   │   ├── theme.css
+│   │   └── vendor/
+│   │       ├── bootstrap.rtl.min.css
+│   │       └── bootstrap.min.css
+│   └── assets/
+│       ├── icon.ico
+│       ├── audio/{success,warning}.wav
+│       └── fonts/Amiri-Regular.ttf
 └── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+    ├── unit/
+    │   ├── normalize.spec.js
+    │   ├── mrz.spec.js
+    │   ├── manifest-validate.spec.js
+    │   ├── match.spec.js
+    │   └── pending.spec.js
+    ├── locale/
+    │   └── parity.spec.js
+    ├── e2e/
+    │   ├── import.spec.js
+    │   ├── scan.spec.js
+    │   ├── pending.spec.js
+    │   ├── passenger-list.spec.js
+    │   ├── reports.spec.js
+    │   └── smoke.spec.js
+    └── fixtures/
+        ├── manifest-10.xlsx
+        ├── manifest-with-errors.xlsx
+        └── _generate.js
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Single Electron project under `passport-app/`. Three top-level source partitions: `src/main/` (Node-privileged main process), `src/shared/` (pure modules importable by main, e.g., MRZ parser, normalize, entity factories), and `renderer/` (sandboxed UI). Tests sit at the project root in `tests/` and never import from `src/main/` directly except via the IPC bridge (E2E) or via `src/shared/` (unit). This separation enforces the security boundary at the file-tree level.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
 | Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+|---|---|---|
+| TypeScript waived (Constitution V — Simplicity) | User explicitly requested vanilla JS for the project | TS adds a build step, type-only dependencies, and tooling that the user does not want for a small desktop app. Mitigation: JSDoc `@typedef` on every IPC payload + entity factory; preload re-validates IPC argument shapes at runtime. |
+| UI library is CSS-only (Bootstrap 5 RTL), not a JS component framework (Constitution II — UI Library First) | Vanilla JS is mandatory; React-Bootstrap / MDB would require a framework | Bootstrap 5 RTL provides the component primitives (forms, tables, modals, buttons, alerts, progress bars) needed by FR-001..FR-024 with zero JS framework. We still don't hand-roll components; we compose Bootstrap classes. RTL is first-class via the official `bootstrap.rtl.min.css` build. |
