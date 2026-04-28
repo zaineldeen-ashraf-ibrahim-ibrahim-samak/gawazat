@@ -94,14 +94,14 @@ These are non-obvious constraints that, if violated, will cause hours of rework.
 
 ### Tests for User Story 2
 
-- [ ] T029 [P] [US2] Create `passport-app/tests/fixtures/manifest-10.xlsx` (10 valid rows) and `manifest-with-errors.xlsx` (8 rows: 2 missing passport, 1 bad nationality, 1 future DoB, 4 valid). Generate via a small one-off script committed to `tests/fixtures/_generate.js`.
-- [ ] T030 [P] [US2] Unit test `passport-app/tests/unit/manifest-validate.spec.js`: feed parsed rows to the validator service, assert per-row outcomes (Pass/Warn/Error per `contracts/excel-manifest.md`).
+- [x] T029 [P] [US2] Create `passport-app/tests/fixtures/manifest-10.xlsx` (10 valid rows) and `manifest-with-errors.xlsx` (8 rows: 2 missing passport, 1 bad nationality, 1 future DoB, 4 valid). Generate via a small one-off script committed to `tests/fixtures/_generate.js`.
+- [x] T030 [P] [US2] Unit test `passport-app/tests/unit/manifest-validate.spec.js`: feed parsed rows to the validator service, assert per-row outcomes (Pass/Warn/Error per `contracts/excel-manifest.md`).
 - [ ] T031 [P] [US2] E2E test `passport-app/tests/e2e/import.spec.js` (Playwright): launch app, navigate to `#/import`, simulate file drop with `manifest-10.xlsx`, assert preview row count, click "Import valid rows", assert `manifest:list` returns 10 passengers.
 
 ### Implementation
 
-- [ ] T032 [US2] Create `passport-app/src/main/services/manifestImport.js`: `parseFile(filePath)` uses SheetJS `XLSX.readFile(filePath, {cellDates: true})`, reads first sheet, normalizes header names against AR + EN aliases per `contracts/excel-manifest.md`, returns `{rows: ParsedRow[], errors: ImportError[]}`. Cross-row dedup on `passport_number_normalized`.
-- [ ] T033 [US2] Create `passport-app/src/main/ipc/manifestHandlers.js` exposing handlers for `manifest:import`, `manifest:downloadTemplate`, `manifest:list`, `manifest:exportFiltered`. `manifest:import` MUST replace the active voyage atomically (mutate-and-save) — never partial state on disk. Register from `ipc/registry.js`.
+- [x] T032 [US2] Create `passport-app/src/main/services/manifestImport.js`: `parseFile(filePath)` uses SheetJS `XLSX.readFile(filePath, {cellDates: true})`, reads first sheet, normalizes header names against AR + EN aliases per `contracts/excel-manifest.md`, returns `{rows: ParsedRow[], errors: ImportError[]}`. Cross-row dedup on `passport_number_normalized`.
+- [x] T033 [US2] Create `passport-app/src/main/ipc/manifestHandlers.js` exposing handlers for `manifest:import`, `manifest:downloadTemplate`, `manifest:list`, `manifest:exportFiltered`. `manifest:import` MUST replace the active voyage atomically (mutate-and-save) — never partial state on disk. Register from `ipc/registry.js`.
 - [ ] T034 [US2] `manifest:downloadTemplate` writes a 2-sheet xlsx via `XLSX.write`: sheet 1 is the column header row in Arabic per `excel-manifest.md`; sheet 2 (`Instructions`) contains AR + EN field-format notes and one sample row.
 - [ ] T035 [P] [US2] Create `passport-app/renderer/pages/import.js`: drop-zone (`dragover`/`drop` listeners), file-picker fallback button, calls `window.api.manifest.import({filePath})` (filePath obtained via `window.api.dialog.openFile` — add this whitelisted dialog channel in T010 if not present), renders preview table (Bootstrap `.table .table-dark`) with per-row error chips, and a "Download blank template" button calling `manifest:downloadTemplate` after `dialog:saveFile`.
 - [ ] T036 [US2] Wire i18n keys for the import page; add to both locale files and re-run parity test.
