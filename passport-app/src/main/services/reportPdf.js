@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 const logger = require('./logger');
+const ArabicReshaper = require('arabic-reshaper');
 
 const FONTS_DIR = path.join(__dirname, '..', '..', '..', 'renderer', 'assets', 'fonts');
 
@@ -44,11 +45,13 @@ function initFonts() {
 }
 
 /**
- * pdfmake 0.3 + Amiri (OpenType) handle Arabic shaping and RTL layout internally.
- * This function just ensures a clean string — no manual reshaping or bidi reordering needed.
+ * Reshape Arabic text into Presentation Form codepoints (FE70–FEFF).
+ * This bypasses pdfmake's GPOS mark-attachment shaper, which crashes on null
+ * anchors in the Amiri font when raw Unicode Arabic (0600–06FF) is passed.
+ * pdfmake rtl:true still handles layout direction; reshaping handles letter connection.
  */
 function ar(str) {
-  return String(str ?? '');
+  return ArabicReshaper.convertArabic(String(str ?? ''));
 }
 
 /** Formatted date string in Arabic locale */
