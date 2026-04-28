@@ -13,8 +13,8 @@ const logger = require('./logger');
 // Note: Amiri-Regular.ttf must be present in the assets/fonts directory
 const fonts = {
   Amiri: {
-    normal: path.join(__dirname, '..', '..', 'renderer', 'assets', 'fonts', 'Amiri-Regular.ttf'),
-    bold: path.join(__dirname, '..', '..', 'renderer', 'assets', 'fonts', 'Amiri-Bold.ttf'),
+    normal: path.join(__dirname, '..', '..', '..', 'renderer', 'assets', 'fonts', 'Amiri-Regular.ttf'),
+    bold: path.join(__dirname, '..', '..', '..', 'renderer', 'assets', 'fonts', 'Amiri-Bold.ttf'),
   }
 };
 
