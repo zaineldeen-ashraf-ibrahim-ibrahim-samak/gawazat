@@ -77,7 +77,7 @@ function resolveIconPath() {
     if (process.platform !== 'darwin') return p;
     const ext = path.extname(p);
     if (ext === '.ico') {
-      for (const alt of ['.png', '.icns']) {
+      for (const alt of ['.icns', '.png']) {
         const candidate = p.slice(0, -ext.length) + alt;
         if (fs.existsSync(candidate)) return candidate;
       }
