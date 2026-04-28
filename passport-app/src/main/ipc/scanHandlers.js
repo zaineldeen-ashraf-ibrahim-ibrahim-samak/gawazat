@@ -4,7 +4,8 @@
  */
 
 const { processMrz } = require('../services/scanProcessor');
-const { setMode } = require('../services/regulaClient');
+const { setMode: setRegulaMode } = require('../services/regulaClient');
+const { setPentaMode } = require('../services/pentaClient');
 const logger = require('../services/logger');
 
 let lastUndoableScanId = null;
@@ -43,11 +44,15 @@ function createScanHandlers(store) {
     },
 
     /**
-     * Set Regula scan mode
-     * @param {{mode: 'keyboard'|'api'}} args
+     * Set scan mode
+     * @param {{mode: 'keyboard'|'regula'|'penta'}} args
      */
     setMode: async (args) => {
-      setMode(args.mode);
+      const newMode = args.mode;
+      // Notify both device clients so they can start/stop polling
+      setRegulaMode(newMode === 'regula' ? 'api' : 'keyboard');
+      setPentaMode(newMode);
+      logger.info(`Scan mode set to: ${newMode}`);
       return { ok: true };
     },
 

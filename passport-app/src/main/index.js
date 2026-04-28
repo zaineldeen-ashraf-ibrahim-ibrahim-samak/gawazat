@@ -5,6 +5,7 @@ const { EncryptedStore } = require('./store/encryptedStore');
 const { purgeRetention } = require('./services/retention');
 const { setCspHeaders } = require('./services/cspMiddleware');
 const { initRegula } = require('./services/regulaClient');
+const { initPenta } = require('./services/pentaClient');
 const logger = require('./services/logger');
 
 let mainWindow;
@@ -107,9 +108,10 @@ async function initialize() {
 
     logger.info('IPC handlers registered');
 
-    // Initialize Regula device
+    // Initialize device clients
     initRegula(store);
-    logger.info('Regula client initialized');
+    initPenta(store);
+    logger.info('Device clients initialized (Regula + Penta)');
   } catch (err) {
     logger.error('Initialization failed:', err);
     if (err.stack) logger.error(err.stack);

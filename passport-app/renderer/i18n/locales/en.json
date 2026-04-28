@@ -81,10 +81,13 @@
   },
   "settings": {
     "scanMode": {
-      "api": "Regula Device",
-      "keyboard": "Keyboard Emulation"
+      "keyboard": "Keyboard Emulation",
+      "regula": "Regula Device",
+      "penta": "Penta Scanner (DESKO)",
+      "api": "Regula Device"
     },
     "regulaUrl": "Regula URL",
+    "pentaUrl": "Penta (DESKO) URL",
     "shipName": "Ship Name",
     "autoReset": "Auto-Reset Delay (seconds)",
     "sound": "Sound Effects",

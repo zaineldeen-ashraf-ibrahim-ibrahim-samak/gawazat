@@ -73,16 +73,16 @@ async function init() {
               <div class="modal-body p-0">
                 <table class="table table-dark table-hover mb-0">
                   <tbody>
-                    <tr><td class="text-end"><kbd>Ctrl + /</kbd></td><td>Help / Shortcuts</td></tr>
+                    <tr><td class="text-end"><kbd>${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + /</kbd></td><td>Help / Shortcuts</td></tr>
                     <tr><td class="text-end"><kbd>Enter</kbd></td><td>Submit MRZ (on Scan page)</td></tr>
                     <tr><td class="text-end"><kbd>Escape</kbd></td><td>Clear scan result</td></tr>
                     <tr><td class="text-end"><kbd>F5</kbd></td><td>Reset scan</td></tr>
-                    <tr><td class="text-end"><kbd>Ctrl + Z</kbd></td><td>Undo last entry (green)</td></tr>
+                    <tr><td class="text-end"><kbd>${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + Z</kbd></td><td>Undo last entry (green)</td></tr>
                   </tbody>
                 </table>
               </div>
               <div class="modal-footer border-secondary justify-content-center">
-                <small class="text-muted">Press <kbd>Ctrl + /</kbd> anytime to toggle this dialog</small>
+                <small class="text-muted">Press <kbd>${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + /</kbd> anytime to toggle this dialog</small>
               </div>
             </div>
           </div>
@@ -110,9 +110,10 @@ async function init() {
       document.getElementById('btn-lang-en').classList.replace('btn-outline-light', 'btn-light');
     }
 
-    // Global keyboard shortcut: Ctrl+/ to open help modal
+    // Global keyboard shortcut: Ctrl+/ or ⌘+/ to open help modal (cross-platform)
     window.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === '/') {
+      const mod = e.ctrlKey || e.metaKey; // metaKey = ⌘ on macOS
+      if (mod && e.key === '/') {
         e.preventDefault();
         const modal = document.getElementById('helpModal');
         if (modal) {
