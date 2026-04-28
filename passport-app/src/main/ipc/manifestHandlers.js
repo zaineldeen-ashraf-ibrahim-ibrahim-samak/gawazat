@@ -17,7 +17,7 @@ const logger = require('../services/logger');
  * @returns {Object} Handlers object
  */
 function createManifestHandlers(store) {
-  return {
+  const handlers = {
     /**
      * Import an Excel manifest file
      * @param {{filePath: string}} args - Path to Excel file
@@ -34,12 +34,12 @@ function createManifestHandlers(store) {
         // Parse and validate the file
         const parseResult = parseFile(filePath);
 
-        if (parseResult.errors.length > 0) {
-          logger.warn(`Import validation errors: ${parseResult.errors.length} total`);
+        if (parseResult.errors.length > 0 && !parseResult.rows.some(r => r.outcome === 'Pass')) {
+          logger.warn(`Import failed: ${parseResult.errors.length} errors, 0 valid rows`);
           return {
             ok: false,
             errors: parseResult.errors,
-            message: `File contains ${parseResult.errors.length} validation error(s)`
+            message: `File contains ${parseResult.errors.length} validation error(s) and no valid rows.`
           };
         }
 
@@ -98,7 +98,7 @@ function createManifestHandlers(store) {
           ok: true,
           voyage,
           passengers,
-          errors: [] // Return any warnings/non-blocking issues if needed
+          errors: parseResult.rows.filter(r => r.outcome === 'Error').flatMap(r => r.errors)
         };
       } catch (err) {
         logger.error(`Import failed: ${err.message}`);
@@ -106,6 +106,26 @@ function createManifestHandlers(store) {
           ok: false,
           message: `Import failed: ${err.message}`
         };
+      }
+    },
+
+    /**
+     * Preview an Excel manifest file without importing
+     * @param {{filePath: string}} args
+     */
+    preview: async (args) => {
+      try {
+        const { filePath } = args;
+        const parseResult = parseFile(filePath);
+
+        return {
+          ok: true,
+          passengers: parseResult.rows.filter(r => r.outcome === 'Pass'),
+          errors: parseResult.rows.filter(r => r.outcome === 'Error').flatMap(r => r.errors)
+        };
+      } catch (err) {
+        logger.error(`Preview failed: ${err.message}`);
+        return { ok: false, message: err.message };
       }
     },
 
@@ -236,7 +256,12 @@ function createManifestHandlers(store) {
           });
         }
 
-        return results;
+        // Map with extra flags for UI
+        return results.map(p => ({
+          ...p,
+          is_entered: boarding[p.passport_number_normalized] !== undefined,
+          entered_at: boarding[p.passport_number_normalized]?.entered_at || null
+        }));
       } catch (err) {
         logger.error(`List failed: ${err.message}`);
         return [];
@@ -257,7 +282,7 @@ function createManifestHandlers(store) {
         }
 
         // Get filtered list
-        const passengers = await this.list({ filter, search });
+        const passengers = await handlers.list({ filter, search });
 
         if (passengers.length === 0) {
           return { ok: false, message: 'No passengers to export' };
@@ -282,11 +307,6 @@ function createManifestHandlers(store) {
         const data = [headers];
 
         for (const p of passengers) {
-          const normalized = p.passport_number_normalized;
-          const boardingRecord = boarding[normalized];
-          const boardingStatus = boardingRecord ? 'تم الدخول' : 'في الانتظار';
-          const enteredAt = boardingRecord ? boardingRecord.entered_at : '';
-
           data.push([
             p.passport_number,
             p.name,
@@ -295,8 +315,8 @@ function createManifestHandlers(store) {
             p.date_of_birth,
             p.vessel || '',
             p.seat || '',
-            boardingStatus,
-            enteredAt
+            p.is_entered ? 'تم الدخول' : 'في الانتظار',
+            p.entered_at || ''
           ]);
         }
 
@@ -329,8 +349,66 @@ function createManifestHandlers(store) {
         logger.error(`Export failed: ${err.message}`);
         return { ok: false, message: `Export failed: ${err.message}` };
       }
+    },
+
+    /**
+     * Manually toggle the entered status of a passenger
+     * @param {{passport_number_normalized: string, entered: boolean}} args
+     * @returns {Promise<{ok: boolean, message?: string}>}
+     */
+    toggleEntered: async (args) => {
+      try {
+        const { passport_number_normalized, entered } = args;
+        const state = store.getState();
+        const passenger = (state.manifest || []).find(p => p.passport_number_normalized === passport_number_normalized);
+
+        if (!passenger) {
+          return { ok: false, message: 'Passenger not found' };
+        }
+
+        const { makeBoardingRecord, makeScanEvent } = require('../../shared/entities');
+
+        store.mutate(draft => {
+          if (entered) {
+            // Create manual boarding record
+            const record = makeBoardingRecord({
+              passenger_id: passenger.id,
+              passport_number_normalized,
+              via: 'manual-toggle'
+            });
+            draft.boarding_records[passport_number_normalized] = record;
+
+            // Write manual entry event
+            draft.scan_events.push(makeScanEvent({
+              outcome: 'manual-entered',
+              mode: 'manual',
+              passport_number_normalized,
+              passenger_id: passenger.id
+            }));
+          } else {
+            // Remove boarding record
+            delete draft.boarding_records[passport_number_normalized];
+
+            // Write undone event
+            draft.scan_events.push(makeScanEvent({
+              outcome: 'operator-undone',
+              mode: 'manual',
+              passport_number_normalized,
+              passenger_id: passenger.id
+            }));
+          }
+        });
+
+        rebuildIndices(store.getState());
+        logger.info(`Manual toggle: ${passport_number_normalized} set to ${entered}`);
+        return { ok: true };
+      } catch (err) {
+        logger.error(`Toggle failed: ${err.message}`);
+        return { ok: false, message: err.message };
+      }
     }
   };
+  return handlers;
 }
 
 module.exports = { createManifestHandlers };

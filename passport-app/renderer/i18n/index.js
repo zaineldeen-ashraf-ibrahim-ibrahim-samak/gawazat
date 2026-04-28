@@ -1,13 +1,25 @@
-const i18next = require('i18next');
-const ar = require('./locales/ar.json');
-const en = require('./locales/en.json');
+// We use the global i18next loaded from vendor/i18next.min.js
+// But we need to load the locales
+
+async function loadLocale(lang) {
+  const response = await fetch(`./i18n/locales/${lang}.json`);
+  return await response.json();
+}
 
 /**
  * Initialize i18next in renderer with bundled locales
  */
-async function initI18n() {
+export async function initI18n() {
+  const ar = await loadLocale('ar');
+  const en = await loadLocale('en');
+
+  // Check if i18next is already initialized to preserve language
+  if (i18next.isInitialized) {
+    return i18next;
+  }
+
   await i18next.init({
-    lng: 'ar',
+    lng: document.documentElement.lang || 'ar',
     fallbackLng: 'ar',
     debug: false,
     resources: {
@@ -22,8 +34,8 @@ async function initI18n() {
 /**
  * Set language and update DOM
  */
-function setLanguage(lang) {
-  i18next.changeLanguage(lang);
+export async function setLanguage(lang) {
+  await i18next.changeLanguage(lang);
   
   const html = document.documentElement;
   html.lang = lang;
@@ -40,8 +52,6 @@ function setLanguage(lang) {
 /**
  * Get translation for a key
  */
-function t(key, options = {}) {
+export function t(key, options = {}) {
   return i18next.t(key, options);
 }
-
-module.exports = { initI18n, setLanguage, t };

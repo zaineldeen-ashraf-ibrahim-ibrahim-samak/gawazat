@@ -35,9 +35,25 @@
     "placeMrz": "ضع جواز السفر على القارئ"
   },
   "import": {
-    "dropZone": "اسحب ملف Excel هنا",
-    "template": "تحميل نموذج",
-    "errors": "أخطاء"
+    "title": "استيراد ملف البيانات (Manifest)",
+    "dropZone": "اسحب ملف Excel هنا أو انقر للاختيار",
+    "selectFile": "اختر ملفاً",
+    "downloadTemplate": "تحميل نموذج ملف Excel",
+    "previewTitle": "معاينة البيانات",
+    "validRows": "صفوف صالحة",
+    "invalidRows": "صفوف بها أخطاء",
+    "importButton": "استيراد {{count}} صفوف صالحة",
+    "errors": "أخطاء",
+    "table": {
+      "passport": "رقم الجواز",
+      "name": "الاسم",
+      "gender": "النوع",
+      "nationality": "الجنسية",
+      "dob": "تاريخ الميلاد",
+      "status": "الحالة"
+    },
+    "success": "تم استيراد البيانات بنجاح",
+    "noValidRows": "لا توجد صفوف صالحة للاستيراد"
   },
   "pending": {
     "approve": "موافقة",

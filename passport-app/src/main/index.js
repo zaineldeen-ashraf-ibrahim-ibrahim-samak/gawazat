@@ -4,6 +4,7 @@ const { registerAllHandlers } = require('./ipc/registry');
 const { EncryptedStore } = require('./store/encryptedStore');
 const { purgeRetention } = require('./services/retention');
 const { setCspHeaders } = require('./services/cspMiddleware');
+const { initRegula } = require('./services/regulaClient');
 const logger = require('./services/logger');
 
 let mainWindow;
@@ -21,10 +22,9 @@ async function createWindow() {
     icon: path.join(__dirname, '..', 'renderer', 'assets', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: false,
-      nodeIntegration: true,
-      enableRemoteModule: true,
-      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
       webSecurity: true,
     },
   });
@@ -71,20 +71,48 @@ async function initialize() {
     }
 
     // Register all IPC handlers
+    logger.info('Registering manifest handlers...');
+    const manifestHandlers = require('./ipc/manifestHandlers').createManifestHandlers(store);
+    
+    logger.info('Registering scan handlers...');
+    const scanHandlers = require('./ipc/scanHandlers').createScanHandlers(store);
+    
+    logger.info('Registering pending handlers...');
+    const pendingHandlers = require('./ipc/pendingHandlers').createPendingHandlers(store);
+    
+    logger.info('Registering history handlers...');
+    const historyHandlers = require('./ipc/historyHandlers').createHistoryHandlers(store);
+    
+    logger.info('Registering reports handlers...');
+    const reportHandlers = require('./ipc/reportHandlers').createReportHandlers(store);
+    
+    logger.info('Registering settings handlers...');
+    const settingsHandlers = require('./ipc/settingsHandlers').createSettingsHandlers(store);
+    
+    logger.info('Registering dashboard handlers...');
+    const dashboardHandlers = require('./ipc/dashboardHandlers').createDashboardHandlers(store);
+
     const handlers = {
-      manifest: require('./ipc/manifestHandlers'),
-      scan: require('./ipc/scanHandlers'),
-      pending: require('./ipc/pendingHandlers'),
-      history: require('./ipc/historyHandlers'),
-      reports: require('./ipc/reportHandlers'),
-      settings: require('./ipc/settingsHandlers'),
-      dashboard: require('./ipc/dashboardHandlers'),
+      manifest: manifestHandlers,
+      scan: scanHandlers,
+      pending: pendingHandlers,
+      history: historyHandlers,
+      reports: reportHandlers,
+      settings: settingsHandlers,
+      dashboard: dashboardHandlers,
     };
+    
+    logger.info('Calling registerAllHandlers...');
     registerAllHandlers(handlers);
 
     logger.info('IPC handlers registered');
+
+    // Initialize Regula device
+    initRegula(store);
+    logger.info('Regula client initialized');
   } catch (err) {
     logger.error('Initialization failed:', err);
+    if (err.stack) logger.error(err.stack);
     throw err;
   }
 }

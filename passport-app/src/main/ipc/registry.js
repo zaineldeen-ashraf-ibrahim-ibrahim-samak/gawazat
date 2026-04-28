@@ -1,4 +1,5 @@
 const { ipcMain } = require('electron');
+const logger = require('../services/logger');
 
 /**
  * Central IPC handler registration point
@@ -10,8 +11,10 @@ function registerAllHandlers(handlers) {
   const manifestHandlers = handlers.manifest;
   if (manifestHandlers) {
     ipcMain.handle('manifest:import', (event, args) => manifestHandlers.import(args));
+    ipcMain.handle('manifest:preview', (event, args) => manifestHandlers.preview(args));
     ipcMain.handle('manifest:downloadTemplate', (event, args) => manifestHandlers.downloadTemplate(args));
     ipcMain.handle('manifest:list', (event, args) => manifestHandlers.list(args));
+    ipcMain.handle('manifest:toggleEntered', (event, args) => manifestHandlers.toggleEntered(args));
     ipcMain.handle('manifest:exportFiltered', (event, args) => manifestHandlers.exportFiltered(args));
   }
 
@@ -59,7 +62,7 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('dashboard:stats', (event, args) => dashboardHandlers.stats(args));
   }
 
-  console.log('All IPC handlers registered');
+  logger.info('All IPC handlers registered');
 }
 
 module.exports = { registerAllHandlers };

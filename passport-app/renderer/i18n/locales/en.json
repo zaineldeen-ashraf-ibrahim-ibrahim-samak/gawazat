@@ -35,9 +35,25 @@
     "placeMrz": "Place passport on reader"
   },
   "import": {
-    "dropZone": "Drop Excel file here",
-    "template": "Download Template",
-    "errors": "Errors"
+    "title": "Import Manifest File",
+    "dropZone": "Drop Excel file here or click to select",
+    "selectFile": "Select File",
+    "downloadTemplate": "Download Excel Template",
+    "previewTitle": "Data Preview",
+    "validRows": "Valid Rows",
+    "invalidRows": "Rows with Errors",
+    "importButton": "Import {{count}} Valid Rows",
+    "errors": "Errors",
+    "table": {
+      "passport": "Passport",
+      "name": "Name",
+      "gender": "Gender",
+      "nationality": "Nationality",
+      "dob": "Date of Birth",
+      "status": "Status"
+    },
+    "success": "Data imported successfully",
+    "noValidRows": "No valid rows to import"
   },
   "pending": {
     "approve": "Approve",

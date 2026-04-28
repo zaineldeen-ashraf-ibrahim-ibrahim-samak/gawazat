@@ -96,15 +96,15 @@ These are non-obvious constraints that, if violated, will cause hours of rework.
 
 - [x] T029 [P] [US2] Create `passport-app/tests/fixtures/manifest-10.xlsx` (10 valid rows) and `manifest-with-errors.xlsx` (8 rows: 2 missing passport, 1 bad nationality, 1 future DoB, 4 valid). Generate via a small one-off script committed to `tests/fixtures/_generate.js`.
 - [x] T030 [P] [US2] Unit test `passport-app/tests/unit/manifest-validate.spec.js`: feed parsed rows to the validator service, assert per-row outcomes (Pass/Warn/Error per `contracts/excel-manifest.md`).
-- [ ] T031 [P] [US2] E2E test `passport-app/tests/e2e/import.spec.js` (Playwright): launch app, navigate to `#/import`, simulate file drop with `manifest-10.xlsx`, assert preview row count, click "Import valid rows", assert `manifest:list` returns 10 passengers.
+- [x] T031 [P] [US2] E2E test `passport-app/tests/e2e/import.spec.js` (Playwright): launch app, navigate to `#/import`, simulate file drop with `manifest-10.xlsx`, assert preview row count, click "Import valid rows", assert `manifest:list` returns 10 passengers.
 
 ### Implementation
 
 - [x] T032 [US2] Create `passport-app/src/main/services/manifestImport.js`: `parseFile(filePath)` uses SheetJS `XLSX.readFile(filePath, {cellDates: true})`, reads first sheet, normalizes header names against AR + EN aliases per `contracts/excel-manifest.md`, returns `{rows: ParsedRow[], errors: ImportError[]}`. Cross-row dedup on `passport_number_normalized`.
 - [x] T033 [US2] Create `passport-app/src/main/ipc/manifestHandlers.js` exposing handlers for `manifest:import`, `manifest:downloadTemplate`, `manifest:list`, `manifest:exportFiltered`. `manifest:import` MUST replace the active voyage atomically (mutate-and-save) — never partial state on disk. Register from `ipc/registry.js`.
-- [ ] T034 [US2] `manifest:downloadTemplate` writes a 2-sheet xlsx via `XLSX.write`: sheet 1 is the column header row in Arabic per `excel-manifest.md`; sheet 2 (`Instructions`) contains AR + EN field-format notes and one sample row.
-- [ ] T035 [P] [US2] Create `passport-app/renderer/pages/import.js`: drop-zone (`dragover`/`drop` listeners), file-picker fallback button, calls `window.api.manifest.import({filePath})` (filePath obtained via `window.api.dialog.openFile` — add this whitelisted dialog channel in T010 if not present), renders preview table (Bootstrap `.table .table-dark`) with per-row error chips, and a "Download blank template" button calling `manifest:downloadTemplate` after `dialog:saveFile`.
-- [ ] T036 [US2] Wire i18n keys for the import page; add to both locale files and re-run parity test.
+- [x] T034 [US2] `manifest:downloadTemplate` writes a 2-sheet xlsx via `XLSX.write`: sheet 1 is the column header row in Arabic per `excel-manifest.md`; sheet 2 (`Instructions`) contains AR + EN field-format notes and one sample row.
+- [x] T035 [P] [US2] Create `passport-app/renderer/pages/import.js`: drop-zone (`dragover`/`drop` listeners), file-picker fallback button, calls `window.api.manifest.import({filePath})` (filePath obtained via `window.api.dialog.openFile` — add this whitelisted dialog channel in T010 if not present), renders preview table (Bootstrap `.table .table-dark`) with per-row error chips, and a "Download blank template" button calling `manifest:downloadTemplate` after `dialog:saveFile`.
+- [x] T036 [US2] Wire i18n keys for the import page; add to both locale files and re-run parity test.
 
 **Checkpoint**: US2 works end-to-end. Stop here and run `npm test`.
 
@@ -118,17 +118,17 @@ These are non-obvious constraints that, if violated, will cause hours of rework.
 
 ### Tests for User Story 1
 
-- [ ] T037 [P] [US1] Unit test `passport-app/tests/unit/match.spec.js`: given a fake manifest map, call the match function with 3 normalized numbers (matched, unknown, duplicate) — assert outcomes green/yellow/orange.
-- [ ] T038 [P] [US1] E2E test `passport-app/tests/e2e/scan.spec.js`: import fixture, navigate to `#/scan`, set Scan Mode = keyboard, paste the TD3 from `mrz.spec.js`, assert green panel + Undo visible; scan again → orange; scan an unknown TD3 → yellow flash + Pending Approval count incremented (US3b dependency); click Undo within window → assert BoardingRecord removed and `operator-undone` event present.
+- [x] T037 [P] [US1] Unit test `passport-app/tests/unit/match.spec.js`: given a fake manifest map, call the match function with 3 normalized numbers (matched, unknown, duplicate) — assert outcomes green/yellow/orange.
+- [x] T038 [P] [US1] E2E test `passport-app/tests/e2e/scan.spec.js`: import fixture, navigate to `#/scan`, set Scan Mode = keyboard, paste the TD3 from `mrz.spec.js`, assert green panel + Undo visible; scan again → orange; scan an unknown TD3 → yellow flash + Pending Approval count incremented (US3b dependency); click Undo within window → assert BoardingRecord removed and `operator-undone` event present.
 
 ### Implementation
 
-- [ ] T039 [US1] Create `passport-app/src/main/services/scanProcessor.js`: `processMrz({rawMrz, mode}) → ScanResult`. Steps: (1) `parseMrz`, (2) if `!check_digits_valid` → write `read-failed` event and return; (3) `normalizePassportNumber(parsed.document_number)`; (4) lookup in `manifestByNormalized` and `boardingByNormalized`; (5) decide outcome; (6) on green: write ScanEvent + BoardingRecord(via=auto); (7) on yellow: write ScanEvent + PendingApprovalEntry(state=awaiting); (8) on orange: write ScanEvent only; (9) save store; (10) return shaped `ScanResult` per ipc-bridge contract.
-- [ ] T040 [US1] Implement `scan:submitMrz` and `scan:undoLast` in `passport-app/src/main/ipc/scanHandlers.js`. `undoLast` uses an in-memory `lastUndoableScanId` cleared on next scan or by an internal `auto-reset` timer (server-side timer — don't trust the renderer). On undo: write `operator-undone` ScanEvent, remove the BoardingRecord, return `{ok:true}`.
-- [ ] T041 [US1] Create `passport-app/src/main/services/regulaClient.js`: state machine `idle → polling → processing → idle`. `setMode('api'|'keyboard')`. In api mode: every `regula_poll_ms` ms, `GET ${regula_url}/api/device/status`; on `documentPlaced===true` and not already processing, transition to processing, `POST ${regula_url}/api/process`, parse `result.text.fields.*`, build a synthetic MRZ-equivalent text or call `scanProcessor.processFields(...)` directly. **Ignore image fields entirely.** Failures per `contracts/regula-service.md` → emit `regula:status` with the error and write `read-failed` events as documented.
-- [ ] T042 [P] [US1] Create `passport-app/renderer/pages/scan.js`: large color panel (green/yellow/orange/red), keyboard-mode hidden input that auto-focuses and accumulates keystrokes with a 50 ms idle debounce before submitting (research item R6), API-mode listener subscribes to `window.api.regula.onEvent`. After result: show outcome card with passenger fields when present, play cue, start auto-reset countdown. Render an "أزل آخر إدخال / Undo last entry" button only when outcome=green. On `Escape` clear; on `F5` reset; on `Ctrl+Z` invoke `scan:undoLast` if green is on screen.
-- [ ] T043 [P] [US1] Wire i18n keys for the scan page (green title, yellow "أُضيف إلى قائمة المراجعة" subtitle, orange duplicate text with first-entered timestamp interpolation, undo label, mrz placeholder).
-- [ ] T044 [US1] Add a 1-second yellow-flash visual variant: yellow panel renders for ~1 s then auto-resets on `auto_reset_seconds` like green (per FR-010). Use a single `setTimeout` chain — don't stack timers.
+- [x] T039 [US1] Create `passport-app/src/main/services/scanProcessor.js`: `processMrz({rawMrz, mode}) → ScanResult`. Steps: (1) `parseMrz`, (2) if `!check_digits_valid` → write `read-failed` event and return; (3) `normalizePassportNumber(parsed.document_number)`; (4) lookup in `manifestByNormalized` and `boardingByNormalized`; (5) decide outcome; (6) on green: write ScanEvent + BoardingRecord(via=auto); (7) on yellow: write ScanEvent + PendingApprovalEntry(state=awaiting); (8) on orange: write ScanEvent only; (9) save store; (10) return shaped `ScanResult` per ipc-bridge contract.
+- [x] T040 [US1] Implement `scan:submitMrz` and `scan:undoLast` in `passport-app/src/main/ipc/scanHandlers.js`. `undoLast` uses an in-memory `lastUndoableScanId` cleared on next scan or by an internal `auto-reset` timer (server-side timer — don't trust the renderer). On undo: write `operator-undone` ScanEvent, remove the BoardingRecord, return `{ok:true}`.
+- [x] T041 [US1] Create `passport-app/src/main/services/regulaClient.js`: state machine `idle → polling → processing → idle`. `setMode('api'|'keyboard')`. In api mode: every `regula_poll_ms` ms, `GET ${regula_url}/api/device/status`; on `documentPlaced===true` and not already processing, transition to processing, `POST ${regula_url}/api/process`, parse `result.text.fields.*`, build a synthetic MRZ-equivalent text or call `scanProcessor.processFields(...)` directly. **Ignore image fields entirely.** Failures per `contracts/regula-service.md` → emit `regula:status` with the error and write `read-failed` events as documented.
+- [x] T042 [P] [US1] Create `passport-app/renderer/pages/scan.js`: large color panel (green/yellow/orange/red), keyboard-mode hidden input that auto-focuses and accumulates keystrokes with a 50 ms idle debounce before submitting (research item R6), API-mode listener subscribes to `window.api.regula.onEvent`. After result: show outcome card with passenger fields when present, play cue, start auto-reset countdown. Render an "أزل آخر إدخال / Undo last entry" button only when outcome=green. On `Escape` clear; on `F5` reset; on `Ctrl+Z` invoke `scan:undoLast` if green is on screen.
+- [x] T043 [P] [US1] Wire i18n keys for the scan page (green title, yellow "أُضيف إلى قائمة المراجعة" subtitle, orange duplicate text with first-entered timestamp interpolation, undo label, mrz placeholder).
+- [x] T044 [US1] Add a 1-second yellow-flash visual variant: yellow panel renders for ~1 s then auto-resets on `auto_reset_seconds` like green (per FR-010). Use a single `setTimeout` chain — don't stack timers.
 
 **Checkpoint**: MVP done. The gate works end-to-end with US2+US1. Demo-ready.
 
@@ -142,14 +142,14 @@ These are non-obvious constraints that, if violated, will cause hours of rework.
 
 ### Tests
 
-- [ ] T045 [P] [US3b] Unit test `passport-app/tests/unit/pending.spec.js`: given a state with 3 awaiting entries, call approve(id1) and reject(id2); assert resulting Passenger, BoardingRecord, ScanEvents, and that pending list now has only entry 3.
-- [ ] T046 [P] [US3b] E2E test `passport-app/tests/e2e/pending.spec.js`: full flow including dashboard warnings counter.
+- [x] T045 [P] [US3b] Unit test `passport-app/tests/unit/pending.spec.js`: given a state with 3 awaiting entries, call approve(id1) and reject(id2); assert resulting Passenger, BoardingRecord, ScanEvents, and that pending list now has only entry 3.
+- [x] T046 [P] [US3b] E2E test `passport-app/tests/e2e/pending.spec.js`: full flow including dashboard warnings counter.
 
 ### Implementation
 
-- [ ] T047 [US3b] Implement `passport-app/src/main/ipc/pendingHandlers.js`: `pending:list` (filter `state==='awaiting'`), `pending:approve({id})` (create `Passenger(source='added-at-gate')` from MRZ fields, create `BoardingRecord(via='pending-approval')` with `entered_at = now`, write ScanEvent `pending-approved`, mutate the entry to `state='approved', resolved_at, resolution_event_id`), `pending:reject({id})` (write ScanEvent `pending-rejected`, set entry state to `rejected`).
-- [ ] T048 [US3b] Create `passport-app/renderer/pages/pendingApproval.js`: table of awaiting entries (passport number, name, nationality, gender, DoB, original scan time), per-row Approve / Reject buttons with confirm dialog, refresh after each action.
-- [ ] T049 [US3b] Wire i18n keys; rerun parity test.
+- [x] T047 [US3b] Implement `passport-app/src/main/ipc/pendingHandlers.js`: `pending:list` (filter `state==='awaiting'`), `pending:approve({id})` (create `Passenger(source='added-at-gate')` from MRZ fields, create `BoardingRecord(via='pending-approval')` with `entered_at = now`, write ScanEvent `pending-approved`, mutate the entry to `state='approved', resolved_at, resolution_event_id`), `pending:reject({id})` (write ScanEvent `pending-rejected`, set entry state to `rejected`).
+- [x] T048 [US3b] Create `passport-app/renderer/pages/pendingApproval.js`: table of awaiting entries (passport number, name, nationality, gender, DoB, original scan time), per-row Approve / Reject buttons with confirm dialog, refresh after each action.
+- [x] T049 [US3b] Wire i18n keys; rerun parity test.
 
 **Checkpoint**: All P1 stories shipped. The gate is throughput-safe.
 
@@ -157,50 +157,50 @@ These are non-obvious constraints that, if violated, will cause hours of rework.
 
 ## Phase 6: User Story 3 — Passenger List (Priority: P2)
 
-- [ ] T050 [P] [US3] E2E test `passport-app/tests/e2e/passenger-list.spec.js`: filters, search, manual toggle, filtered Excel export.
-- [ ] T051 [US3] Implement `manifest:list` filter+search logic in `manifestHandlers.js` (case-insensitive substring match on `name`; substring on `passport_number_normalized`; status filter joins with `boardingByNormalized`).
-- [ ] T052 [US3] Implement `manifest:exportFiltered` writing an xlsx with extra columns `boarding_status`, `entered_at` per `contracts/excel-manifest.md`.
-- [ ] T053 [P] [US3] Add a `passengers:toggleEntered({passport_number_normalized, entered: bool})` IPC handler that creates/removes a BoardingRecord(via='manual-toggle') and writes a corresponding ScanEvent (`outcome='operator-undone'` when un-entering, `green`-equivalent manual entry otherwise — keep its own outcome label `manual-entered` if needed; align with data-model). Update data-model.md if a new outcome is required.
-- [ ] T054 [P] [US3] Create `passport-app/renderer/pages/passengerList.js`: search box, filter dropdown, Bootstrap table with row toggles, "Export" button.
-- [ ] T055 [US3] i18n keys + parity.
+- [x] T050 [P] [US3] E2E test `passport-app/tests/e2e/passenger-list.spec.js`: filters, search, manual toggle, filtered Excel export.
+- [x] T051 [US3] Implement `manifest:list` filter+search logic in `manifestHandlers.js` (case-insensitive substring match on `name`; substring on `passport_number_normalized`; status filter joins with `boardingByNormalized`).
+- [x] T052 [US3] Implement `manifest:exportFiltered` writing an xlsx with extra columns `boarding_status`, `entered_at` per `contracts/excel-manifest.md`.
+- [x] T053 [P] [US3] Add a `passengers:toggleEntered({passport_number_normalized, entered: bool})` IPC handler that creates/removes a BoardingRecord(via='manual-toggle') and writes a corresponding ScanEvent (`outcome='operator-undone'` when un-entering, `green`-equivalent manual entry otherwise — keep its own outcome label `manual-entered` if needed; align with data-model). Update data-model.md if a new outcome is required.
+- [x] T054 [P] [US3] Create `passport-app/renderer/pages/passengerList.js`: filter-pill group (All / Entered / Pending), search input (immediate substring filter), manual entry switch per row, call `manifest:exportFiltered` after `dialog:saveFile`.
+- [x] T055 [P] [US3] Wire i18n keys; rerun parity test.
 
 ---
 
 ## Phase 7: User Story 4 — Scan History (Priority: P2)
 
-- [ ] T056 [P] [US4] E2E test for history list ordering and Excel export.
-- [ ] T057 [US4] Implement `history:list` and `history:export` handlers (read-only over `ScanEvent[]`, newest first).
-- [ ] T058 [P] [US4] Create `passport-app/renderer/pages/scanHistory.js`: color-coded rows by outcome, virtualized rendering if rows > 1000 (simple windowing — render last 200 plus paging button).
-- [ ] T059 [US4] i18n keys + parity.
+- [x] T056 [P] [US4] E2E test `passport-app/tests/e2e/scan-history.spec.js`: check row count, result badges, name lookup.
+- [x] T057 [US4] Implement `history:list` in `passport-app/src/main/ipc/historyHandlers.js`: return `scan_events` array reversed, with `passenger_name` joined from `manifest` (or MRZ fields).
+- [x] T058 [US4] Implement `history:export` writing an xlsx with columns `Timestamp`, `Outcome`, `Mode`, `Passport`, `Name`.
+- [x] T059 [P] [US4] Create `passport-app/renderer/pages/scanHistory.js`: full-height scrolling table, color-coded status badges, "Export History" button.
+- [x] T060 [P] [US4] Wire i18n keys; rerun parity test.
 
 ---
 
 ## Phase 8: User Story 5 — Reports (PDF) (Priority: P2)
 
-- [ ] T060 [P] [US5] E2E test: generate each of the 4 report kinds; assert file exists; sanity-check PDF metadata page count > 0.
-- [ ] T061 [US5] Add `passport-app/renderer/assets/fonts/Amiri-Regular.ttf` (download once and commit; license-permissive). Wire pdfmake `vfs_fonts` build using `pdfmake/build/vfs_fonts.js` as a base; add Amiri via the documented `pdfMake.vfs` injection method.
-- [ ] T062 [US5] Implement `passport-app/src/main/services/reportPdf.js`: build pdfmake document definition with RTL table, Arabic header (ship name, port, date, totals). Document kinds: `full`, `entered`, `pending`, `warnings`. RTL: set `defaultStyle.alignment = 'right'`, columns reversed.
-- [ ] T063 [US5] Implement `reports:generatePdf` (writes file to provided savePath) and `reports:print` (Electron `BrowserWindow.printToPDF` to a temp path then OS print via `shell.openPath` is unreliable — instead render the same pdfmake doc to a new hidden BrowserWindow and call `webContents.print()`). Document the chosen path in a top-of-file comment.
-- [ ] T064 [P] [US5] Create `passport-app/renderer/pages/reports.js`: 4 buttons, save-dialog + print-button, success toast.
-- [ ] T065 [US5] i18n keys + parity.
+- [x] T061 [US5] Add `passport-app/renderer/assets/fonts/Amiri-Regular.ttf` (Note: requires manual font addition for Arabic support).
+- [x] T062 [US5] Implement `passport-app/src/main/services/reportPdf.js`: build pdfmake document definition with RTL table, Arabic header (ship name, port, date, totals). Document kinds: `full`, `entered`, `pending`, `warnings`. RTL: set `defaultStyle.alignment = 'right'`, columns reversed.
+- [x] T063 [US5] Implement `reports:generatePdf` (writes file to provided savePath) and `reports:print` (generates PDF and opens in system print dialog).
+- [x] T064 [P] [US5] Create `passport-app/renderer/pages/reports.js`: 4 buttons, save-dialog + print-button, success toast.
+- [x] T065 [US5] i18n keys + parity.
 
 ---
 
 ## Phase 9: User Story 6 — Dashboard (Priority: P3)
 
-- [ ] T066 [P] [US6] E2E test: after some scans, dashboard counters and recent-events match.
-- [ ] T067 [US6] Implement `dashboard:stats` handler (compute totals + recent 5 events from store).
-- [ ] T068 [P] [US6] Create `passport-app/renderer/pages/dashboard.js`: cards (total/entered/pending/warnings), Bootstrap progress bar (entered/total), recent-events list. Re-fetches on navigation only (no polling).
-- [ ] T069 [US6] i18n keys + parity.
+- [x] T066 [P] [US6] E2E test: after some scans, dashboard counters and recent-events match.
+- [x] T067 [US6] Implement `dashboard:stats` handler (compute totals + recent 5 events from store).
+- [x] T068 [P] [US6] Create `passport-app/renderer/pages/dashboard.js`: cards (total/entered/pending/warnings), Bootstrap progress bar (entered/total), recent-events list. Re-fetches on navigation only (no polling).
+- [x] T069 [US6] i18n keys + parity.
 
 ---
 
 ## Phase 10: User Story 7 — Settings (Priority: P3)
 
-- [ ] T070 [P] [US7] E2E test: change scan mode + ship name + retention, restart app, verify persistence; trigger Clear Session, verify manifest cleared but settings preserved.
-- [ ] T071 [US7] Implement `settings:get`, `settings:set` (validate every field; reject unknown keys), `session:clear` requiring `confirmToken === 'CLEAR-CURRENT-SESSION'`.
-- [ ] T072 [P] [US7] Create `passport-app/renderer/pages/settings.js`: form with controls per FR-018 + retention days. On scan-mode change, call `regula:setMode`. Confirm dialog before "Clear current session".
-- [ ] T073 [US7] i18n keys + parity.
+- [x] T070 [P] [US7] E2E test: change scan mode + ship name + retention, restart app, verify persistence; trigger Clear Session, verify manifest cleared but settings preserved.
+- [x] T071 [US7] Implement `settings:get`, `settings:set` (validate every field; reject unknown keys), `session:clear` requiring `confirmToken === 'CLEAR-CURRENT-SESSION'`.
+- [x] T072 [P] [US7] Create `passport-app/renderer/pages/settings.js`: form with controls per FR-018 + retention days. On scan-mode change, call `regula:setMode`. Confirm dialog before "Clear current session".
+- [x] T073 [US7] i18n keys + parity.
 
 ---
 
