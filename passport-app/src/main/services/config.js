@@ -72,14 +72,27 @@ function resolveIconPath() {
   // Absolute path → use as-is
   if (path.isAbsolute(envIcon)) return envIcon;
 
+  // On macOS, .ico is unsupported — prefer .png or .icns with same base name
+  function platformIcon(p) {
+    if (process.platform !== 'darwin') return p;
+    const ext = path.extname(p);
+    if (ext === '.ico') {
+      for (const alt of ['.png', '.icns']) {
+        const candidate = p.slice(0, -ext.length) + alt;
+        if (fs.existsSync(candidate)) return candidate;
+      }
+    }
+    return p;
+  }
+
   // Relative path → resolve against app root
   const resolved = path.join(APP_ROOT, envIcon);
-  if (fs.existsSync(resolved)) return resolved;
+  if (fs.existsSync(resolved)) return platformIcon(resolved);
 
   // Fallback: try next to exe (production)
   if (app && app.isPackaged) {
     const exeIcon = path.join(path.dirname(app.getPath('exe')), envIcon);
-    if (fs.existsSync(exeIcon)) return exeIcon;
+    if (fs.existsSync(exeIcon)) return platformIcon(exeIcon);
   }
 
   return resolved; // return even if missing — Electron will show default icon

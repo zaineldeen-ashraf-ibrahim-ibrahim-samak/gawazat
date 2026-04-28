@@ -1,6 +1,9 @@
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, nativeImage } = require('electron');
 const path = require('path');
 const config = require('./services/config');
+
+// Set app name before 'ready' so macOS dock/menu bar shows the correct name
+app.setName(config.appName);
 const { registerAllHandlers } = require('./ipc/registry');
 const { EncryptedStore } = require('./store/encryptedStore');
 const { purgeRetention } = require('./services/retention');
