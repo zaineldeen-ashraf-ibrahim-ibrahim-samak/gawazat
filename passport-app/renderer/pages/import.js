@@ -168,6 +168,12 @@ async function handleFilePath(filePath) {
   }
 }
 
+/** Escape HTML entities in user-provided data */
+function esc(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function renderPreviewRows(passengers, errors) {
   const previewBody = document.getElementById('preview-body');
   const statsArea = document.getElementById('preview-stats');
@@ -178,11 +184,11 @@ function renderPreviewRows(passengers, errors) {
   passengers.forEach(p => {
     html += `
       <tr>
-        <td>${p.passport_number}</td>
-        <td>${p.name}</td>
-        <td>${p.gender}</td>
-        <td>${p.nationality}</td>
-        <td>${p.date_of_birth}</td>
+        <td>${esc(p.passport_number)}</td>
+        <td>${esc(p.name)}</td>
+        <td>${esc(p.gender)}</td>
+        <td>${esc(p.nationality)}</td>
+        <td>${esc(p.date_of_birth)}</td>
         <td><span class="badge bg-success">${t('import.validRows')}</span></td>
       </tr>
     `;
@@ -193,7 +199,7 @@ function renderPreviewRows(passengers, errors) {
     html += `
       <tr class="table-danger">
         <td>${err.field === 'passport_number' ? '???' : ''}</td>
-        <td colspan="4">${err.message} (Row ${err.rowIndex})</td>
+        <td colspan="4">${esc(err.message)} (Row ${esc(err.rowIndex)})</td>
         <td><span class="badge bg-danger">${t('import.errors')}</span></td>
       </tr>
     `;

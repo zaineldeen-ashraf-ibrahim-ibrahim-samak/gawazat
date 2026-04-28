@@ -206,13 +206,13 @@ These are non-obvious constraints that, if violated, will cause hours of rework.
 
 ## Phase 11: Polish & Cross-Cutting Concerns
 
-- [ ] T074 [P] Document keyboard shortcuts on a small in-app help modal (Ctrl+/ to open).
-- [ ] T075 [P] Add `passport-app/README.md` mirroring `quickstart.md` plus a "How to package" section.
+- [x] T074 [P] Document keyboard shortcuts on a small in-app help modal (Ctrl+/ to open).
+- [x] T075 [P] Add `passport-app/README.md` mirroring `quickstart.md` plus a "How to package" section.
 - [ ] T076 Run a full network-capture test on a packaged build to verify SC-006 (zero outbound non-loopback traffic).
 - [ ] T077 Profile a 600-row import to confirm SC-002 (<10 s) on a representative Windows VM.
-- [ ] T078 [P] Add Playwright test for `quickstart.md` 5-minute smoke test as a single E2E spec.
+- [x] T078 [P] Add Playwright test for `quickstart.md` 5-minute smoke test as a single E2E spec.
 - [ ] T079 Run `npm run build-win` from macOS, install the resulting NSIS on a Windows 10 x64 VM, and execute the full smoke test.
-- [ ] T080 Final security review: confirm `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true` on every BrowserWindow; confirm CSP is present in DevTools Network tab; grep for `eval(`, `new Function(`, `innerHTML =` and remove any.
+- [x] T080 Final security review: confirm `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true` on every BrowserWindow; confirm CSP is present in DevTools Network tab; grep for `eval(`, `new Function(`, `innerHTML =` and remove any.
 
 ---
 

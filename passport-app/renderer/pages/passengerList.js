@@ -8,6 +8,12 @@ import { t } from '../i18n/index.js';
 let currentFilter = 'all';
 let currentSearch = '';
 
+/** Escape HTML entities */
+function esc(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 export async function renderPassengerList(container) {
   const passengers = await window.api.manifest.list({ filter: currentFilter, search: currentSearch });
 
@@ -27,7 +33,7 @@ export async function renderPassengerList(container) {
           <div class="input-group">
             <span class="input-group-text bg-dark border-secondary"><i class="bi bi-search text-muted"></i></span>
             <input type="search" id="input-search" class="form-control bg-dark text-white border-secondary" 
-                   placeholder="${t('passengerList.search')}..." value="${currentSearch}">
+                   placeholder="${t('passengerList.search')}..." value="${esc(currentSearch)}">
           </div>
         </div>
         <div class="col-md-8 d-flex gap-2">
@@ -62,21 +68,21 @@ export async function renderPassengerList(container) {
                 <tr><td colspan="7" class="text-center p-5 text-muted">${t('common.empty')}</td></tr>
               ` : passengers.map(p => `
                 <tr class="${p.is_entered ? 'table-success-dim' : ''}">
-                  <td><code>${p.passport_number}</code></td>
-                  <td class="fw-bold">${p.name}</td>
-                  <td>${p.nationality}</td>
-                  <td>${p.gender}</td>
-                  <td>${p.date_of_birth}</td>
+                  <td><code>${esc(p.passport_number)}</code></td>
+                  <td class="fw-bold">${esc(p.name)}</td>
+                  <td>${esc(p.nationality)}</td>
+                  <td>${esc(p.gender)}</td>
+                  <td>${esc(p.date_of_birth)}</td>
                   <td>
                     ${p.is_entered 
-                      ? `<span class="badge bg-success">${t('passengerList.filter.entered')}</span><br><small class="text-muted">${p.entered_at.split('T')[1].split('.')[0]}</small>`
+                      ? `<span class="badge bg-success">${t('passengerList.filter.entered')}</span><br><small class="text-muted">${(p.entered_at || '').split('T')[1]?.split('.')[0] || ''}</small>`
                       : `<span class="badge bg-secondary opacity-50">${t('passengerList.filter.pending')}</span>`
                     }
                   </td>
                   <td class="text-end">
                     <div class="form-check form-switch d-inline-block">
                       <input class="form-check-input status-toggle" type="checkbox" role="switch" 
-                             data-passport="${p.passport_number_normalized}" ${p.is_entered ? 'checked' : ''}>
+                             data-passport="${esc(p.passport_number_normalized)}" ${p.is_entered ? 'checked' : ''}>
                     </div>
                   </td>
                 </tr>
