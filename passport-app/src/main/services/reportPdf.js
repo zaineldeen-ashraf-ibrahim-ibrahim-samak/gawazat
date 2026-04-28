@@ -17,7 +17,6 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 const logger = require('./logger');
-const ArabicReshaper = require('arabic-reshaper');
 
 const FONTS_DIR = path.join(__dirname, '..', '..', '..', 'renderer', 'assets', 'fonts');
 
@@ -44,9 +43,12 @@ function initFonts() {
   fontsReady = true;
 }
 
-/** Shape Arabic text for PDF rendering. No bidi reordering — pdfmake handles that via rtl:true. */
+/**
+ * pdfmake 0.3 + Amiri (OpenType) handle Arabic shaping and RTL layout internally.
+ * This function just ensures a clean string — no manual reshaping or bidi reordering needed.
+ */
 function ar(str) {
-  return ArabicReshaper.convertArabic(String(str ?? ''));
+  return String(str ?? '');
 }
 
 /** Formatted date string in Arabic locale */
