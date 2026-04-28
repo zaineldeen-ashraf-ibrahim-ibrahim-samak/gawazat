@@ -81,11 +81,13 @@
   },
   "settings": {
     "scanMode": {
+      "label": "Scan Mode",
       "keyboard": "Keyboard Emulation",
       "regula": "Regula Device",
       "penta": "Penta Scanner (DESKO)",
       "api": "Regula Device"
     },
+    "pollInterval": "Poll Interval (ms)",
     "regulaUrl": "Regula URL",
     "pentaUrl": "Penta (DESKO) URL",
     "shipName": "Ship Name",
@@ -93,7 +95,21 @@
     "sound": "Sound Effects",
     "language": "Language",
     "retention": "Data Retention (days)",
-    "clearSession": "Clear Current Session"
+    "clearSession": "Clear Current Session",
+    "clearConfirm": "Are you sure you want to clear ALL session data? This will permanently wipe the manifest and scan history.",
+    "clearSuccess": "Session cleared successfully",
+    "help": {
+      "shipName": "Name of the vessel for this voyage. Appears on printed reports.",
+      "autoReset": "Seconds before the scan screen resets automatically after each read. Lower values suit high-throughput lines.",
+      "scanMode": "How the passport reader sends data to the app: keyboard emulation for basic devices, or direct API connection for Regula or Penta hardware.",
+      "retention": "How many days to keep scan records before they are automatically deleted. Min 1, max 365 days.",
+      "regulaUrl": "Network address of the Regula device service. Default: http://localhost:8080",
+      "regulaPoll": "How often (in milliseconds) to query the Regula device. Lower = faster response but higher CPU usage.",
+      "pentaUrl": "Network address of the Penta (DESKO) device service. Default: http://localhost:8085",
+      "pentaPoll": "How often (in milliseconds) to query the Penta device. Lower = faster response but higher CPU usage.",
+      "sound": "Play audio feedback on successful scans, warnings, and errors.",
+      "clearSession": "Permanently deletes the current voyage, all manifest data, scan history, and boarding records. This cannot be undone."
+    }
   },
   "common": {
     "ok": "OK",
