@@ -4,7 +4,12 @@
       "PowerShell(.specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
       "PowerShell(.specify/scripts/powershell/setup-plan.ps1 -Json)",
       "PowerShell(.specify/scripts/powershell/update-agent-context.ps1 -AgentType claude)",
-      "PowerShell(.specify/scripts/powershell/check-prerequisites.ps1 -Json)"
+      "PowerShell(.specify/scripts/powershell/check-prerequisites.ps1 -Json)",
+      "Bash(sips *)",
+      "Bash(iconutil -c icns /Users/placeholder/Desktop/gwazat/gawazat-master/passport-app/renderer/assets/icon.iconset -o /Users/placeholder/Desktop/gwazat/gawazat-master/passport-app/renderer/assets/icon.icns)",
+      "Bash(cp /tmp/source_icon.png /Users/placeholder/Desktop/gwazat/gawazat-master/passport-app/renderer/assets/icon_source.png)",
+      "Bash(python3 -)",
+      "Bash(pip3 install *)"
     ]
   }
 }
