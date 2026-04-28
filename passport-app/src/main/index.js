@@ -21,12 +21,16 @@ async function createWindow() {
     icon: path.join(__dirname, '..', 'renderer', 'assets', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      enableRemoteModule: false,
-      sandbox: true,
+      contextIsolation: false,
+      nodeIntegration: true,
+      enableRemoteModule: true,
+      sandbox: false,
       webSecurity: true,
     },
+  });
+
+  mainWindow.webContents.on('console-message', (e, level, message, line, sourceId) => {
+    console.log(`[RENDERER LOG] ${message}`);
   });
 
   // Load the app

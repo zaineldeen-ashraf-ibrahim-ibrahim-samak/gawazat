@@ -1,6 +1,6 @@
 const i18next = require('i18next');
-const ar = require('./i18n/locales/ar.json');
-const en = require('./i18n/locales/en.json');
+const ar = require('./locales/ar.json');
+const en = require('./locales/en.json');
 
 /**
  * Initialize i18next in renderer with bundled locales

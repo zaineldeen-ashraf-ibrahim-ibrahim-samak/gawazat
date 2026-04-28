@@ -74,6 +74,10 @@ const api = {
 };
 
 // Expose API to renderer
-contextBridge.exposeInMainWorld('api', api);
+if (process.contextIsolated) {
+  contextBridge.exposeInMainWorld('api', api);
+} else {
+  window.api = api;
+}
 
 console.log('Preload script loaded - API exposed to renderer');
