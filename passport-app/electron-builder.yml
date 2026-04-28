@@ -1,0 +1,25 @@
+# Electron Builder Configuration for Windows x64 NSIS
+# Code signing is configured separately by the deploy team for production builds.
+# Development builds will not be signed.
+
+appId: eg.portsaid.gawazat
+productName: بوابة المسافرين
+directories:
+  output: dist
+win:
+  target:
+    - nsis
+  x64: true
+  icon: renderer/assets/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerLanguages:
+    - ar
+    - en
+  perMachine: false
+files:
+  - src/**
+  - renderer/**
+  - package.json
+  - package-lock.json

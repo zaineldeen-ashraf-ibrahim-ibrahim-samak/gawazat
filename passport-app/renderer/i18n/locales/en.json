@@ -1,0 +1,87 @@
+{
+  "app": {
+    "title": "Passenger Gate"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "import": "Import",
+    "scan": "Scan",
+    "passengerList": "Passenger List",
+    "scanHistory": "Scan History",
+    "reports": "Reports",
+    "settings": "Settings",
+    "pendingApproval": "Pending Approval"
+  },
+  "scan": {
+    "green": {
+      "title": "Verified ✓",
+      "subtitle": "Welcome aboard"
+    },
+    "yellow": {
+      "title": "Under Review",
+      "subtitle": "Added to pending approval queue"
+    },
+    "orange": {
+      "title": "Warning: Duplicate Entry",
+      "subtitle": "This passenger was entered at {{enteredAt}}"
+    },
+    "readFailed": {
+      "title": "Read Failed",
+      "subtitle": "Check passport placement and try again"
+    },
+    "undo": {
+      "label": "Undo last entry"
+    },
+    "placeMrz": "Place passport on reader"
+  },
+  "import": {
+    "dropZone": "Drop Excel file here",
+    "template": "Download Template",
+    "errors": "Errors"
+  },
+  "pending": {
+    "approve": "Approve",
+    "reject": "Reject",
+    "empty": "No pending entries"
+  },
+  "passengerList": {
+    "search": "Search",
+    "filter": {
+      "all": "All",
+      "entered": "Entered",
+      "pending": "Pending",
+      "male": "Male",
+      "female": "Female"
+    }
+  },
+  "history": {
+    "export": "Export"
+  },
+  "reports": {
+    "full": "Full Report",
+    "entered": "Entered Passengers",
+    "pending": "Pending Entries",
+    "warnings": "Warnings"
+  },
+  "settings": {
+    "scanMode": {
+      "api": "Regula Device",
+      "keyboard": "Keyboard Emulation"
+    },
+    "regulaUrl": "Regula URL",
+    "shipName": "Ship Name",
+    "autoReset": "Auto-Reset Delay (seconds)",
+    "sound": "Sound Effects",
+    "language": "Language",
+    "retention": "Data Retention (days)",
+    "clearSession": "Clear Current Session"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "error": "Error",
+    "loading": "Loading...",
+    "empty": "No data"
+  }
+}

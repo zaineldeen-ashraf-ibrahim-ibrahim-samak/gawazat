@@ -1,0 +1,87 @@
+{
+  "app": {
+    "title": "بوابة المسافرين"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "import": "استيراد بيانات",
+    "scan": "المسح الضوئي",
+    "passengerList": "قائمة المسافرين",
+    "scanHistory": "سجل المسح",
+    "reports": "التقارير",
+    "settings": "الإعدادات",
+    "pendingApproval": "قائمة المراجعة"
+  },
+  "scan": {
+    "green": {
+      "title": "تم التحقق ✓",
+      "subtitle": "مرحبا بك"
+    },
+    "yellow": {
+      "title": "جاري المراجعة",
+      "subtitle": "تمت إضافة البيانات إلى قائمة المراجعة"
+    },
+    "orange": {
+      "title": "تحذير: مدخل مكرر",
+      "subtitle": "تم إدخال هذا المسافر في {{enteredAt}}"
+    },
+    "readFailed": {
+      "title": "خطأ في القراءة",
+      "subtitle": "تحقق من وضع جواز السفر وحاول مجددا"
+    },
+    "undo": {
+      "label": "أزل آخر إدخال"
+    },
+    "placeMrz": "ضع جواز السفر على القارئ"
+  },
+  "import": {
+    "dropZone": "اسحب ملف Excel هنا",
+    "template": "تحميل نموذج",
+    "errors": "أخطاء"
+  },
+  "pending": {
+    "approve": "موافقة",
+    "reject": "رفض",
+    "empty": "لا توجد بيانات قيد المراجعة"
+  },
+  "passengerList": {
+    "search": "بحث",
+    "filter": {
+      "all": "الكل",
+      "entered": "المدخلون",
+      "pending": "قيد المراجعة",
+      "male": "ذكر",
+      "female": "أنثى"
+    }
+  },
+  "history": {
+    "export": "تصدير"
+  },
+  "reports": {
+    "full": "تقرير كامل",
+    "entered": "المدخلون",
+    "pending": "قيد المراجعة",
+    "warnings": "التحذيرات"
+  },
+  "settings": {
+    "scanMode": {
+      "api": "جهاز ريجولا",
+      "keyboard": "محاكاة لوحة المفاتيح"
+    },
+    "regulaUrl": "عنوان ريجولا",
+    "shipName": "اسم السفينة",
+    "autoReset": "إعادة تعيين تلقائية (ثواني)",
+    "sound": "الأصوات",
+    "language": "اللغة",
+    "retention": "فترة الاحتفاظ (أيام)",
+    "clearSession": "مسح البيانات الحالية"
+  },
+  "common": {
+    "ok": "حسنا",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "error": "خطأ",
+    "loading": "جاري التحميل...",
+    "empty": "لا توجد بيانات"
+  }
+}
