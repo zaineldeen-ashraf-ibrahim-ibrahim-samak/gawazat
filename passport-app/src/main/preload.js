@@ -73,6 +73,12 @@ const api = {
     openFile: (args) => ipcRenderer.invoke('dialog:openFile', args),
     saveFile: (args) => ipcRenderer.invoke('dialog:saveFile', args),
   },
+
+  // App config from .env (safe values only — no secrets)
+  config: {
+    appName: process.env.APP_NAME || 'بوابة المسافرين',
+    appNameEn: process.env.APP_NAME_EN || 'Passenger Gate',
+  },
 };
 
 // Expose API to renderer

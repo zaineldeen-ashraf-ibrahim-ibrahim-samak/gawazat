@@ -13,6 +13,22 @@ async function init() {
     // Initialize i18n
     await initI18n();
 
+    // Read app name from env config (via preload bridge)
+    const appName = window.api?.config?.appName || t('app.title');
+    const currentLang = document.documentElement.lang || 'ar';
+    if (currentLang === 'ar') {
+      document.getElementById('btn-lang-ar').classList.replace('btn-outline-light', 'btn-light');
+    } else {
+      document.getElementById('btn-lang-en').classList.replace('btn-outline-light', 'btn-light');
+    }
+    v
+    const displayName = currentLang === 'en'
+      ? (window.api?.config?.appNameEn || 'Passenger Gate')
+      : appName;
+
+    // Set document title from env
+    document.title = displayName;
+
     // Get app container
     const app = document.getElementById('app');
     if (!app) {
@@ -27,7 +43,7 @@ async function init() {
         <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background-color: var(--panel);">
           <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="#/">
-              <i class="bi bi-shield-check me-2"></i>${t('app.title')}
+              <i class="bi bi-shield-check me-2"></i>${displayName}
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
               <span class="navbar-toggler-icon"></span>
@@ -102,13 +118,7 @@ async function init() {
       init();
     });
 
-    // Highlight the active language button
-    const currentLang = document.documentElement.lang || 'ar';
-    if (currentLang === 'ar') {
-      document.getElementById('btn-lang-ar').classList.replace('btn-outline-light', 'btn-light');
-    } else {
-      document.getElementById('btn-lang-en').classList.replace('btn-outline-light', 'btn-light');
-    }
+
 
     // Global keyboard shortcut: Ctrl+/ or ⌘+/ to open help modal (cross-platform)
     window.addEventListener('keydown', (e) => {

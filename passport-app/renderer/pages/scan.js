@@ -4,6 +4,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { initAudio, setSoundEnabled, playSuccess, playWarning } from '../components/audio.js';
 
 let resetTimer = null;
 let inputBuffer = '';
@@ -12,6 +13,10 @@ let lastKeyTime = 0;
 export async function renderScan(container) {
   const settings = await window.api.settings.get();
   const autoResetSeconds = settings.auto_reset_seconds || 5;
+
+  // Initialize audio with settings
+  initAudio();
+  setSoundEnabled(settings.sound_enabled !== false);
 
   const html = `
     <div class="page-scan h-100 d-flex flex-column">
@@ -142,24 +147,28 @@ async function handleScan(rawMrz, autoResetSeconds) {
     title.innerText = t('scan.green.title');
     subtitle.innerText = t('scan.green.subtitle');
     undoBtn.classList.remove('d-none');
+    playSuccess();
   } else if (result.outcome === 'yellow') {
     bgColor = '#422006'; // Dark yellow/orange
     borderColor = 'var(--yellow)';
     iconHtml = '<i class="bi bi-exclamation-triangle-fill display-1 text-yellow"></i>';
     title.innerText = t('scan.yellow.title');
     subtitle.innerText = t('scan.yellow.subtitle');
+    playWarning();
   } else if (result.outcome === 'orange') {
     bgColor = '#431407'; // Dark orange/red
     borderColor = 'var(--orange)';
     iconHtml = '<i class="bi bi-person-x-fill display-1 text-orange"></i>';
     title.innerText = t('scan.orange.title');
     subtitle.innerText = t('scan.orange.subtitle', { enteredAt: result.first_entered_at });
+    playWarning();
   } else {
     bgColor = '#450a0a'; // Dark red
     borderColor = 'var(--red)';
     iconHtml = '<i class="bi bi-x-circle-fill display-1 text-red"></i>';
     title.innerText = t('scan.readFailed.title');
     subtitle.innerText = t('scan.readFailed.subtitle');
+    playWarning();
   }
 
   statusPanel.style.backgroundColor = bgColor;

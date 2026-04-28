@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
+const config = require('./services/config');
 const { registerAllHandlers } = require('./ipc/registry');
 const { EncryptedStore } = require('./store/encryptedStore');
 const { purgeRetention } = require('./services/retention');
@@ -19,6 +20,7 @@ async function createWindow() {
     minWidth: 1280,
     minHeight: 800,
     frame: true,
+    title: config.appName,
     backgroundColor: '#0b1d3a',
     icon: path.join(__dirname, '..', 'renderer', 'assets', 'icon.ico'),
     webPreferences: {
@@ -34,15 +36,12 @@ async function createWindow() {
     console.log(`[RENDERER LOG] ${message}`);
   });
 
-  // Load the app
-  const isDev = process.env.NODE_ENV === 'development';
-  const url = isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '..', '..', 'renderer', 'index.html')}`;
-  
-  // For now, since we don't have a dev server, load from file
+
+  // Load the app from file
   mainWindow.loadFile(path.join(__dirname, '..', '..', 'renderer', 'index.html'));
 
   // Open DevTools in development
-  if (isDev || process.argv.includes('--debug')) {
+  if (config.isDev || process.argv.includes('--debug')) {
     mainWindow.webContents.openDevTools();
   }
 

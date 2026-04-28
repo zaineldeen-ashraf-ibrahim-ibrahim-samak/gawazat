@@ -6,6 +6,7 @@
 const PdfPrinter = require('pdfmake');
 const fs = require('fs');
 const path = require('path');
+const config = require('./config');
 const logger = require('./logger');
 
 // Font configuration
@@ -13,7 +14,7 @@ const logger = require('./logger');
 const fonts = {
   Amiri: {
     normal: path.join(__dirname, '..', '..', 'renderer', 'assets', 'fonts', 'Amiri-Regular.ttf'),
-    bold: path.join(__dirname, '..', '..', 'renderer', 'assets', 'fonts', 'Amiri-Bold.ttf'), // Optional
+    bold: path.join(__dirname, '..', '..', 'renderer', 'assets', 'fonts', 'Amiri-Bold.ttf'),
   }
 };
 
@@ -21,6 +22,16 @@ let printer = null;
 
 function getPrinter() {
   if (!printer) {
+    // Verify font files exist before creating printer
+    const normalFont = fonts.Amiri.normal;
+    const boldFont = fonts.Amiri.bold;
+    if (!fs.existsSync(normalFont)) {
+      logger.warn(`Font not found: ${normalFont} — run 'npm run setup-assets' to download`);
+    }
+    if (!fs.existsSync(boldFont)) {
+      // Fallback: use normal as bold if bold isn't available
+      fonts.Amiri.bold = fonts.Amiri.normal;
+    }
     printer = new PdfPrinter(fonts);
   }
   return printer;
@@ -38,7 +49,7 @@ async function generateReport(kind, data, savePath) {
     
     const docDefinition = {
       content: [
-        { text: 'تقرير بوابة المسافرين', style: 'header' },
+        { text: `تقرير ${config.appName}`, style: 'header' },
         { text: `سفينة: ${voyage.ship_name || '---'}`, style: 'subheader' },
         { text: `التاريخ: ${new Date().toLocaleDateString('ar-EG')}`, style: 'subheader' },
         { text: '\n' },
