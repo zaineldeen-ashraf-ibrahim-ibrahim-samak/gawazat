@@ -37,7 +37,7 @@ async function init() {
         <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background-color: var(--panel);">
           <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="#/">
-              <i class="bi bi-shield-check me-2"></i>${displayName}
+              <img src="assets/icon.png" alt="" class="me-2" style="width:24px;height:24px;object-fit:contain;vertical-align:-6px;" />${displayName}
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
               <span class="navbar-toggler-icon"></span>
