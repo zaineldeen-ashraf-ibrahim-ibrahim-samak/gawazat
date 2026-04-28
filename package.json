@@ -1,0 +1,18 @@
+{
+  "name": "gawazat-root",
+  "version": "1.0.0",
+  "description": "Root workspace to forward scripts to passport-app",
+  "private": true,
+  "scripts": {
+    "start": "npm start --prefix passport-app",
+    "dev": "npm run dev --prefix passport-app",
+    "test": "npm test --prefix passport-app",
+    "test:unit": "npm run test:unit --prefix passport-app",
+    "test:locale": "npm run test:locale --prefix passport-app",
+    "test:e2e": "npm run test:e2e --prefix passport-app",
+    "build-win": "npm run build-win --prefix passport-app",
+    "lint": "npm run lint --prefix passport-app",
+    "format": "npm run format --prefix passport-app",
+    "install-app": "npm install --prefix passport-app"
+  }
+}
