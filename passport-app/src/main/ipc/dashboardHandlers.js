@@ -36,7 +36,7 @@ function createDashboardHandlers(store) {
           const passenger = e.passenger_id ? passengerMap.get(e.passenger_id) : null;
           return {
             ...e,
-            passenger_name: passenger ? passenger.name : (e.mrz_fields?.name || '---')
+            passenger_name: passenger ? passenger.name : (e.mrz_fields?.surname ? `${e.mrz_fields.surname} ${e.mrz_fields.given_names}` : '---')
           };
         });
 

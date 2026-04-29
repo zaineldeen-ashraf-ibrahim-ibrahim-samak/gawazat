@@ -172,6 +172,37 @@ curl -X POST -F "file=@MRZ.txt" \\
             </div>
           </div>
 
+          <!-- File Watcher -->
+          <div class="card border-secondary bg-dark shadow mb-4">
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="bi bi-folder-symlink me-2"></i>المسح التلقائي من ملف (File Watcher)</h5>
+            </div>
+            <div class="card-body">
+              <p class="text-muted small mb-3">يقوم بمسح الجواز تلقائياً بمجرد تحديث أو حفظ الملف من قِبل جهاز المسح الخارجي.</p>
+
+              <div class="row align-items-end">
+                <div class="col-md-5 mb-3 mb-md-0">
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="check-watcher-enabled"
+                           ${settings.watch_file_enabled ? 'checked' : ''}>
+                    <label class="form-check-label fw-semibold" for="check-watcher-enabled">تفعيل المراقبة التلقائية</label>
+                  </div>
+                </div>
+                <div class="col-md-7">
+                  <label class="form-label">المسار الكامل للملف (مثال: C:\\MRZ.txt أو /path/to/MRZ.txt)</label>
+                  <div class="d-flex gap-2">
+                    <input type="text" class="form-control" id="input-watcher-path"
+                           value="${settings.watch_file_path || ''}"
+                           ${settings.watch_file_enabled ? '' : 'disabled'}>
+                    <button type="button" id="btn-save-watcher" class="btn btn-primary px-3">
+                      <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Danger Zone -->
           <div class="card border-danger bg-dark shadow mb-4">
             <div class="card-header border-danger">
@@ -253,6 +284,33 @@ curl -X POST -F "file=@MRZ.txt" \\
       // Refresh the status badge after a short delay (server needs time to bind)
       setTimeout(() => refreshApiStatus(), 500);
     } else {
+      alert(result.message || t('common.error'));
+    }
+  };
+
+  // File Watcher Settings
+  const watcherEnabledCheck = document.getElementById('check-watcher-enabled');
+  const watcherPathInput = document.getElementById('input-watcher-path');
+  
+  watcherEnabledCheck.addEventListener('change', () => {
+    watcherPathInput.disabled = !watcherEnabledCheck.checked;
+  });
+
+  document.getElementById('btn-save-watcher').onclick = async () => {
+    const btn = document.getElementById('btn-save-watcher');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+    const watcherSettings = {
+      watch_file_enabled: watcherEnabledCheck.checked,
+      watch_file_path: watcherPathInput.value,
+    };
+
+    const result = await window.api.settings.set(watcherSettings);
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-arrow-repeat"></i>`;
+
+    if (!result.ok) {
       alert(result.message || t('common.error'));
     }
   };

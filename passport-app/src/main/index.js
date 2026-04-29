@@ -135,6 +135,10 @@ async function initialize() {
     if (settings.api_server_enabled !== false) {
       startApiServer(store, { port: settings.api_server_port });
     }
+
+    // Start file watcher if enabled
+    const { startFileWatcher } = require('./services/fileWatcher');
+    startFileWatcher(store, settings);
   } catch (err) {
     logger.error('Initialization failed:', err);
     if (err.stack) logger.error(err.stack);

@@ -4,7 +4,7 @@
  */
 
 import { initI18n, t, setLanguage } from './i18n/index.js';
-import { initRouter, navigate } from './router.js';
+import { initRouter, navigate, refreshCurrentRoute } from './router.js';
 
 let currentPage = null;
 
@@ -36,13 +36,20 @@ async function init() {
         <!-- Navigation -->
         <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background-color: var(--panel);">
           <div class="container-fluid">
-            <a class="navbar-brand fw-bold d-flex align-items-center fs-4" href="#/">
-              <img src="assets/icon.png" alt="" class="me-3" style="width:40px;height:40px;object-fit:contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" />
-              <span style="letter-spacing: 0.5px;">${displayName}</span>
+            <a class="navbar-brand fw-bold d-flex align-items-center fs-4 me-auto" href="#/" style="min-width: 0;">
+              <img src="assets/icon.png" alt="" class="me-2" style="width:36px;height:36px;object-fit:contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" />
+              <span class="text-truncate d-none d-sm-inline" style="letter-spacing: 0.5px; max-width: 250px;">${displayName}</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-              <span class="navbar-toggler-icon"></span>
-            </button>
+
+            <div class="d-flex align-items-center ms-auto order-lg-last">
+              <span id="header-stats-badge" class="badge bg-dark border border-secondary text-light ms-2 me-3 fs-6 px-3 py-2 d-none" style="font-weight: 500;">
+                <i class="bi bi-people me-1"></i> <span id="header-stats-text">0 / 0</span>
+              </span>
+              <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+              </button>
+            </div>
+
             <div class="collapse navbar-collapse" id="navbarNav">
               <div class="navbar-nav me-auto">
                 <a class="nav-link" href="#/dashboard"><i class="bi bi-speedometer2 me-1"></i>${t('nav.dashboard')}</a>
@@ -54,6 +61,9 @@ async function init() {
                 <a class="nav-link" href="#/pending"><i class="bi bi-hourglass-split me-1"></i>${t('nav.pendingApproval')}</a>
               </div>
               <div class="navbar-nav ms-auto align-items-center">
+                <button id="btn-refresh-page" class="btn btn-sm btn-outline-info me-2 ms-2" title="${t('common.refresh') || 'Refresh'}">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
                 <a class="nav-link" href="#/settings">
                   <i class="bi bi-gear-fill me-1"></i>${t('nav.settings')}
                 </a>
@@ -103,6 +113,11 @@ async function init() {
 
     app.innerHTML = html;
 
+    // Refresh button event listener
+    document.getElementById('btn-refresh-page').addEventListener('click', () => {
+      refreshCurrentRoute();
+    });
+
     // Language switcher event listeners (NOT inline onclick — CSP blocks those)
     document.getElementById('btn-lang-ar').addEventListener('click', async () => {
       await setLanguage('ar');
@@ -139,6 +154,21 @@ async function init() {
     // Initialize window API check
     if (window.api) {
       console.log('API bridge connected successfully');
+      // Start auto-updating header stats
+      updateHeaderStats();
+      setInterval(updateHeaderStats, 2000);
+
+      // Listen for global scan events to auto-refresh current page (if not on scan page)
+      if (window.api.regula && window.api.regula.onEvent) {
+        window.api.regula.onEvent((event) => {
+          if (event.type === 'scan') {
+            const hash = window.location.hash;
+            if (hash && !hash.includes('/scan')) {
+              refreshCurrentRoute();
+            }
+          }
+        });
+      }
     } else {
       console.warn('API bridge not available');
     }
@@ -146,6 +176,35 @@ async function init() {
     console.log('App initialized');
   } catch (err) {
     console.error('Initialization error:', err);
+  }
+}
+
+async function updateHeaderStats() {
+  try {
+    if (!window.api || !window.api.dashboard) return;
+    const stats = await window.api.dashboard.stats();
+    const badge = document.getElementById('header-stats-badge');
+    const text = document.getElementById('header-stats-text');
+    
+    if (badge && text) {
+      if (stats.total > 0) {
+        badge.classList.remove('d-none');
+        text.innerText = `${stats.entered} / ${stats.total}`;
+        
+        // Optional: add a success color if fully boarded
+        if (stats.entered >= stats.total) {
+          badge.classList.replace('border-secondary', 'border-success');
+          badge.classList.replace('text-light', 'text-success');
+        } else {
+          badge.classList.replace('border-success', 'border-secondary');
+          badge.classList.replace('text-success', 'text-light');
+        }
+      } else {
+        badge.classList.add('d-none');
+      }
+    }
+  } catch (err) {
+    // silently fail
   }
 }
 

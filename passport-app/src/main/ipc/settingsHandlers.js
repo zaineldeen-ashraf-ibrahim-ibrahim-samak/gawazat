@@ -50,6 +50,17 @@ function createSettingsHandlers(store) {
           });
         }
 
+        const watchChanged =
+          newSettings.watch_file_enabled !== undefined &&
+          newSettings.watch_file_enabled !== oldSettings.watch_file_enabled ||
+          newSettings.watch_file_path !== undefined &&
+          newSettings.watch_file_path !== oldSettings.watch_file_path;
+        if (watchChanged) {
+          const { restartFileWatcher } = require('../services/fileWatcher');
+          const merged = store.getState().settings || {};
+          restartFileWatcher(store, merged);
+        }
+
         logger.info('Settings updated');
         return { ok: true };
       } catch (err) {

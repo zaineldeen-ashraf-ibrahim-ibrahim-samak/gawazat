@@ -62,6 +62,16 @@ async function processMrz(store, rawMrz, mode = 'keyboard') {
       } else {
         outcome = 'green'; // Match
       }
+    } else {
+      const currentState = store.getState();
+      const existingPending = (currentState.pending_approval || []).find(
+        e => e.passport_number_normalized === normalized && e.state === 'awaiting'
+      );
+      if (existingPending) {
+        outcome = 'orange'; // Already pending
+        firstEnteredAt = existingPending.created_at;
+        pendingId = existingPending.id;
+      }
     }
 
     // 5. Create Scan Event

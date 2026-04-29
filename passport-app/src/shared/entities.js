@@ -122,6 +122,8 @@ function makePendingApprovalEntry(data = {}) {
     id: uuidv4(),
     voyage_id: data.voyage_id || '',
     created_at: new Date().toISOString(),
+    passport_number_normalized: data.passport_number_normalized || '',
+    scan_event_id: data.scan_event_id || '',
     mrz_fields: data.mrz_fields || {},
     state: 'awaiting',
     resolved_at: null,
@@ -145,6 +147,8 @@ function makeAppSettings() {
     api_server_enabled: true,
     api_server_port: 7755,
     api_server_path: '/import/mrz',
+    watch_file_enabled: false,
+    watch_file_path: '',
   };
 }
 

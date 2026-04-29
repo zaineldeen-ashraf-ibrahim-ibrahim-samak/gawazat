@@ -37,6 +37,10 @@ export function navigate(path) {
   window.location.hash = path;
 }
 
+export function refreshCurrentRoute() {
+  handleRoute();
+}
+
 function handleRoute() {
   const hash = window.location.hash.slice(1) || '/';
   const renderer = routes[hash];

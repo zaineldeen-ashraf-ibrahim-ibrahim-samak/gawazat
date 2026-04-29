@@ -94,10 +94,14 @@ function renderStatCard(title, value, icon, colorClass) {
 
 function getOutcomeBadge(outcome) {
   switch (outcome) {
-    case 'green': return `<span class="badge bg-success">✓</span>`;
-    case 'yellow': return `<span class="badge bg-warning text-dark">!</span>`;
-    case 'orange': return `<span class="badge bg-orange">${t('dashboard.badge.duplicate')}</span>`;
-    case 'read-failed': return `<span class="badge bg-danger">${t('dashboard.badge.error')}</span>`;
+    case 'green': return `<span class="badge bg-success">${t('scan.green.title')}</span>`;
+    case 'yellow': return `<span class="badge bg-warning text-dark">${t('scan.yellow.title')}</span>`;
+    case 'orange': return `<span class="badge bg-orange">${t('scan.orange.title')}</span>`;
+    case 'read-failed': return `<span class="badge bg-danger">${t('scan.readFailed.title')}</span>`;
+    case 'manual-entered': return `<span class="badge bg-info text-dark">${t('history.badge.manualEntered')}</span>`;
+    case 'operator-undone': return `<span class="badge bg-secondary">${t('history.badge.undone')}</span>`;
+    case 'pending-approved': return `<span class="badge bg-success">${t('history.badge.approvedManual')}</span>`;
+    case 'pending-rejected': return `<span class="badge bg-danger">${t('history.badge.rejectedManual')}</span>`;
     default: return `<span class="badge bg-secondary">${outcome}</span>`;
   }
 }

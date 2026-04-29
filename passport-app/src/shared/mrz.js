@@ -150,7 +150,7 @@ function parseTD3(lines) {
   const exp_check_valid = validateCheckDigit(expiry_date_raw, exp_check);
   const pers_check_valid = validateCheckDigit(personal_number, pers_check);
   const overall_check_valid = validateCheckDigit(
-    document_number + date_of_birth_raw + expiry_date_raw + personal_number,
+    line1.substring(0, 10) + line1.substring(13, 20) + line1.substring(21, 43),
     overall_check,
   );
 

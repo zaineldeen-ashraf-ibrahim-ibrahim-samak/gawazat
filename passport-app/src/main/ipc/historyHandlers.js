@@ -30,7 +30,7 @@ function createHistoryHandlers(store) {
           const passenger = e.passenger_id ? passengerMap.get(e.passenger_id) : null;
           return {
             ...e,
-            passenger_name: passenger ? passenger.name : (e.mrz_fields?.name || '---')
+            passenger_name: passenger ? passenger.name : (e.mrz_fields?.surname ? `${e.mrz_fields.surname} ${e.mrz_fields.given_names}` : '---')
           };
         }).reverse(); // Most recent first
       } catch (err) {
@@ -65,7 +65,7 @@ function createHistoryHandlers(store) {
             e.outcome,
             e.mode,
             e.passport_number_normalized || '',
-            passenger ? passenger.name : (e.mrz_fields?.name || '')
+            passenger ? passenger.name : (e.mrz_fields?.surname ? `${e.mrz_fields.surname} ${e.mrz_fields.given_names}` : '')
           ]);
         });
 

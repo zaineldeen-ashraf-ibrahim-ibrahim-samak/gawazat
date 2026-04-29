@@ -14,12 +14,7 @@
  */
 
 const http = require('http');
-const os = require('os');
-const path = require('path');
-const fs = require('fs');
-const { parseTxtFile } = require('./manifestImport');
-const { makePassenger, makeVoyage } = require('../../shared/entities');
-const { rebuildIndices } = require('../store/indices');
+const { processMrz } = require('./scanProcessor');
 const logger = require('./logger');
 
 const HOST = '127.0.0.1';
@@ -97,7 +92,7 @@ function handleRequest(req, res) {
   const importPath = settings.api_server_path || DEFAULT_PATH;
 
   if (req.method === 'POST' && url === importPath) {
-    return readBody(req, res, (err, body, contentType) => {
+    return readBody(req, res, async (err, body, contentType) => {
       if (err) return sendJson(res, err.status || 400, { ok: false, message: err.message });
 
       let mrzText;
@@ -112,10 +107,26 @@ function handleRequest(req, res) {
       }
 
       try {
-        const result = importMrzText(mrzText);
-        return sendJson(res, result.ok ? 200 : 400, result);
+        const result = await processMrz(storeRef, mrzText, 'api');
+        
+        let message = 'Scan processed successfully';
+        if (result.outcome === 'orange') {
+          message = 'WARNING: This person is already scanned/added and will not be added again.';
+        }
+
+        // Trigger IPC event to update UI in real-time if a mainWindow is available
+        const { BrowserWindow } = require('electron');
+        const windows = BrowserWindow.getAllWindows();
+        if (windows.length > 0) {
+          windows[0].webContents.send('regula:event', {
+            type: 'scan',
+            data: { ...result, warning_message: result.outcome === 'orange' ? message : null }
+          });
+        }
+        
+        return sendJson(res, 200, { ok: true, message, result });
       } catch (e) {
-        logger.error(`API import failed: ${e.message}`);
+        logger.error(`API processing failed: ${e.message}`);
         return sendJson(res, 500, { ok: false, message: e.message });
       }
     });
@@ -210,84 +221,7 @@ function extractFirstFilePart(buffer, boundary) {
   throw new Error('No file part found in multipart body');
 }
 
-/**
- * Append parsed MRZ rows to the current manifest. Skips entries already
- * present by `passport_number_normalized`.
- * @returns {{ok: boolean, imported: number, skipped: number, errors: any[], message?: string}}
- */
-function importMrzText(mrzText) {
-  const tmp = path.join(os.tmpdir(), `mrz-api-${Date.now()}-${process.pid}.txt`);
-  fs.writeFileSync(tmp, mrzText, 'utf8');
-  let parseResult;
-  try {
-    parseResult = parseTxtFile(tmp);
-  } finally {
-    fs.unlink(tmp, () => {});
-  }
 
-  const passingRows = parseResult.rows.filter((r) => r.outcome === 'Pass');
-  const errors = parseResult.rows
-    .filter((r) => r.outcome === 'Error')
-    .flatMap((r) => r.errors);
-
-  if (passingRows.length === 0) {
-    return {
-      ok: false,
-      imported: 0,
-      skipped: 0,
-      errors,
-      message: 'No valid MRZ records found',
-    };
-  }
-
-  const state = storeRef.getState();
-  const settings = state.settings || {};
-  const existing = state.manifest || [];
-  const existingNorms = new Set(existing.map((p) => p.passport_number_normalized));
-
-  const toAppend = [];
-  let skipped = 0;
-  for (const row of passingRows) {
-    if (existingNorms.has(row.passport_number_normalized)) {
-      skipped += 1;
-      continue;
-    }
-    existingNorms.add(row.passport_number_normalized);
-    toAppend.push(
-      makePassenger({
-        passport_number: row.passport_number,
-        passport_number_normalized: row.passport_number_normalized,
-        name: row.name,
-        gender: row.gender,
-        nationality: row.nationality,
-        date_of_birth: row.date_of_birth,
-        vessel: row.vessel,
-        seat: row.seat,
-        source: 'api',
-      }),
-    );
-  }
-
-  storeRef.mutate((draft) => {
-    if (!draft.voyage) {
-      draft.voyage = makeVoyage(settings.ship_name || '', settings.port_name || 'Port Said');
-    }
-    draft.manifest = [...(draft.manifest || []), ...toAppend];
-  });
-
-  rebuildIndices(storeRef.getState());
-
-  logger.info(
-    `API import: appended ${toAppend.length} passenger(s), skipped ${skipped} duplicate(s)`,
-  );
-
-  return {
-    ok: true,
-    imported: toAppend.length,
-    skipped,
-    errors,
-  };
-}
 
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);

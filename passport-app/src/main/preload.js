@@ -26,12 +26,14 @@ const api = {
   regula: {
     setMode: (args) => ipcRenderer.invoke('regula:setMode', args),
     onEvent: (callback) => {
-      ipcRenderer.on('regula:event', (event, data) => callback(data));
-      return () => ipcRenderer.removeAllListeners('regula:event');
+      const handler = (event, data) => callback(data);
+      ipcRenderer.on('regula:event', handler);
+      return () => ipcRenderer.removeListener('regula:event', handler);
     },
     onStatus: (callback) => {
-      ipcRenderer.on('regula:status', (event, data) => callback(data));
-      return () => ipcRenderer.removeAllListeners('regula:status');
+      const handler = (event, data) => callback(data);
+      ipcRenderer.on('regula:status', handler);
+      return () => ipcRenderer.removeListener('regula:status', handler);
     },
   },
 

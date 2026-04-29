@@ -109,15 +109,28 @@ export async function renderScan(container) {
     }
   };
   window.addEventListener('keydown', keyHandler);
-  
+
+  // Listen for API scan events
+  const unsubscribe = window.api.regula && window.api.regula.onEvent ? window.api.regula.onEvent((event) => {
+    if (event.type === 'scan' && event.data) {
+      showScanResult(event.data, autoResetSeconds);
+    }
+  }) : null;
+
   // Cleanup
   container.addEventListener('remove', () => {
     window.removeEventListener('keydown', keyHandler);
     if (resetTimer) clearTimeout(resetTimer);
+    if (unsubscribe) unsubscribe();
   });
 }
 
 async function handleScan(rawMrz, autoResetSeconds) {
+  const result = await window.api.scan.submitMrz({ rawMrz });
+  showScanResult(result, autoResetSeconds);
+}
+
+function showScanResult(result, autoResetSeconds) {
   if (resetTimer) clearTimeout(resetTimer);
   
   const prompt = document.getElementById('scan-prompt');
@@ -127,9 +140,8 @@ async function handleScan(rawMrz, autoResetSeconds) {
   const subtitle = document.getElementById('result-subtitle');
   const icon = document.getElementById('result-icon');
   const undoBtn = document.getElementById('btn-undo');
-  
-  // Call API
-  const result = await window.api.scan.submitMrz({ rawMrz });
+
+  if (!prompt) return; // Prevent errors if user navigated away
 
   prompt.classList.add('d-none');
   resultPanel.classList.remove('d-none');
@@ -160,7 +172,7 @@ async function handleScan(rawMrz, autoResetSeconds) {
     borderColor = 'var(--orange)';
     iconHtml = '<i class="bi bi-person-x-fill display-1 text-orange"></i>';
     title.innerText = t('scan.orange.title');
-    subtitle.innerText = t('scan.orange.subtitle', { enteredAt: result.first_entered_at });
+    subtitle.innerText = result.warning_message || t('scan.orange.subtitle', { enteredAt: result.first_entered_at });
     playWarning();
   } else {
     bgColor = '#450a0a'; // Dark red
