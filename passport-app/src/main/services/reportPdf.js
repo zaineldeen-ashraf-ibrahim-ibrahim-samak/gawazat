@@ -222,7 +222,6 @@ async function generateReport(kind, data, savePath) {
         fontSize: 10,
         bold: true,
         color: '#ffffff',
-        fillColor: '#1e3a5f',
         margin: [2, 4, 2, 4],
       },
       tableCell: {
