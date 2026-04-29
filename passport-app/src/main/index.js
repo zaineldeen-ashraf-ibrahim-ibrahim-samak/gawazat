@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, session, nativeImage, dialog } = require('electron');
 const path = require('path');
 const config = require('./services/config');
 
@@ -159,6 +159,13 @@ app.on('ready', async () => {
     createWindow();
   } catch (err) {
     logger.error('App ready failed:', err);
+    if (err && err.stack) logger.error(err.stack);
+    try {
+      dialog.showErrorBox(
+        'Startup error',
+        `${(err && err.message) || err}\n\nLogs: ${app.getPath('userData')}\\logs\\main.log`
+      );
+    } catch (_) { /* ignore */ }
     app.quit();
   }
 });

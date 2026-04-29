@@ -15,7 +15,9 @@
       "Bash(python3 -m json.tool)",
       "Bash(npm start *)",
       "Bash(open *)",
-      "Bash(npx mocha *)"
+      "Bash(npx mocha *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)"
     ]
   }
 }
