@@ -62,14 +62,21 @@ function createPendingHandlers(store) {
           });
           draft.boarding_records[normalized] = boardingRecord;
 
-          // 3. Mark entry as approved
+          // 3. Mark entry as approved — carry mrz_fields so history always shows the name
           const resolvedEvent = makeScanEvent({
             outcome: 'pending-approved',
             mode: 'manual',
             passport_number_normalized: normalized,
-            passenger_id: passenger.id
+            passenger_id: passenger.id,
+            mrz_fields: mrz,
           });
           draft.scan_events.push(resolvedEvent);
+
+          // 4. Back-fill passenger_id on the original pending scan event so it shows the name too
+          const origIdx = draft.scan_events.findIndex(ev => ev.id === entry.scan_event_id);
+          if (origIdx !== -1 && !draft.scan_events[origIdx].passenger_id) {
+            draft.scan_events[origIdx].passenger_id = passenger.id;
+          }
 
           draft.pending_approval[entryIndex].state = 'approved';
           draft.pending_approval[entryIndex].resolved_at = new Date().toISOString();
@@ -104,7 +111,8 @@ function createPendingHandlers(store) {
           const rejectEvent = makeScanEvent({
             outcome: 'pending-rejected',
             mode: 'manual',
-            passport_number_normalized: entry.passport_number_normalized
+            passport_number_normalized: entry.passport_number_normalized,
+            mrz_fields: entry.mrz_fields,
           });
           draft.scan_events.push(rejectEvent);
 
