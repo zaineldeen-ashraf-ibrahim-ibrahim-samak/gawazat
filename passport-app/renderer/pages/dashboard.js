@@ -7,7 +7,7 @@ import { t } from '../i18n/index.js';
 
 export async function renderDashboard(container) {
   const stats = await window.api.dashboard.stats();
-  const enteredPercent = stats.total > 0 ? Math.round((stats.entered / stats.total) * 100) : 0;
+  const enteredPercent = stats.total > 0 ? Math.round((stats.entered / (stats.total + (stats.totalNew || 0))) * 100) : 0;
 
   const html = `
     <div class="page-dashboard">
@@ -17,9 +17,10 @@ export async function renderDashboard(container) {
       </div>
 
       <!-- Stats Cards -->
-      <div class="row g-4 mb-4">
-        ${renderStatCard(t('passengerList.filter.all'), stats.total, 'bi-people', 'text-info')}
-        ${renderStatCard(t('passengerList.filter.entered'), stats.entered, 'bi-check-circle', 'text-success')}
+      <div class="row g-3 mb-4">
+        ${renderStatCard('المسافرون الأصليون', stats.total, 'bi-people', 'text-info')}
+        ${renderStatCard('مسافرون جدد (بوابة)', stats.totalNew, 'bi-person-plus', 'text-accent')}
+        ${renderStatCard(`${t('passengerList.filter.entered')} (الكل)`, stats.entered, 'bi-check-circle', 'text-success', `${stats.total} أصلي + ${stats.totalNew} جديد`)}
         ${renderStatCard(t('nav.pendingApproval'), stats.pending, 'bi-hourglass-split', 'text-warning')}
         ${renderStatCard(t('reports.warnings'), stats.warnings, 'bi-exclamation-triangle', 'text-danger')}
       </div>
@@ -37,7 +38,8 @@ export async function renderDashboard(container) {
                     <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
                          role="progressbar" style="width: ${enteredPercent}%"></div>
                   </div>
-                  <p class="mt-3 text-muted fs-5">${stats.entered} / ${stats.total} ${t('nav.passengerList')}</p>
+                  <p class="mt-3 text-muted fs-5">${stats.entered} / ${stats.total + (stats.totalNew || 0)} ${t('nav.passengerList')}</p>
+                  ${stats.totalNew > 0 ? `<p class="text-muted small mb-0">(${stats.total} أصلي + ${stats.totalNew} جديد)</p>` : ''}
                 </div>
               </div>
             </div>
@@ -77,17 +79,18 @@ export async function renderDashboard(container) {
   container.innerHTML = html;
 }
 
-function renderStatCard(title, value, icon, colorClass) {
+function renderStatCard(title, value, icon, colorClass, subtitle = '') {
   return `
-    <div class="col-md-3">
+    <div class="col">
       <div class="card bg-dark border-secondary shadow-sm h-100">
-        <div class="card-body d-flex align-items-center p-4">
+        <div class="card-body d-flex align-items-center p-3">
           <div class="rounded-circle bg-black bg-opacity-25 p-3 me-3">
             <i class="bi ${icon} fs-2 ${colorClass}"></i>
           </div>
           <div>
             <div class="text-muted small">${title}</div>
             <div class="fs-2 fw-bold">${value}</div>
+            ${subtitle ? `<div class="text-muted" style="font-size:0.72rem;">${subtitle}</div>` : ''}
           </div>
         </div>
       </div>

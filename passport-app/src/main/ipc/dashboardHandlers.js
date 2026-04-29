@@ -23,10 +23,13 @@ function createDashboardHandlers(store) {
         const events = state.scan_events || [];
         const pending = state.pending_approval || [];
 
-        const totalPassengers = manifest.length;
-        const totalEntered = Object.keys(boarding).length;
-        const totalPending = pending.filter(e => e.state === 'awaiting').length;
-        const totalWarnings = events.filter(e => e.outcome === 'orange' || e.outcome === 'read-failed').length;
+        const originalManifest = manifest.filter(p => p.source !== 'added-at-gate');
+        const newPassengers    = manifest.filter(p => p.source === 'added-at-gate');
+        const totalPassengers  = originalManifest.length;
+        const totalNew         = newPassengers.length;
+        const totalEntered     = Object.keys(boarding).length; // old + new combined
+        const totalPending     = pending.filter(e => e.state === 'awaiting').length;
+        const totalWarnings    = events.filter(e => e.outcome === 'orange' || e.outcome === 'read-failed').length;
 
         // Recent events (last 5)
         const passengerMap = new Map();
@@ -43,6 +46,7 @@ function createDashboardHandlers(store) {
         const settings = state.settings || {};
         return {
           total: totalPassengers,
+          totalNew,
           entered: totalEntered,
           pending: totalPending,
           warnings: totalWarnings,
