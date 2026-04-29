@@ -127,7 +127,7 @@ async function generateReport(kind, data, savePath) {
     { text: p.date_of_birth   ?? '',  alignment: 'center', style: 'tableCell' },
     { text: ar(p.gender === 'M' ? 'ذكر' : p.gender === 'F' ? 'أنثى' : (p.gender ?? '')), alignment: 'center', style: 'tableCell' },
     { text: ar(p.name         ?? ''), alignment: 'right',  style: 'tableCell' },
-    { text: p.passport_number ?? '',  alignment: 'center', style: 'tableCell' },
+    { text: p.passport_number ?? '',  alignment: 'center', style: 'tableCell', noWrap: true },
   ]);
 
   const docDefinition = {
@@ -170,7 +170,7 @@ async function generateReport(kind, data, savePath) {
       }] : [{
         table: {
           headerRows: 1,
-          widths: [50, 35, 55, 55, 28, 247, 65],
+          widths: [48, 33, 48, 52, 25, 234, 95],
           body: [headerRow, ...dataRows],
         },
         layout: {

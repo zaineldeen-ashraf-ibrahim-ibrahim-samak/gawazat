@@ -237,8 +237,9 @@ function createManifestHandlers(store) {
             const normalized = p.passport_number_normalized;
             return boarding[normalized] === undefined;
           });
+        } else if (filter === 'new') {
+          results = results.filter(p => p.source === 'added-at-gate');
         } else if (filter === 'M' || filter === 'F') {
-          // Gender filter
           results = results.filter(p => p.gender === filter);
         }
         // 'all' means no additional filtering
