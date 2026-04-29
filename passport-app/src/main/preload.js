@@ -14,12 +14,14 @@ const api = {
     list: (args) => ipcRenderer.invoke('manifest:list', args),
     exportFiltered: (args) => ipcRenderer.invoke('manifest:exportFiltered', args),
     toggleEntered: (args) => ipcRenderer.invoke('manifest:toggleEntered', args),
+    delete: (args) => ipcRenderer.invoke('manifest:delete', args),
   },
 
   // Scanning operations
   scan: {
     submitMrz: (args) => ipcRenderer.invoke('scan:submitMrz', args),
     undoLast: (args) => ipcRenderer.invoke('scan:undoLast', args),
+    submitManual: (args) => ipcRenderer.invoke('scan:submitManual', args),
   },
 
   // Regula device control
@@ -60,10 +62,12 @@ const api = {
     get: (args) => ipcRenderer.invoke('settings:get', args),
     set: (args) => ipcRenderer.invoke('settings:set', args),
     apiServerStatus: (args) => ipcRenderer.invoke('settings:apiServerStatus', args),
+    testDeviceUrl: (args) => ipcRenderer.invoke('settings:testDeviceUrl', args),
   },
 
   session: {
     clear: (args) => ipcRenderer.invoke('session:clear', args),
+    clearWithPassword: (args) => ipcRenderer.invoke('session:clearWithPassword', args),
   },
 
   // Dashboard

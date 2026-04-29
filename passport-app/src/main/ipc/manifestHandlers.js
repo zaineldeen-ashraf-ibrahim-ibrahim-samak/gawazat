@@ -355,6 +355,22 @@ function createManifestHandlers(store) {
      * @param {{passport_number_normalized: string, entered: boolean}} args
      * @returns {Promise<{ok: boolean, message?: string}>}
      */
+    deletePassenger: async (args) => {
+      try {
+        const { passport_number_normalized } = args;
+        store.mutate(draft => {
+          draft.manifest = (draft.manifest || []).filter(p => p.passport_number_normalized !== passport_number_normalized);
+          delete draft.boarding_records[passport_number_normalized];
+        });
+        rebuildIndices(store.getState());
+        logger.info(`Deleted passenger: ${passport_number_normalized}`);
+        return { ok: true };
+      } catch (err) {
+        logger.error(`Delete failed: ${err.message}`);
+        return { ok: false, message: err.message };
+      }
+    },
+
     toggleEntered: async (args) => {
       try {
         const { passport_number_normalized, entered } = args;

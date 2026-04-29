@@ -136,7 +136,7 @@
       "sound": "Play audio feedback on successful scans, warnings, and errors.",
       "clearSession": "Permanently deletes the current voyage, all manifest data, scan history, and boarding records. This cannot be undone.",
       "apiServerEnabled": "When enabled, the app listens for incoming MRZ data from external devices like Regula.",
-      "apiServerPort": "TCP port the API server listens on. Default is 7755. Restart required on change."
+      "apiServerPort": "TCP port the API server listens on.. Restart required on change."
     },
     "apiServer": {
       "title": "API Server (Regula Import)",

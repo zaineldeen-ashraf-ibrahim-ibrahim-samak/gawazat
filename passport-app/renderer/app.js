@@ -36,9 +36,9 @@ async function init() {
         <!-- Navigation -->
         <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background-color: var(--panel);">
           <div class="container-fluid">
-            <a class="navbar-brand fw-bold d-flex align-items-center fs-4 me-auto" href="#/" style="min-width: 0;">
-              <img src="assets/icon.png" alt="" class="me-2" style="width:36px;height:36px;object-fit:contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" />
-              <span class="text-truncate d-none d-sm-inline" style="letter-spacing: 0.5px; max-width: 250px;">${displayName}</span>
+            <a class="navbar-brand fw-bold d-flex align-items-center me-auto" href="#/" style="font-size:0.95rem; white-space: nowrap;">
+              <img src="assets/icon.png" alt="" class="me-2" style="width:30px;height:30px;object-fit:contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" />
+              <span style="letter-spacing: 0.3px;">${displayName}</span>
             </a>
 
             <div class="d-flex align-items-center ms-auto order-lg-last">
@@ -51,25 +51,25 @@ async function init() {
             </div>
 
             <div class="collapse navbar-collapse" id="navbarNav">
-              <div class="navbar-nav me-auto">
-                <a class="nav-link" href="#/dashboard"><i class="bi bi-speedometer2 me-1"></i>${t('nav.dashboard')}</a>
-                <a class="nav-link" href="#/import"><i class="bi bi-file-earmark-arrow-up me-1"></i>${t('nav.import')}</a>
-                <a class="nav-link" href="#/scan"><i class="bi bi-upc-scan me-1"></i>${t('nav.scan')}</a>
-                <a class="nav-link" href="#/passengers"><i class="bi bi-people me-1"></i>${t('nav.passengerList')}</a>
-                <a class="nav-link" href="#/history"><i class="bi bi-clock-history me-1"></i>${t('nav.scanHistory')}</a>
-                <a class="nav-link" href="#/reports"><i class="bi bi-file-earmark-pdf me-1"></i>${t('nav.reports')}</a>
-                <a class="nav-link" href="#/pending"><i class="bi bi-hourglass-split me-1"></i>${t('nav.pendingApproval')}</a>
+              <div class="navbar-nav me-auto" style="font-size:0.8rem;">
+                <a class="nav-link py-1 px-2" href="#/dashboard"><i class="bi bi-speedometer2 me-1"></i>${t('nav.dashboard')}</a>
+                <a class="nav-link py-1 px-2" href="#/import"><i class="bi bi-file-earmark-arrow-up me-1"></i>${t('nav.import')}</a>
+                <a class="nav-link py-1 px-2" href="#/scan"><i class="bi bi-upc-scan me-1"></i>${t('nav.scan')}</a>
+                <a class="nav-link py-1 px-2" href="#/passengers"><i class="bi bi-people me-1"></i>${t('nav.passengerList')}</a>
+                <a class="nav-link py-1 px-2" href="#/history"><i class="bi bi-clock-history me-1"></i>${t('nav.scanHistory')}</a>
+                <a class="nav-link py-1 px-2" href="#/reports"><i class="bi bi-file-earmark-pdf me-1"></i>${t('nav.reports')}</a>
+                <a class="nav-link py-1 px-2" href="#/pending"><i class="bi bi-hourglass-split me-1"></i>${t('nav.pendingApproval')}</a>
               </div>
-              <div class="navbar-nav ms-auto align-items-center">
-                <button id="btn-refresh-page" class="btn btn-sm btn-outline-info me-2 ms-2" title="${t('common.refresh') || 'Refresh'}">
+              <div class="navbar-nav ms-auto align-items-center" style="font-size:0.8rem;">
+                <button id="btn-refresh-page" class="btn btn-sm btn-outline-info me-1" title="${t('common.refresh') || 'Refresh'}">
                   <i class="bi bi-arrow-clockwise"></i>
                 </button>
-                <a class="nav-link" href="#/settings">
+                <a class="nav-link py-1 px-2" href="#/settings">
                   <i class="bi bi-gear-fill me-1"></i>${t('nav.settings')}
                 </a>
-                <div class="btn-group ms-2">
-                  <button class="btn btn-sm btn-outline-light" id="btn-lang-ar">العربية</button>
-                  <button class="btn btn-sm btn-outline-light" id="btn-lang-en">English</button>
+                <div class="btn-group ms-1">
+                  <button class="btn btn-sm btn-outline-light py-0 px-2" id="btn-lang-ar" style="font-size:0.75rem;">ع</button>
+                  <button class="btn btn-sm btn-outline-light py-0 px-2" id="btn-lang-en" style="font-size:0.75rem;">EN</button>
                 </div>
               </div>
             </div>

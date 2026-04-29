@@ -144,8 +144,6 @@ function makeAppSettings() {
     sound_enabled: true,
     language: 'ar',
     retention_days: 30,
-    api_server_enabled: true,
-    api_server_port: 7755,
     api_server_path: '/import/mrz',
     watch_file_enabled: false,
     watch_file_path: '',

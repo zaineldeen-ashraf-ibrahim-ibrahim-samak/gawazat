@@ -18,7 +18,6 @@ const { processMrz } = require('./scanProcessor');
 const logger = require('./logger');
 
 const HOST = '127.0.0.1';
-const DEFAULT_PORT = 7755;
 const DEFAULT_PATH = '/import/mrz';
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MB cap
 
@@ -29,7 +28,7 @@ function startApiServer(store, options = {}) {
   if (server) return server;
   storeRef = store;
 
-  const port = options.port || DEFAULT_PORT;
+  const port = options.port;
 
   server = http.createServer((req, res) => handleRequest(req, res));
   server.on('error', (err) => {

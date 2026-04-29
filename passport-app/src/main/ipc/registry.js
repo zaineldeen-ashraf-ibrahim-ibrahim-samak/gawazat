@@ -43,6 +43,7 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('manifest:list', (event, args) => manifestHandlers.list(args));
     ipcMain.handle('manifest:toggleEntered', (event, args) => manifestHandlers.toggleEntered(args));
     ipcMain.handle('manifest:exportFiltered', (event, args) => manifestHandlers.exportFiltered(args));
+    ipcMain.handle('manifest:delete', (event, args) => manifestHandlers.deletePassenger(args));
   }
 
   // ── Scan handlers ──
@@ -50,6 +51,7 @@ function registerAllHandlers(handlers) {
   if (scanHandlers) {
     ipcMain.handle('scan:submitMrz', (event, args) => scanHandlers.submitMrz(args));
     ipcMain.handle('scan:undoLast', (event, args) => scanHandlers.undoLast(args));
+    ipcMain.handle('scan:submitManual', (event, args) => scanHandlers.submitManual(args));
     ipcMain.handle('regula:setMode', (event, args) => scanHandlers.setMode(args));
   }
 
@@ -82,6 +84,8 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('settings:set', (event, args) => settingsHandlers.set(args));
     ipcMain.handle('settings:apiServerStatus', (event, args) => settingsHandlers.apiServerStatus(args));
     ipcMain.handle('session:clear', (event, args) => settingsHandlers.clearSession(args));
+    ipcMain.handle('session:clearWithPassword', (event, args) => settingsHandlers.clearSessionWithPassword(args));
+    ipcMain.handle('settings:testDeviceUrl', (event, args) => settingsHandlers.testDeviceUrl(args));
   }
 
   // ── Dashboard handlers ──

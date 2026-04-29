@@ -61,11 +61,12 @@ export async function renderPassengerList(container) {
                 <th>${t('import.table.dob')}</th>
                 <th>${t('import.table.status')}</th>
                 <th class="text-end">${t('common.confirm')}</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               ${passengers.length === 0 ? `
-                <tr><td colspan="7" class="text-center p-5 text-muted">${t('common.empty')}</td></tr>
+                <tr><td colspan="8" class="text-center p-5 text-muted">${t('common.empty')}</td></tr>
               ` : passengers.map(p => `
                 <tr class="${p.is_entered ? 'table-success-dim' : ''}">
                   <td><code>${esc(p.passport_number)}</code></td>
@@ -74,16 +75,21 @@ export async function renderPassengerList(container) {
                   <td>${esc(p.gender)}</td>
                   <td>${esc(p.date_of_birth)}</td>
                   <td>
-                    ${p.is_entered 
+                    ${p.is_entered
                       ? `<span class="badge bg-success">${t('passengerList.filter.entered')}</span><br><small class="text-muted">${(p.entered_at || '').split('T')[1]?.split('.')[0] || ''}</small>`
                       : `<span class="badge bg-secondary opacity-50">${t('passengerList.filter.pending')}</span>`
                     }
                   </td>
                   <td class="text-end">
                     <div class="form-check form-switch d-inline-block">
-                      <input class="form-check-input status-toggle" type="checkbox" role="switch" 
+                      <input class="form-check-input status-toggle" type="checkbox" role="switch"
                              data-passport="${esc(p.passport_number_normalized)}" ${p.is_entered ? 'checked' : ''}>
                     </div>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-danger delete-btn" data-passport="${esc(p.passport_number_normalized)}" title="حذف">
+                      <i class="bi bi-trash"></i>
+                    </button>
                   </td>
                 </tr>
               `).join('')}
@@ -129,6 +135,20 @@ export async function renderPassengerList(container) {
         toggle.checked = !entered; // Revert
       } else {
         renderPassengerList(container); // Refresh
+      }
+    };
+  });
+
+  // Delete handlers
+  container.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const passport = btn.getAttribute('data-passport');
+      if (!confirm('هل تريد حذف هذا المسافر نهائياً؟')) return;
+      const result = await window.api.manifest.delete({ passport_number_normalized: passport });
+      if (!result.ok) {
+        alert(result.message || t('common.error'));
+      } else {
+        renderPassengerList(container);
       }
     };
   });

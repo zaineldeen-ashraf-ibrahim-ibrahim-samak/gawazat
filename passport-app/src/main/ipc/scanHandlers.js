@@ -7,6 +7,9 @@ const { processMrz } = require('../services/scanProcessor');
 const { setMode: setRegulaMode } = require('../services/regulaClient');
 const { setPentaMode } = require('../services/pentaClient');
 const logger = require('../services/logger');
+const { normalizePassportNumber } = require('../../shared/normalize');
+const { makeScanEvent, makeBoardingRecord, makePendingApprovalEntry } = require('../../shared/entities');
+const { getIndices, rebuildIndices } = require('../store/indices');
 
 let lastUndoableScanId = null;
 
@@ -44,13 +47,60 @@ function createScanHandlers(store) {
     },
 
     /**
+     * Submit manual passenger data (no MRZ)
+     */
+    submitManual: async (args) => {
+      try {
+        const { passport, name, gender, nationality, date_of_birth } = args;
+        if (!passport || !name) return { outcome: 'read-failed', message: 'رقم الجواز والاسم مطلوبان' };
+
+        const normalized = normalizePassportNumber(passport);
+        rebuildIndices(store.getState());
+        const { manifestByNormalized, boardingByNormalized } = getIndices();
+        const passenger = manifestByNormalized.get(normalized);
+        const existingBoarding = boardingByNormalized.get(normalized);
+
+        const mrz_fields = { document_number: passport, name, gender, nationality, date_of_birth };
+        let outcome = 'yellow';
+        let firstEnteredAt = null;
+
+        if (passenger) {
+          if (existingBoarding) {
+            outcome = 'orange';
+            firstEnteredAt = existingBoarding.entered_at;
+          } else {
+            outcome = 'green';
+          }
+        }
+
+        const scanEvent = makeScanEvent({ outcome, mode: 'manual', passport_number_normalized: normalized, passenger_id: passenger?.id || null, mrz_fields });
+
+        store.mutate(draft => {
+          draft.scan_events.push(scanEvent);
+          if (outcome === 'green') {
+            draft.boarding_records[normalized] = makeBoardingRecord({ passenger_id: passenger.id, passport_number_normalized: normalized, scan_event_id: scanEvent.id, via: 'manual' });
+          } else if (outcome === 'yellow') {
+            draft.pending_approval.push(makePendingApprovalEntry({ scan_event_id: scanEvent.id, passport_number_normalized: normalized, mrz_fields, state: 'awaiting' }));
+          }
+        });
+
+        if (outcome === 'green') lastUndoableScanId = scanEvent.id;
+        logger.info(`Manual entry: ${outcome} for ${normalized}`);
+        return { outcome, scan_event_id: scanEvent.id, passenger: passenger || { passport_number: passport, name, gender, nationality, date_of_birth }, mrz_fields, first_entered_at: firstEnteredAt };
+      } catch (err) {
+        logger.error(`submitManual failed: ${err.message}`);
+        return { outcome: 'read-failed', message: err.message };
+      }
+    },
+
+    /**
      * Set scan mode
      * @param {{mode: 'keyboard'|'regula'|'penta'}} args
      */
     setMode: async (args) => {
       const newMode = args.mode;
       // Notify both device clients so they can start/stop polling
-      setRegulaMode(newMode === 'regula' ? 'api' : 'keyboard');
+      setRegulaMode(newMode);
       setPentaMode(newMode);
       logger.info(`Scan mode set to: ${newMode}`);
       return { ok: true };

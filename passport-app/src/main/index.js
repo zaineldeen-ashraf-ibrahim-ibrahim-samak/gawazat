@@ -130,11 +130,14 @@ async function initialize() {
     initPenta(store);
     logger.info('Device clients initialized (Regula + Penta)');
 
-    // Start local HTTP API server (127.0.0.1)
+    // Start local HTTP API server — port derived from the active device URL in settings
     const settings = store.getState().settings || {};
-    if (settings.api_server_enabled !== false) {
-      startApiServer(store, { port: settings.api_server_port });
-    }
+    const _deviceUrl = settings.scan_mode === 'penta'
+      ? (settings.penta_url  || process.env.PENTA_URL  || 'http://localhost:8085')
+      : (settings.regula_url || process.env.REGULA_URL || 'http://localhost:8080');
+    let _apiPort = 7755;
+    try { const p = parseInt(new URL(_deviceUrl).port); if (p) _apiPort = p; } catch (_) {}
+    startApiServer(store, { port: _apiPort });
 
     // Start file watcher if enabled
     const { startFileWatcher } = require('./services/fileWatcher');
