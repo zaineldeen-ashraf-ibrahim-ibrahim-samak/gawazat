@@ -178,6 +178,10 @@ async function generateReport(kind, data, savePath) {
           vLineWidth: () => 0.5,
           hLineColor: () => '#334155',
           vLineColor: () => '#cbd5e1',
+          paddingLeft:   () => 5,
+          paddingRight:  () => 5,
+          paddingTop:    (i) => i === 0 ? 6 : 4,
+          paddingBottom: (i) => i === 0 ? 6 : 4,
           fillColor: (rowIndex) => {
             if (rowIndex === 0) return '#1e3a5f';
             return rowIndex % 2 === 0 ? '#f8fafc' : null;
@@ -222,12 +226,10 @@ async function generateReport(kind, data, savePath) {
         fontSize: 10,
         bold: true,
         color: '#ffffff',
-        margin: [2, 4, 2, 4],
       },
       tableCell: {
         font: 'Amiri',
         fontSize: 9,
-        margin: [2, 3, 2, 3],
         color: '#1f2937',
       },
       footerNote: {
