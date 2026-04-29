@@ -66,6 +66,7 @@ const KIND_TITLES = {
   entered:  'قائمة المسافرين المُدخَلين',
   pending:  'قائمة المسافرين في الانتظار',
   warnings: 'تقرير التحذيرات والإدخالات المكررة',
+  new:      'قائمة المسافرين الجدد (أُضيفوا عند البوابة)',
 };
 
 const STATUS_LABELS = {
@@ -99,6 +100,7 @@ async function generateReport(kind, data, savePath) {
   // Table header row (RTL: rightmost column first in the array = rightmost on page)
   const headerRow = [
     ar('الحالة'),
+    ar('النوع'),
     ar('الجنسية'),
     ar('تاريخ الميلاد'),
     ar('الجنس'),
@@ -112,6 +114,12 @@ async function generateReport(kind, data, savePath) {
 
   const dataRows = passengers.map((p, i) => [
     { text: ar(passengerStatus(p)), alignment: 'center', style: 'tableCell' },
+    {
+      text: ar(p.source === 'added-at-gate' ? 'جديد' : 'أصلي'),
+      alignment: 'center',
+      style: 'tableCell',
+      color: p.source === 'added-at-gate' ? '#d97706' : '#6b7280',
+    },
     { text: ar(p.nationality  ?? ''), alignment: 'right',  style: 'tableCell' },
     { text: p.date_of_birth   ?? '',  alignment: 'center', style: 'tableCell' },
     { text: ar(p.gender === 'M' ? 'ذكر' : p.gender === 'F' ? 'أنثى' : (p.gender ?? '')), alignment: 'center', style: 'tableCell' },
@@ -153,7 +161,7 @@ async function generateReport(kind, data, savePath) {
       {
         table: {
           headerRows: 1,
-          widths: [55, 60, 60, 30, '*', 70],
+          widths: [50, 35, 55, 55, 28, '*', 65],
           body: [headerRow, ...dataRows],
         },
         layout: {

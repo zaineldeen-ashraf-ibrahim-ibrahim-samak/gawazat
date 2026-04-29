@@ -42,6 +42,8 @@ function createReportHandlers(store) {
           filtered = manifest.filter(p => !boarding[p.passport_number_normalized]);
         } else if (kind === 'warnings') {
           filtered = manifest.filter(p => (scanCounts[p.passport_number_normalized] || 0) > 1);
+        } else if (kind === 'new') {
+          filtered = manifest.filter(p => p.source === 'added-at-gate');
         }
 
         const settings = state.settings || {};
