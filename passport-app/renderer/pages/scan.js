@@ -90,7 +90,7 @@ export async function renderScan(container) {
             <input type="text" id="manual-nationality" class="form-control bg-dark text-white border-secondary" placeholder="الجنسية (EGY)">
           </div>
           <div class="col-md-3">
-            <input type="text" id="manual-dob" class="form-control bg-dark text-white border-secondary" placeholder="تاريخ الميلاد (YYYY-MM-DD)">
+            <input type="date" id="manual-dob" class="form-control bg-dark text-white border-secondary">
           </div>
           <div class="col-md-3">
             <button id="btn-manual-submit" class="btn btn-success w-100">
