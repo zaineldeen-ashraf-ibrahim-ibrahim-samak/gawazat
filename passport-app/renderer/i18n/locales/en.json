@@ -91,7 +91,8 @@
     "badge": {
       "duplicate": "X2",
       "error": "ERR"
-    }
+    },
+    "waitingNotScanned": "Waiting List (Not Scanned)"
   },
   "shortcuts": {
     "title": "Keyboard Shortcuts",
@@ -106,9 +107,10 @@
   },
   "reports": {
     "full": "Full Report",
-    "entered": "Entered Passengers",
-    "pending": "Pending Entries",
-    "warnings": "Warnings"
+    "entered": "Entered Passengers List",
+    "pending": "Waiting List",
+    "warnings": "Warnings",
+    "new": "New Passengers List"
   },
   "settings": {
     "scanMode": {

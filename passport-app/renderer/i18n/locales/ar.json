@@ -10,7 +10,7 @@
     "scanHistory": "سجل المسح",
     "reports": "التقارير",
     "settings": "الإعدادات",
-    "pendingApproval": "قائمة الانتظار"
+    "pendingApproval": "قائمه الانتظار"
   },
   "scan": {
     "green": {
@@ -58,20 +58,20 @@
   "pending": {
     "approve": "موافقة",
     "reject": "رفض",
-    "empty": "لا توجد بيانات قيد المراجعة"
+    "empty": "لا توجد بيانات قائمه الانتظار"
   },
   "passengerList": {
     "search": "بحث",
     "filter": {
       "all": "الكل",
-      "entered": "المدخلون",
-      "pending": "قيد المراجعة",
+      "entered": "العدد الفعلي",
+      "pending": "قائمه الانتظار",
       "male": "ذكر",
       "female": "أنثى"
     },
     "source": {
       "original": "أصلي",
-      "new": "جديد (بوابة)",
+      "new": "جديد",
       "manual": "يدوي"
     }
   },
@@ -91,7 +91,8 @@
     "badge": {
       "duplicate": "مكرر",
       "error": "خطأ"
-    }
+    },
+    "waitingNotScanned": "قائمة الانتظار  "
   },
   "shortcuts": {
     "title": "اختصارات لوحة المفاتيح",
@@ -106,9 +107,11 @@
   },
   "reports": {
     "full": "تقرير كامل",
-    "entered": "المدخلون",
-    "pending": "قيد المراجعة",
-    "warnings": "التحذيرات"
+    "entered": "العدد الفعلي",
+    "pending": "قائمه الانتظار",
+    "warnings": "التحذيرات",
+    "new": "المسافرون الجدد",
+    "summary": "ملخص"
   },
   "settings": {
     "scanMode": {

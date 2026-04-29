@@ -7,7 +7,9 @@ import { t } from '../i18n/index.js';
 
 export async function renderDashboard(container) {
   const stats = await window.api.dashboard.stats();
-  const enteredPercent = stats.total > 0 ? Math.round((stats.entered / (stats.total + (stats.totalNew || 0))) * 100) : 0;
+  const totalAll = stats.total + (stats.totalNew || 0);
+  const rawPercent = totalAll > 0 ? (stats.entered / totalAll) * 100 : 0;
+  const enteredPercent = rawPercent > 0 && rawPercent < 1 ? rawPercent.toFixed(1) : Math.round(rawPercent);
 
   const html = `
     <div class="page-dashboard">
@@ -18,11 +20,12 @@ export async function renderDashboard(container) {
 
       <!-- Stats Cards -->
       <div class="row g-3 mb-4">
-        ${renderStatCard('المسافرون الأصليون', stats.total, 'bi-people', 'text-info')}
-        ${renderStatCard('مسافرون جدد (بوابة)', stats.totalNew, 'bi-person-plus', 'text-accent')}
-        ${renderStatCard(`${t('passengerList.filter.entered')} (الكل)`, stats.entered, 'bi-check-circle', 'text-success', `${stats.total} أصلي + ${stats.totalNew} جديد`)}
+        ${renderStatCard('كشف المسافرون', stats.total, 'bi-people', 'text-info')}
+        ${renderStatCard('مسافرون جدد', stats.totalNew, 'bi-person-plus', 'text-accent')}
+        ${renderStatCard(`${t('passengerList.filter.entered')} `, stats.entered, 'bi-check-circle', 'text-success', `${stats.originalEntered} أصلي + ${stats.newEntered} جديد`)}
         ${renderStatCard(t('nav.pendingApproval'), stats.pending, 'bi-hourglass-split', 'text-warning')}
         ${renderStatCard(t('reports.warnings'), stats.warnings, 'bi-exclamation-triangle', 'text-danger')}
+        ${renderStatCard(t('dashboard.waitingNotScanned'), stats.waiting, 'bi-list-ul', 'text-secondary')}
       </div>
 
       <div class="row g-4">
@@ -39,7 +42,7 @@ export async function renderDashboard(container) {
                          role="progressbar" style="width: ${enteredPercent}%"></div>
                   </div>
                   <p class="mt-3 text-muted fs-5">${stats.entered} / ${stats.total + (stats.totalNew || 0)} ${t('nav.passengerList')}</p>
-                  ${stats.totalNew > 0 ? `<p class="text-muted small mb-0">(${stats.total} أصلي + ${stats.totalNew} جديد)</p>` : ''}
+                  ${stats.totalNew > 0 ? `<p class="text-muted small mb-0">(${stats.originalEntered} أصلي + ${stats.newEntered} جديد)</p>` : ''}
                 </div>
               </div>
             </div>

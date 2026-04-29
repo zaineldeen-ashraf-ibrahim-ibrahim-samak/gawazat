@@ -27,9 +27,11 @@ function createDashboardHandlers(store) {
         const newPassengers    = manifest.filter(p => p.source === 'added-at-gate');
         const totalPassengers  = originalManifest.length;
         const totalNew         = newPassengers.length;
-        const totalEntered     = Object.keys(boarding).length; // old + new combined
+        const totalEntered     = manifest.filter(p => boarding[p.passport_number_normalized]).length;
         const totalPending     = pending.filter(e => e.state === 'awaiting').length;
         const totalWarnings    = events.filter(e => e.outcome === 'orange' || e.outcome === 'read-failed').length;
+        const originalEntered  = originalManifest.filter(p => boarding[p.passport_number_normalized]).length;
+        const waitingCount     = totalPassengers - originalEntered;
 
         // Recent events (last 5)
         const passengerMap = new Map();
@@ -48,8 +50,11 @@ function createDashboardHandlers(store) {
           total: totalPassengers,
           totalNew,
           entered: totalEntered,
+          originalEntered,
+          newEntered: totalEntered - originalEntered,
           pending: totalPending,
           warnings: totalWarnings,
+          waiting: waitingCount,
           recentEvents,
           ship_name: settings.ship_name || state.voyage?.ship_name || '',
         };
