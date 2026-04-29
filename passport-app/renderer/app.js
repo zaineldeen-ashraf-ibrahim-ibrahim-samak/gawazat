@@ -67,10 +67,10 @@ async function init() {
                 <a class="nav-link py-1 px-2" href="#/settings">
                   <i class="bi bi-gear-fill me-1"></i>${t('nav.settings')}
                 </a>
-                <div class="btn-group ms-1">
-                  <button class="btn btn-sm btn-outline-light py-0 px-2" id="btn-lang-ar" style="font-size:0.75rem;">ع</button>
-                  <button class="btn btn-sm btn-outline-light py-0 px-2" id="btn-lang-en" style="font-size:0.75rem;">EN</button>
-                </div>
+                <select id="lang-select" class="form-select form-select-sm ms-1" style="width:auto;font-size:0.78rem;">
+                  <option value="ar" ${currentLang === 'ar' ? 'selected' : ''}>العربية</option>
+                  <option value="en" ${currentLang === 'en' ? 'selected' : ''}>English</option>
+                </select>
               </div>
             </div>
           </div>
@@ -118,22 +118,11 @@ async function init() {
       refreshCurrentRoute();
     });
 
-    // Language switcher event listeners (NOT inline onclick — CSP blocks those)
-    document.getElementById('btn-lang-ar').addEventListener('click', async () => {
-      await setLanguage('ar');
+    // Language selector
+    document.getElementById('lang-select').addEventListener('change', async function () {
+      await setLanguage(this.value);
       init();
     });
-    document.getElementById('btn-lang-en').addEventListener('click', async () => {
-      await setLanguage('en');
-      init();
-    });
-
-    // Highlight the active language button
-    if (currentLang === 'ar') {
-      document.getElementById('btn-lang-ar').classList.replace('btn-outline-light', 'btn-light');
-    } else {
-      document.getElementById('btn-lang-en').classList.replace('btn-outline-light', 'btn-light');
-    }
 
     // Global keyboard shortcut: Ctrl+/ or ⌘+/ to open help modal (cross-platform)
     window.addEventListener('keydown', (e) => {
