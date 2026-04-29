@@ -120,17 +120,18 @@ export async function renderScan(container) {
   const mrzInput = document.getElementById('mrz-input');
   const undoBtn = document.getElementById('btn-undo');
 
+  let manualMode = false;
+
   // Auto-focus the hidden input
   mrzInput.focus();
   document.onclick = (e) => {
-    // Don't steal focus if user clicked inside the manual entry panel or any input/button
-    const manual = document.getElementById('manual-entry-panel');
-    if (manual && !manual.classList.contains('d-none') && manual.contains(e.target)) return;
+    if (manualMode) return; // never steal focus when manual panel is open
     if (e.target.closest('input, select, button, textarea')) return;
     mrzInput.focus();
   };
 
   mrzInput.onkeydown = (e) => {
+    if (manualMode) return; // ignore keyboard when manual panel is open
     if (e.key === 'Enter') {
       const raw = mrzInput.value;
       mrzInput.value = '';
@@ -143,14 +144,17 @@ export async function renderScan(container) {
     const panel = document.getElementById('manual-entry-panel');
     panel.classList.toggle('d-none');
     if (!panel.classList.contains('d-none')) {
-      document.getElementById('manual-passport').focus();
+      manualMode = true;
+      setTimeout(() => document.getElementById('manual-passport').focus(), 50);
     } else {
+      manualMode = false;
       mrzInput.focus();
     }
   };
 
   document.getElementById('btn-manual-cancel').onclick = () => {
     document.getElementById('manual-entry-panel').classList.add('d-none');
+    manualMode = false;
     mrzInput.focus();
   };
 
@@ -168,6 +172,7 @@ export async function renderScan(container) {
 
     const result = await window.api.scan.submitManual({ passport, name, gender, nationality, date_of_birth: dob });
     document.getElementById('manual-entry-panel').classList.add('d-none');
+    manualMode = false;
     document.getElementById('manual-passport').value = '';
     document.getElementById('manual-name').value = '';
     document.getElementById('manual-gender').value = '';
