@@ -55,10 +55,8 @@ function initFonts() {
  */
 function ar(str) {
   if (!str) return '';
-  const reshaped = ArabicReshaper.convertArabic(String(str));
-  // Reverse string so that pdfmake's rtl:true reverses it back to visual order.
-  // This bypasses the shaper while maintaining correct word/character order.
-  return reshaped.split('').reverse().join('');
+  // Use raw Unicode with RTL mark. Let pdfmake 0.3.x's internal shaper handle connectivity.
+  return `\u200F${str}`;
 }
 
 /** Formatted date string in Arabic locale */
