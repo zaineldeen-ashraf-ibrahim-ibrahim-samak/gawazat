@@ -170,7 +170,7 @@ async function generateReport(kind, data, savePath) {
       }] : [{
         table: {
           headerRows: 1,
-          widths: [50, 35, 55, 55, 28, '*', 65],
+          widths: [50, 35, 55, 55, 28, 247, 65],
           body: [headerRow, ...dataRows],
         },
         layout: {
