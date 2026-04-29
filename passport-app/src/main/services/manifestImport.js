@@ -4,8 +4,11 @@
  * Contract: specs/001-seaport-passport-scanner/contracts/excel-manifest.md
  */
 
+const fs = require('fs');
+const path = require('path');
 const XLSX = require('xlsx');
 const { normalizePassportNumber } = require('../../shared/normalize');
+const { parseMrz } = require('../../shared/mrz');
 
 /**
  * @typedef {Object} ImportError
@@ -297,11 +300,142 @@ function validateRow(row, rowIndex) {
 }
 
 /**
- * Parse an Excel file and validate its contents
- * @param {string} filePath - Path to .xlsx file
+ * Split a raw .txt buffer into MRZ records.
+ * Records are separated by one or more blank lines; each record is the
+ * 2 (TD3) or 3 (TD1) lines that parseMrz expects.
+ */
+function splitMrzRecords(text) {
+  const records = [];
+  let current = [];
+  for (const rawLine of text.split(/\r?\n/)) {
+    if (rawLine.trim() === '') {
+      if (current.length > 0) {
+        records.push(current);
+        current = [];
+      }
+    } else {
+      current.push(rawLine);
+    }
+  }
+  if (current.length > 0) records.push(current);
+  return records;
+}
+
+/**
+ * Parse a .txt file containing MRZ records and validate each as a manifest row.
+ * Emits the same shape as parseFile so downstream handlers do not need to care.
+ * @param {string} filePath
+ * @returns {Object} - { rows: ParsedRow[], errors: ImportError[], duplicates: string[] }
+ */
+function parseTxtFile(filePath) {
+  try {
+    const text = fs.readFileSync(filePath, 'utf8');
+    const records = splitMrzRecords(text);
+
+    if (records.length === 0) {
+      return {
+        rows: [],
+        errors: [{ message: 'File contains no MRZ records' }],
+        duplicates: []
+      };
+    }
+
+    const rows = [];
+    const duplicateNormalized = new Map();
+    const parseErrors = [];
+
+    records.forEach((lines, idx) => {
+      const rowIndex = idx + 1;
+      const mrz = parseMrz(lines.join('\n'));
+
+      if (mrz.type === 'UNKNOWN') {
+        const failed = {
+          rowIndex,
+          source: 'manifest',
+          outcome: 'Error',
+          errors: [{
+            rowIndex,
+            field: 'mrz',
+            rule: 'invalid_format',
+            message: 'Could not parse MRZ block (expected TD1 = 3×30 or TD3 = 2×44)'
+          }]
+        };
+        rows.push(failed);
+        parseErrors.push(...failed.errors);
+        return;
+      }
+
+      const fullName = [mrz.surname, mrz.given_names].filter(Boolean).join(' ').trim();
+      const mappedRow = {
+        passport_number: mrz.document_number,
+        name: fullName,
+        gender: mrz.sex,
+        nationality: mrz.nationality,
+        date_of_birth: mrz.date_of_birth
+      };
+
+      const validation = validateRow(mappedRow, rowIndex);
+
+      if (validation.outcome === 'Pass' && validation.passport_number_normalized) {
+        const normalized = validation.passport_number_normalized;
+        if (duplicateNormalized.has(normalized)) {
+          duplicateNormalized.get(normalized).push(rowIndex);
+        } else {
+          duplicateNormalized.set(normalized, [rowIndex]);
+        }
+      }
+
+      rows.push(validation);
+      if (validation.outcome === 'Error') {
+        parseErrors.push(...validation.errors);
+      }
+    });
+
+    const duplicates = [];
+    for (const [normalized, rowIndices] of duplicateNormalized) {
+      if (rowIndices.length > 1) {
+        duplicates.push(normalized);
+        for (const rowIdx of rowIndices) {
+          const row = rows.find(r => r.rowIndex === rowIdx);
+          if (row) {
+            row.outcome = 'Error';
+            row.errors.push({
+              rowIndex: rowIdx,
+              field: 'passport_number_normalized',
+              rule: 'duplicate',
+              message: `Duplicate passport number found in rows: ${rowIndices.join(', ')}`
+            });
+          }
+        }
+        parseErrors.push(...rowIndices.map(idx => ({
+          rowIndex: idx,
+          field: 'passport_number_normalized',
+          rule: 'duplicate',
+          message: `Duplicate passport number found in rows: ${rowIndices.join(', ')}`
+        })));
+      }
+    }
+
+    return { rows, errors: parseErrors, duplicates };
+  } catch (err) {
+    return {
+      rows: [],
+      errors: [{ message: `File parsing failed: ${err.message}` }],
+      duplicates: []
+    };
+  }
+}
+
+/**
+ * Parse a manifest file and validate its contents.
+ * Dispatches by extension: .txt → MRZ parser, otherwise Excel.
+ * @param {string} filePath - Path to .xlsx, .xls, or .txt file
  * @returns {Object} - { rows: ParsedRow[], errors: ImportError[], duplicates: string[] }
  */
 function parseFile(filePath) {
+  if (path.extname(filePath).toLowerCase() === '.txt') {
+    return parseTxtFile(filePath);
+  }
   try {
     const workbook = XLSX.readFile(filePath, { cellDates: true });
     const sheetName = workbook.SheetNames[0]; // Use first sheet
@@ -413,6 +547,8 @@ function parseFile(filePath) {
 
 module.exports = {
   parseFile,
+  parseTxtFile,
+  splitMrzRecords,
   validateRow,
   normalizeGender,
   parseExcelDate,

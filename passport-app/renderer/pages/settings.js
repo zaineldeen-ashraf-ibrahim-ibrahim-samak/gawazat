@@ -1,8 +1,16 @@
 import { t } from '../i18n/index.js';
 
+let statusPollInterval = null;
+
 export async function renderSettings(container) {
   const settings = await window.api.settings.get();
   const currentMode = settings.scan_mode || 'keyboard';
+
+  // Fetch live API server status
+  let apiStatus = { running: false, port: null };
+  try {
+    apiStatus = await window.api.settings.apiServerStatus();
+  } catch (_) { /* preload may not have the method in older builds */ }
 
   const html = `
     <div class="page-settings">
@@ -105,6 +113,65 @@ export async function renderSettings(container) {
             </div>
           </div>
 
+          <!-- ═══════════════════════════════════════════════════ -->
+          <!-- API Server Card                                    -->
+          <!-- ═══════════════════════════════════════════════════ -->
+          <div class="card bg-dark border-secondary shadow mb-4" id="api-server-card">
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+              <h5 class="mb-0 text-accent"><i class="bi bi-hdd-network me-2"></i>${t('settings.apiServer.title')}</h5>
+              <span id="api-status-badge" class="badge ${apiStatus.running ? 'bg-success' : 'bg-secondary'}" style="font-size: 0.75rem;">
+                <i class="bi ${apiStatus.running ? 'bi-broadcast' : 'bi-stop-circle'} me-1"></i>
+                <span id="api-status-text">${apiStatus.running ? t('settings.apiServer.statusRunning').replace('{{port}}', apiStatus.port) : t('settings.apiServer.statusStopped')}</span>
+              </span>
+            </div>
+            <div class="card-body">
+              <p class="text-muted small mb-3">${t('settings.apiServer.description')}</p>
+
+              <div class="row align-items-end">
+                <div class="col-md-5 mb-3 mb-md-0">
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="check-api-enabled"
+                           ${settings.api_server_enabled !== false ? 'checked' : ''}>
+                    <label class="form-check-label fw-semibold" for="check-api-enabled">${t('settings.apiServer.enabled')}</label>
+                  </div>
+                  <div class="form-text text-muted ms-4">${t('settings.help.apiServerEnabled')}</div>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                  <label class="form-label">${t('settings.apiServer.port')}</label>
+                  <input type="number" class="form-control" id="input-api-port"
+                         min="1024" max="65535" value="${settings.api_server_port || 7755}"
+                         ${settings.api_server_enabled === false ? 'disabled' : ''}>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">${t('settings.apiServer.path')}</label>
+                  <div class="d-flex gap-2">
+                    <input type="text" class="form-control" id="input-api-path"
+                           value="${settings.api_server_path || '/import/mrz'}"
+                           ${settings.api_server_enabled === false ? 'disabled' : ''}>
+                    <button type="button" id="btn-save-api" class="btn btn-primary px-3">
+                      <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Example usage box -->
+              <div class="mt-4 p-3 rounded" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border);">
+                <div class="d-flex align-items-center mb-2">
+                  <i class="bi bi-terminal me-2 text-accent"></i>
+                  <span class="fw-semibold small text-accent">cURL Examples</span>
+                </div>
+                <pre class="mb-0 small" style="color: var(--text-dim); white-space: pre-wrap; word-break: break-all;"><code># Raw text body
+curl -X POST -H 'Content-Type: text/plain' \\
+  --data-binary @MRZ.txt http://127.0.0.1:<span id="example-port">${settings.api_server_port || 7755}</span><span id="example-path">${settings.api_server_path || '/import/mrz'}</span>
+
+# Multipart upload
+curl -X POST -F "file=@MRZ.txt" \\
+  http://127.0.0.1:<span id="example-port-2">${settings.api_server_port || 7755}</span><span id="example-path-2">${settings.api_server_path || '/import/mrz'}</span></code></pre>
+              </div>
+            </div>
+          </div>
+
           <!-- Danger Zone -->
           <div class="card border-danger bg-dark shadow mb-4">
             <div class="card-header border-danger">
@@ -133,7 +200,64 @@ export async function renderSettings(container) {
     document.getElementById('penta-settings').style.display  = mode === 'penta'   ? 'flex' : 'none';
   });
 
-  // Save
+  // ── API Server toggle ──────────────────────────────────────────
+  const apiEnabledCheck = document.getElementById('check-api-enabled');
+  const apiPortInput = document.getElementById('input-api-port');
+  const apiPathInput = document.getElementById('input-api-path');
+
+  apiEnabledCheck.addEventListener('change', () => {
+    apiPortInput.disabled = !apiEnabledCheck.checked;
+    apiPathInput.disabled = !apiEnabledCheck.checked;
+  });
+
+  // Update example port/path in real time
+  const updateExamples = () => {
+    const p = apiPortInput.value || '7755';
+    let pth = apiPathInput.value || '/import/mrz';
+    if (!pth.startsWith('/')) pth = '/' + pth;
+
+    const el1 = document.getElementById('example-port');
+    const el2 = document.getElementById('example-port-2');
+    const elP1 = document.getElementById('example-path');
+    const elP2 = document.getElementById('example-path-2');
+    
+    if (el1) el1.textContent = p;
+    if (el2) el2.textContent = p;
+    if (elP1) elP1.textContent = pth;
+    if (elP2) elP2.textContent = pth;
+  };
+  
+  apiPortInput.addEventListener('input', updateExamples);
+  apiPathInput.addEventListener('input', updateExamples);
+
+  // Save API server settings
+  document.getElementById('btn-save-api').onclick = async () => {
+    const btn = document.getElementById('btn-save-api');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+    let newPath = apiPathInput.value || '/import/mrz';
+    if (!newPath.startsWith('/')) newPath = '/' + newPath;
+
+    const apiSettings = {
+      api_server_enabled: apiEnabledCheck.checked,
+      api_server_port: parseInt(apiPortInput.value) || 7755,
+      api_server_path: newPath,
+    };
+
+    const result = await window.api.settings.set(apiSettings);
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-arrow-repeat"></i>`;
+
+    if (result.ok) {
+      // Refresh the status badge after a short delay (server needs time to bind)
+      setTimeout(() => refreshApiStatus(), 500);
+    } else {
+      alert(result.message || t('common.error'));
+    }
+  };
+
+  // Save general settings
   document.getElementById('settings-form').onsubmit = async (e) => {
     e.preventDefault();
     const saveBtn = document.getElementById('btn-save-settings');
@@ -174,4 +298,36 @@ export async function renderSettings(container) {
       }
     }
   };
+
+  // ── Live status polling ────────────────────────────────────────
+  if (statusPollInterval) clearInterval(statusPollInterval);
+  statusPollInterval = setInterval(() => refreshApiStatus(), 3000);
+  // Also clean up when we leave the page
+  const observer = new MutationObserver(() => {
+    if (!document.getElementById('api-server-card')) {
+      clearInterval(statusPollInterval);
+      statusPollInterval = null;
+      observer.disconnect();
+    }
+  });
+  observer.observe(container, { childList: true });
+}
+
+async function refreshApiStatus() {
+  try {
+    const st = await window.api.settings.apiServerStatus();
+    const badge = document.getElementById('api-status-badge');
+    const text = document.getElementById('api-status-text');
+    if (!badge || !text) return;
+
+    if (st.running) {
+      badge.className = 'badge bg-success';
+      badge.querySelector('i').className = 'bi bi-broadcast me-1';
+      text.textContent = t('settings.apiServer.statusRunning').replace('{{port}}', st.port);
+    } else {
+      badge.className = 'badge bg-secondary';
+      badge.querySelector('i').className = 'bi bi-stop-circle me-1';
+      text.textContent = t('settings.apiServer.statusStopped');
+    }
+  } catch (_) { /* ignore */ }
 }

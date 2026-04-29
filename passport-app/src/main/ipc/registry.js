@@ -80,6 +80,7 @@ function registerAllHandlers(handlers) {
   if (settingsHandlers) {
     ipcMain.handle('settings:get', (event, args) => settingsHandlers.get(args));
     ipcMain.handle('settings:set', (event, args) => settingsHandlers.set(args));
+    ipcMain.handle('settings:apiServerStatus', (event, args) => settingsHandlers.apiServerStatus(args));
     ipcMain.handle('session:clear', (event, args) => settingsHandlers.clearSession(args));
   }
 

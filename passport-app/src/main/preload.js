@@ -57,6 +57,7 @@ const api = {
   settings: {
     get: (args) => ipcRenderer.invoke('settings:get', args),
     set: (args) => ipcRenderer.invoke('settings:set', args),
+    apiServerStatus: (args) => ipcRenderer.invoke('settings:apiServerStatus', args),
   },
 
   session: {

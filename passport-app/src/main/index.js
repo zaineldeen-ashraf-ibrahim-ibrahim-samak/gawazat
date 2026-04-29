@@ -10,6 +10,7 @@ const { purgeRetention } = require('./services/retention');
 const { setCspHeaders } = require('./services/cspMiddleware');
 const { initRegula } = require('./services/regulaClient');
 const { initPenta } = require('./services/pentaClient');
+const { startApiServer, stopApiServer, restartApiServer } = require('./services/apiServer');
 const logger = require('./services/logger');
 
 let mainWindow;
@@ -128,6 +129,12 @@ async function initialize() {
     initRegula(store);
     initPenta(store);
     logger.info('Device clients initialized (Regula + Penta)');
+
+    // Start local HTTP API server (127.0.0.1)
+    const settings = store.getState().settings || {};
+    if (settings.api_server_enabled !== false) {
+      startApiServer(store, { port: settings.api_server_port });
+    }
   } catch (err) {
     logger.error('Initialization failed:', err);
     if (err.stack) logger.error(err.stack);
@@ -169,6 +176,11 @@ app.on('activate', () => {
 
 // Save store before quitting
 app.on('before-quit', async () => {
+  try {
+    stopApiServer();
+  } catch (err) {
+    logger.error('Failed to stop API server on quit:', err.message);
+  }
   if (store) {
     try {
       await store.forceSave();

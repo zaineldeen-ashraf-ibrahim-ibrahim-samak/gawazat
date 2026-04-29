@@ -16,7 +16,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "postinstall": "node scripts/copy-vendor.js && node scripts/download-assets.js",
-    "setup-assets": "node scripts/download-assets.js"
+    "setup-assets": "node scripts/download-assets.js",
+    "mrz-to-excel": "node scripts/mrz-to-excel.js"
   },
   "dependencies": {
     "arabic-reshaper": "^1.1.0",

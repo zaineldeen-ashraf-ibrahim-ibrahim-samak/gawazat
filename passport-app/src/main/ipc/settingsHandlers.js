@@ -5,6 +5,7 @@
 
 const logger = require('../services/logger');
 const { rebuildIndices } = require('../store/indices');
+const { restartApiServer, getApiServerStatus } = require('../services/apiServer');
 
 /**
  * Create settings handlers
@@ -27,18 +28,41 @@ function createSettingsHandlers(store) {
      */
     set: async (newSettings) => {
       try {
+        const oldSettings = store.getState().settings || {};
         store.mutate(draft => {
           draft.settings = {
             ...(draft.settings || {}),
             ...newSettings
           };
         });
+
+        // Auto-restart API server if relevant settings changed
+        const apiChanged =
+          newSettings.api_server_enabled !== undefined &&
+          newSettings.api_server_enabled !== oldSettings.api_server_enabled ||
+          newSettings.api_server_port !== undefined &&
+          newSettings.api_server_port !== oldSettings.api_server_port;
+        if (apiChanged) {
+          const merged = store.getState().settings || {};
+          restartApiServer(store, {
+            enabled: merged.api_server_enabled !== false,
+            port: merged.api_server_port,
+          });
+        }
+
         logger.info('Settings updated');
         return { ok: true };
       } catch (err) {
         logger.error(`Settings update failed: ${err.message}`);
         return { ok: false, message: err.message };
       }
+    },
+
+    /**
+     * Get API server status
+     */
+    apiServerStatus: async () => {
+      return getApiServerStatus();
     },
 
     /**
@@ -64,5 +88,6 @@ function createSettingsHandlers(store) {
     }
   };
 }
+
 
 module.exports = { createSettingsHandlers };

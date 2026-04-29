@@ -103,7 +103,11 @@ export async function renderImport(container) {
 async function handleSelectFile() {
   const result = await window.api.dialog.openFile({
     title: t('import.selectFile'),
-    filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls'] }]
+    filters: [
+      { name: 'Manifest Files', extensions: ['xlsx', 'xls', 'txt'] },
+      { name: 'Excel Files', extensions: ['xlsx', 'xls'] },
+      { name: 'MRZ Text Files', extensions: ['txt'] }
+    ]
   });
 
   if (result && result.filePath) {

@@ -134,7 +134,18 @@
       "pentaUrl": "Network address of the Penta (DESKO) device service. Default: http://localhost:8085",
       "pentaPoll": "How often (in milliseconds) to query the Penta device. Lower = faster response but higher CPU usage.",
       "sound": "Play audio feedback on successful scans, warnings, and errors.",
-      "clearSession": "Permanently deletes the current voyage, all manifest data, scan history, and boarding records. This cannot be undone."
+      "clearSession": "Permanently deletes the current voyage, all manifest data, scan history, and boarding records. This cannot be undone.",
+      "apiServerEnabled": "When enabled, the app listens for incoming MRZ data from external devices like Regula.",
+      "apiServerPort": "TCP port the API server listens on. Default is 7755. Restart required on change."
+    },
+    "apiServer": {
+      "title": "API Server (Regula Import)",
+      "enabled": "Enable API Server",
+      "port": "Listen Port",
+      "path": "API Path",
+      "statusRunning": "Running on port {{port}}",
+      "statusStopped": "Stopped",
+      "description": "Accepts incoming MRZ data from Regula or other devices via HTTP on 127.0.0.1."
     }
   },
   "common": {
