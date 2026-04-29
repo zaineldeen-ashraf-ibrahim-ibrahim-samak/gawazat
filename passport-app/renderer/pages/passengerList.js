@@ -41,6 +41,7 @@ export async function renderPassengerList(container) {
             <button class="btn btn-outline-secondary filter-btn ${currentFilter === 'all' ? 'active' : ''}" data-filter="all">${t('passengerList.filter.all')}</button>
             <button class="btn btn-outline-secondary filter-btn ${currentFilter === 'entered' ? 'active' : ''}" data-filter="entered">${t('passengerList.filter.entered')}</button>
             <button class="btn btn-outline-secondary filter-btn ${currentFilter === 'pending' ? 'active' : ''}" data-filter="pending">${t('passengerList.filter.pending')}</button>
+            <button class="btn btn-outline-warning filter-btn ${currentFilter === 'new' ? 'active' : ''}" data-filter="new">${t('passengerList.source.new')}</button>
           </div>
           <div class="btn-group shadow-sm">
             <button class="btn btn-outline-secondary filter-btn ${currentFilter === 'M' ? 'active' : ''}" data-filter="M">${t('passengerList.filter.male')}</button>
