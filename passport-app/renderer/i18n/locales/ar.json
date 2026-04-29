@@ -68,6 +68,11 @@
       "pending": "قيد المراجعة",
       "male": "ذكر",
       "female": "أنثى"
+    },
+    "source": {
+      "original": "أصلي",
+      "new": "جديد (بوابة)",
+      "manual": "يدوي"
     }
   },
   "history": {

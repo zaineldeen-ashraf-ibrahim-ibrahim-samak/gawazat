@@ -68,6 +68,11 @@
       "pending": "Pending",
       "male": "Male",
       "female": "Female"
+    },
+    "source": {
+      "original": "Original",
+      "new": "New (Gate)",
+      "manual": "Manual"
     }
   },
   "history": {

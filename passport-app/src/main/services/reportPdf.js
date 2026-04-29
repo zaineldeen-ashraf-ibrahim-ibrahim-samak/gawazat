@@ -112,13 +112,17 @@ async function generateReport(kind, data, savePath) {
     alignment: 'center',
   }));
 
+  const emptyRow = passengers.length === 0
+    ? [[{ text: ar('لا توجد بيانات'), colSpan: 7, alignment: 'center', style: 'tableCell', color: '#9ca3af' }, '', '', '', '', '', '']]
+    : [];
+
   const dataRows = passengers.map((p, i) => [
     { text: ar(passengerStatus(p)), alignment: 'center', style: 'tableCell' },
     {
-      text: ar(p.source === 'added-at-gate' ? 'جديد' : 'أصلي'),
+      text: ar(p.source === 'added-at-gate' ? 'جديد (بوابة)' : p.source === 'manual' ? 'يدوي' : 'أصلي'),
       alignment: 'center',
       style: 'tableCell',
-      color: p.source === 'added-at-gate' ? '#d97706' : '#6b7280',
+      color: p.source === 'added-at-gate' ? '#d97706' : p.source === 'manual' ? '#0891b2' : '#6b7280',
     },
     { text: ar(p.nationality  ?? ''), alignment: 'right',  style: 'tableCell' },
     { text: p.date_of_birth   ?? '',  alignment: 'center', style: 'tableCell' },
@@ -162,7 +166,7 @@ async function generateReport(kind, data, savePath) {
         table: {
           headerRows: 1,
           widths: [50, 35, 55, 55, 28, '*', 65],
-          body: [headerRow, ...dataRows],
+          body: [headerRow, ...dataRows, ...emptyRow],
         },
         layout: {
           hLineWidth: (i) => (i === 0 || i === 1) ? 1.5 : 0.5,

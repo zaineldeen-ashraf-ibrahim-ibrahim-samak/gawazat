@@ -75,7 +75,12 @@ export async function renderPassengerList(container) {
                   <td>${esc(p.gender)}</td>
                   <td>${esc(p.date_of_birth)}</td>
                   <td>
-                    ${p.source === 'added-at-gate' ? `<span class="badge bg-accent text-dark me-1" style="background:#f59e0b;">جديد</span>` : `<span class="badge bg-dark border border-secondary text-muted me-1">أصلي</span>`}
+                    ${p.source === 'added-at-gate'
+                      ? `<span class="badge me-1 text-dark" style="background:#f59e0b;">${t('passengerList.source.new')}</span>`
+                      : p.source === 'manual'
+                        ? `<span class="badge bg-info text-dark me-1">${t('passengerList.source.manual')}</span>`
+                        : `<span class="badge bg-dark border border-secondary text-muted me-1">${t('passengerList.source.original')}</span>`
+                    }
                     ${p.is_entered
                       ? `<span class="badge bg-success">${t('passengerList.filter.entered')}</span><br><small class="text-muted">${(p.entered_at || '').split('T')[1]?.split('.')[0] || ''}</small>`
                       : `<span class="badge bg-secondary opacity-50">${t('passengerList.filter.pending')}</span>`
