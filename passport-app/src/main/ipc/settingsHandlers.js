@@ -73,6 +73,10 @@ function createSettingsHandlers(store) {
             ...(draft.settings || {}),
             ...newSettings
           };
+          // Keep voyage.ship_name in sync so reports/dashboard always show the latest name
+          if (newSettings.ship_name !== undefined && draft.voyage) {
+            draft.voyage.ship_name = newSettings.ship_name;
+          }
         });
 
         // Restart API server when the active device URL (and thus port) changes

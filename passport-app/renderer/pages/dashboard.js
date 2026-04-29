@@ -11,7 +11,10 @@ export async function renderDashboard(container) {
 
   const html = `
     <div class="page-dashboard">
-      <h1 class="mb-4">${t('nav.dashboard')}</h1>
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <h1 class="mb-0">${t('nav.dashboard')}</h1>
+        ${stats.ship_name ? `<span class="badge bg-dark border border-secondary fs-6 px-3 py-2"><i class="bi bi-ship me-2 text-accent"></i>${stats.ship_name}</span>` : ''}
+      </div>
 
       <!-- Stats Cards -->
       <div class="row g-4 mb-4">

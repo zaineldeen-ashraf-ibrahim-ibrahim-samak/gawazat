@@ -40,12 +40,14 @@ function createDashboardHandlers(store) {
           };
         });
 
+        const settings = state.settings || {};
         return {
           total: totalPassengers,
           entered: totalEntered,
           pending: totalPending,
           warnings: totalWarnings,
-          recentEvents
+          recentEvents,
+          ship_name: settings.ship_name || state.voyage?.ship_name || '',
         };
       } catch (err) {
         logger.error(`Dashboard stats failed: ${err.message}`);

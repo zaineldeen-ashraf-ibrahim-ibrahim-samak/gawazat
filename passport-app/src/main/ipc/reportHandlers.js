@@ -44,8 +44,12 @@ function createReportHandlers(store) {
           filtered = manifest.filter(p => (scanCounts[p.passport_number_normalized] || 0) > 1);
         }
 
+        const settings = state.settings || {};
         const data = {
-          voyage: state.voyage || {},
+          voyage: {
+            ...(state.voyage || {}),
+            ship_name: settings.ship_name || state.voyage?.ship_name || '',
+          },
           passengers: filtered.map(p => ({
             ...p,
             is_entered:   boarding[p.passport_number_normalized] !== undefined,
