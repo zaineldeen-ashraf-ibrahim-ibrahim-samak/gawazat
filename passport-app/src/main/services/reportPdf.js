@@ -42,7 +42,7 @@ function initFonts() {
   }
   pdfmake.setFonts(fonts);
   if (typeof pdfmake.setUrlAccessPolicy === 'function') {
-    pdfmake.setUrlAccessPolicy({ allow: [] }); // block all external URL fetches
+    pdfmake.setUrlAccessPolicy(() => false); // block all external URL fetches
   }
   fontsReady = true;
 }
