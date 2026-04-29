@@ -54,7 +54,11 @@ function initFonts() {
  * pdfmake rtl:true still handles layout direction; reshaping handles letter connection.
  */
 function ar(str) {
-  return ArabicReshaper.convertArabic(String(str ?? ''));
+  if (!str) return '';
+  const reshaped = ArabicReshaper.convertArabic(String(str));
+  // Reverse string so that pdfmake's rtl:true reverses it back to visual order.
+  // This bypasses the shaper while maintaining correct word/character order.
+  return reshaped.split('').reverse().join('');
 }
 
 /** Formatted date string in Arabic locale */
@@ -124,16 +128,16 @@ async function generateReport(kind, data, savePath) {
       color: p.source === 'added-at-gate' ? '#d97706' : p.source === 'manual' ? '#0891b2' : '#6b7280',
     },
     { text: ar(p.nationality  ?? ''), alignment: 'right',  style: 'tableCell' },
-    { text: p.date_of_birth   ?? '',  alignment: 'center', style: 'tableCell' },
+    { text: `\u200E${p.date_of_birth ?? ''}`, alignment: 'center', style: 'tableCell' },
     { text: ar(p.gender === 'M' ? 'ذكر' : p.gender === 'F' ? 'أنثى' : (p.gender ?? '')), alignment: 'center', style: 'tableCell' },
     { text: ar(p.name         ?? ''), alignment: 'right',  style: 'tableCell' },
-    { text: p.passport_number ?? '',  alignment: 'center', style: 'tableCell', noWrap: true },
+    { text: `\u200E${p.passport_number ?? ''}`, alignment: 'center', style: 'tableCell', noWrap: true },
   ]);
 
   const docDefinition = {
     pageSize: 'A4',
     pageOrientation: 'portrait',
-    pageMargins: [30, 50, 30, 40],
+    pageMargins: [40, 50, 40, 40],
     rtl: true,
 
     content: [
@@ -170,7 +174,7 @@ async function generateReport(kind, data, savePath) {
       }] : [{
         table: {
           headerRows: 1,
-          widths: [48, 33, 48, 52, 25, 234, 95],
+          widths: [45, 65, 50, 65, 30, 150, 95],
           body: [headerRow, ...dataRows],
         },
         layout: {
