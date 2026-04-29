@@ -41,6 +41,9 @@ function initFonts() {
     fonts.Amiri.bold = fonts.Amiri.normal; // fallback
   }
   pdfmake.setFonts(fonts);
+  if (typeof pdfmake.setUrlAccessPolicy === 'function') {
+    pdfmake.setUrlAccessPolicy({ allow: [] }); // block all external URL fetches
+  }
   fontsReady = true;
 }
 
@@ -112,10 +115,6 @@ async function generateReport(kind, data, savePath) {
     alignment: 'center',
   }));
 
-  const emptyRow = passengers.length === 0
-    ? [[{ text: ar('لا توجد بيانات'), colSpan: 7, alignment: 'center', style: 'tableCell', color: '#9ca3af' }, '', '', '', '', '', '']]
-    : [];
-
   const dataRows = passengers.map((p, i) => [
     { text: ar(passengerStatus(p)), alignment: 'center', style: 'tableCell' },
     {
@@ -161,12 +160,18 @@ async function generateReport(kind, data, savePath) {
         ],
         margin: [0, 0, 0, 16],
       },
-      // Passenger table
-      {
+      // Passenger table (or empty notice)
+      ...(dataRows.length === 0 ? [{
+        text: ar('لا توجد بيانات للعرض'),
+        alignment: 'center',
+        style: 'meta',
+        color: '#9ca3af',
+        margin: [0, 20, 0, 20],
+      }] : [{
         table: {
           headerRows: 1,
           widths: [50, 35, 55, 55, 28, '*', 65],
-          body: [headerRow, ...dataRows, ...emptyRow],
+          body: [headerRow, ...dataRows],
         },
         layout: {
           hLineWidth: (i) => (i === 0 || i === 1) ? 1.5 : 0.5,
@@ -178,7 +183,7 @@ async function generateReport(kind, data, savePath) {
             return rowIndex % 2 === 0 ? '#f8fafc' : null;
           },
         },
-      },
+      }]),
       // Footer note
       {
         text: ar(`* تم إنشاء هذا التقرير تلقائياً بواسطة ${config.appName}`),
