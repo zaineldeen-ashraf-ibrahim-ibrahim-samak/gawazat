@@ -10,7 +10,7 @@
     "scanHistory": "سجل المسح",
     "reports": "التقارير",
     "settings": "الإعدادات",
-    "pendingApproval": "قائمه الانتظار"
+    "pendingApproval": "قيد المراجعه"
   },
   "scan": {
     "green": {
@@ -58,7 +58,7 @@
   "pending": {
     "approve": "موافقة",
     "reject": "رفض",
-    "empty": "لا توجد بيانات قائمه الانتظار"
+    "empty": "لا توجد بيانات في قائمة الانتظار"
   },
   "passengerList": {
     "search": "بحث",
