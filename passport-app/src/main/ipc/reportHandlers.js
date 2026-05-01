@@ -42,10 +42,16 @@ function createReportHandlers(store) {
           filtered = manifest.filter(p => !boarding[p.passport_number_normalized]);
         } else if (kind === 'warnings') {
           filtered = manifest.filter(p => (scanCounts[p.passport_number_normalized] || 0) > 1);
+        } else if (kind === 'new') {
+          filtered = manifest.filter(p => p.source === 'added-at-gate');
         }
 
+        const settings = state.settings || {};
         const data = {
-          voyage: state.voyage || {},
+          voyage: {
+            ...(state.voyage || {}),
+            ship_name: settings.ship_name || state.voyage?.ship_name || '',
+          },
           passengers: filtered.map(p => ({
             ...p,
             is_entered:   boarding[p.passport_number_normalized] !== undefined,
@@ -68,16 +74,19 @@ function createReportHandlers(store) {
       try {
         const { kind } = args;
         const tempPath = path.join(require('electron').app.getPath('temp'), `print-${Date.now()}.pdf`);
-        
-        // 1. Generate PDF to temp file
-        await createReportHandlers(store).generatePdf({ kind, savePath: tempPath });
-        
-        // 2. Open in system print dialog
-        // Note: Electron doesn't have a direct "print PDF file" API. 
-        // We usually open a hidden window and print it or use shell.openPath.
+
+        const genResult = await createReportHandlers(store).generatePdf({ kind, savePath: tempPath });
+        if (!genResult.ok) return { ok: false, message: genResult.message || 'فشل إنشاء الملف' };
+
+        if (!fs.existsSync(tempPath)) return { ok: false, message: 'الملف لم يُنشأ' };
+
         const { shell } = require('electron');
-        await shell.openPath(tempPath);
-        
+        const errMsg = await shell.openPath(tempPath);
+        if (errMsg) {
+          logger.error(`shell.openPath failed: ${errMsg}`);
+          return { ok: false, message: errMsg };
+        }
+
         return { ok: true };
       } catch (err) {
         logger.error(`Report print failed: ${err.message}`);

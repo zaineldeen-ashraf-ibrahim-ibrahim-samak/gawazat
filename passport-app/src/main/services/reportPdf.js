@@ -41,6 +41,9 @@ function initFonts() {
     fonts.Amiri.bold = fonts.Amiri.normal; // fallback
   }
   pdfmake.setFonts(fonts);
+  if (typeof pdfmake.setUrlAccessPolicy === 'function') {
+    pdfmake.setUrlAccessPolicy(() => false); // block all external URL fetches
+  }
   fontsReady = true;
 }
 
@@ -51,28 +54,31 @@ function initFonts() {
  * pdfmake rtl:true still handles layout direction; reshaping handles letter connection.
  */
 function ar(str) {
-  return ArabicReshaper.convertArabic(String(str ?? ''));
+  if (!str) return '';
+  // Use raw Unicode with RTL mark. Let pdfmake 0.3.x's internal shaper handle connectivity.
+  return `\u200F${str}`;
 }
 
-/** Formatted date string in Arabic locale */
-function dateAr(date = new Date()) {
-  return date.toLocaleDateString('ar-EG', {
+/** Formatted date string in English locale */
+function dateEn(date = new Date()) {
+  return date.toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
 }
 
 const KIND_TITLES = {
-  full:     'تقرير شامل للمسافرين',
-  entered:  'قائمة المسافرين المُدخَلين',
-  pending:  'قائمة المسافرين في الانتظار',
-  warnings: 'تقرير التحذيرات والإدخالات المكررة',
+  full:     'Comprehensive Passenger Report',
+  entered:  'Entered Passengers List',
+  pending:  'Waiting List',
+  warnings: 'Warnings and Duplicate Entries Report',
+  new:      'New Passengers List (Added at Gate)',
 };
 
 const STATUS_LABELS = {
-  entered:  'تم الدخول',
-  pending:  'في الانتظار',
-  warning:  'تحذير',
-  rejected: 'مرفوض',
+  entered:  'Entered',
+  pending:  'Waiting',
+  warning:  'Warning',
+  rejected: 'Rejected',
 };
 
 function passengerStatus(p) {
@@ -93,17 +99,18 @@ async function generateReport(kind, data, savePath) {
   const { voyage, passengers } = data;
   const title    = KIND_TITLES[kind] ?? KIND_TITLES.full;
   const shipName = voyage.ship_name || '---';
-  const today    = dateAr();
+  const today    = dateEn();
   const total    = passengers.length;
 
-  // Table header row (RTL: rightmost column first in the array = rightmost on page)
+  // Table header row (LTR: leftmost column first)
   const headerRow = [
-    ar('الحالة'),
-    ar('الجنسية'),
-    ar('تاريخ الميلاد'),
-    ar('الجنس'),
-    ar('الاسم'),
-    ar('رقم الجواز'),
+    'Passport Number',
+    'Name',
+    'Gender',
+    'DOB',
+    'Nationality',
+    'Type',
+    'Status',
   ].map(text => ({
     text,
     style: 'tableHeader',
@@ -111,31 +118,37 @@ async function generateReport(kind, data, savePath) {
   }));
 
   const dataRows = passengers.map((p, i) => [
-    { text: ar(passengerStatus(p)), alignment: 'center', style: 'tableCell' },
-    { text: ar(p.nationality  ?? ''), alignment: 'right',  style: 'tableCell' },
-    { text: p.date_of_birth   ?? '',  alignment: 'center', style: 'tableCell' },
-    { text: ar(p.gender === 'M' ? 'ذكر' : p.gender === 'F' ? 'أنثى' : (p.gender ?? '')), alignment: 'center', style: 'tableCell' },
-    { text: ar(p.name         ?? ''), alignment: 'right',  style: 'tableCell' },
-    { text: p.passport_number ?? '',  alignment: 'center', style: 'tableCell' },
+    { text: p.passport_number ?? '', alignment: 'center', style: 'tableCell', noWrap: true },
+    { text: p.name            ?? '', alignment: 'left',   style: 'tableCell' },
+    { text: p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : (p.gender ?? ''), alignment: 'center', style: 'tableCell' },
+    { text: p.date_of_birth   ?? '', alignment: 'center', style: 'tableCell' },
+    { text: p.nationality     ?? '', alignment: 'left',   style: 'tableCell' },
+    {
+      text: p.source === 'added-at-gate' ? 'New' : p.source === 'manual' ? 'Manual' : 'Original',
+      alignment: 'center',
+      style: 'tableCell',
+      color: p.source === 'added-at-gate' ? '#d97706' : p.source === 'manual' ? '#0891b2' : '#6b7280',
+    },
+    { text: passengerStatus(p), alignment: 'center', style: 'tableCell' },
   ]);
 
   const docDefinition = {
     pageSize: 'A4',
     pageOrientation: 'portrait',
-    pageMargins: [30, 50, 30, 40],
-    rtl: true,
+    pageMargins: [40, 50, 40, 40],
+    rtl: false,
 
     content: [
       // App name
       {
-        text: ar(config.appName),
+        text: config.appName,
         style: 'appTitle',
         alignment: 'center',
         margin: [0, 0, 0, 4],
       },
       // Report title
       {
-        text: ar(title),
+        text: title,
         style: 'header',
         alignment: 'center',
         margin: [0, 0, 0, 12],
@@ -143,17 +156,23 @@ async function generateReport(kind, data, savePath) {
       // Meta info
       {
         columns: [
-          { text: ar(`التاريخ: ${today}`),        style: 'meta', alignment: 'right' },
-          { text: ar(`إجمالي: ${total} مسافر`),   style: 'meta', alignment: 'center' },
-          { text: ar(`السفينة: ${shipName}`),      style: 'meta', alignment: 'left' },
+          { text: `Date: ${today}`,        style: 'meta', alignment: 'left' },
+          { text: `Total: ${total} passengers`,   style: 'meta', alignment: 'center' },
+          { text: `Ship: ${shipName}`,      style: 'meta', alignment: 'right' },
         ],
         margin: [0, 0, 0, 16],
       },
-      // Passenger table
-      {
+      // Passenger table (or empty notice)
+      ...(dataRows.length === 0 ? [{
+        text: 'No data available to display',
+        alignment: 'center',
+        style: 'meta',
+        color: '#9ca3af',
+        margin: [0, 20, 0, 20],
+      }] : [{
         table: {
           headerRows: 1,
-          widths: [55, 60, 60, 30, '*', 70],
+          widths: [80, 100, 35, 60, 50, 40, 40],
           body: [headerRow, ...dataRows],
         },
         layout: {
@@ -161,25 +180,29 @@ async function generateReport(kind, data, savePath) {
           vLineWidth: () => 0.5,
           hLineColor: () => '#334155',
           vLineColor: () => '#cbd5e1',
+          paddingLeft:   () => 5,
+          paddingRight:  () => 5,
+          paddingTop:    (i) => i === 0 ? 6 : 4,
+          paddingBottom: (i) => i === 0 ? 6 : 4,
           fillColor: (rowIndex) => {
             if (rowIndex === 0) return '#1e3a5f';
             return rowIndex % 2 === 0 ? '#f8fafc' : null;
           },
         },
-      },
+      }]),
       // Footer note
       {
-        text: ar(`* تم إنشاء هذا التقرير تلقائياً بواسطة ${config.appName}`),
+        text: `* This report was generated automatically by ${config.appName}`,
         style: 'footerNote',
         margin: [0, 20, 0, 0],
-        alignment: 'right',
+        alignment: 'left',
       },
     ],
 
     defaultStyle: {
       font: 'Amiri',
       fontSize: 10,
-      alignment: 'right',
+      alignment: 'left',
     },
 
     styles: {
@@ -205,13 +228,10 @@ async function generateReport(kind, data, savePath) {
         fontSize: 10,
         bold: true,
         color: '#ffffff',
-        fillColor: '#1e3a5f',
-        margin: [2, 4, 2, 4],
       },
       tableCell: {
         font: 'Amiri',
         fontSize: 9,
-        margin: [2, 3, 2, 3],
         color: '#1f2937',
       },
       footerNote: {

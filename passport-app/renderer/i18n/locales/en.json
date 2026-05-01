@@ -68,6 +68,11 @@
       "pending": "Pending",
       "male": "Male",
       "female": "Female"
+    },
+    "source": {
+      "original": "Original",
+      "new": "New (Gate)",
+      "manual": "Manual"
     }
   },
   "history": {
@@ -86,7 +91,8 @@
     "badge": {
       "duplicate": "X2",
       "error": "ERR"
-    }
+    },
+    "waitingNotScanned": "Waiting List (Not Scanned)"
   },
   "shortcuts": {
     "title": "Keyboard Shortcuts",
@@ -101,9 +107,10 @@
   },
   "reports": {
     "full": "Full Report",
-    "entered": "Entered Passengers",
-    "pending": "Pending Entries",
-    "warnings": "Warnings"
+    "entered": "Entered Passengers List",
+    "pending": "Waiting List",
+    "warnings": "Warnings",
+    "new": "New Passengers List"
   },
   "settings": {
     "scanMode": {
@@ -136,7 +143,7 @@
       "sound": "Play audio feedback on successful scans, warnings, and errors.",
       "clearSession": "Permanently deletes the current voyage, all manifest data, scan history, and boarding records. This cannot be undone.",
       "apiServerEnabled": "When enabled, the app listens for incoming MRZ data from external devices like Regula.",
-      "apiServerPort": "TCP port the API server listens on. Default is 7755. Restart required on change."
+      "apiServerPort": "TCP port the API server listens on.. Restart required on change."
     },
     "apiServer": {
       "title": "API Server (Regula Import)",

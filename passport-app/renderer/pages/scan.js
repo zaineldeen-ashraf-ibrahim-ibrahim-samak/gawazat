@@ -69,6 +69,47 @@ export async function renderScan(container) {
         </div>
       </div>
 
+      <!-- Manual entry panel -->
+      <div id="manual-entry-panel" class="d-none mt-3 p-3 rounded" style="background: var(--panel); border: 1px solid var(--border);">
+        <h5 class="mb-3"><i class="bi bi-pencil-square me-2"></i>إدخال يدوي</h5>
+        <div class="row g-2">
+          <div class="col-md-4">
+            <input type="text" id="manual-passport" class="form-control bg-dark text-white border-secondary" placeholder="رقم الجواز *">
+          </div>
+          <div class="col-md-4">
+            <input type="text" id="manual-name" class="form-control bg-dark text-white border-secondary" placeholder="الاسم *">
+          </div>
+          <div class="col-md-2">
+            <select id="manual-gender" class="form-select bg-dark text-white border-secondary">
+              <option value="">النوع</option>
+              <option value="M">ذكر (M)</option>
+              <option value="F">أنثى (F)</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <input type="text" id="manual-nationality" class="form-control bg-dark text-white border-secondary" placeholder="الجنسية (EGY)">
+          </div>
+          <div class="col-md-3">
+            <input type="date" id="manual-dob" class="form-control bg-dark text-white border-secondary">
+          </div>
+          <div class="col-md-3">
+            <button id="btn-manual-submit" class="btn btn-success w-100">
+              <i class="bi bi-check-lg me-1"></i>تأكيد الإدخال
+            </button>
+          </div>
+          <div class="col-md-3">
+            <button id="btn-manual-cancel" class="btn btn-outline-secondary w-100">إلغاء</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual entry toggle button -->
+      <div class="d-flex justify-content-center mt-2">
+        <button id="btn-toggle-manual" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-pencil me-1"></i>إدخال يدوي
+        </button>
+      </div>
+
       <!-- Hidden input for keyboard mode -->
       <input type="text" id="mrz-input" style="position: absolute; opacity: 0; pointer-events: none;">
     </div>
@@ -79,16 +120,65 @@ export async function renderScan(container) {
   const mrzInput = document.getElementById('mrz-input');
   const undoBtn = document.getElementById('btn-undo');
 
+  let manualMode = false;
+
   // Auto-focus the hidden input
   mrzInput.focus();
-  document.onclick = () => mrzInput.focus();
+  document.onclick = (e) => {
+    if (manualMode) return; // never steal focus when manual panel is open
+    if (e.target.closest('input, select, button, textarea')) return;
+    mrzInput.focus();
+  };
 
   mrzInput.onkeydown = (e) => {
+    if (manualMode) return; // ignore keyboard when manual panel is open
     if (e.key === 'Enter') {
       const raw = mrzInput.value;
       mrzInput.value = '';
       if (raw) handleScan(raw, autoResetSeconds);
     }
+  };
+
+  // Manual entry toggle
+  document.getElementById('btn-toggle-manual').onclick = () => {
+    const panel = document.getElementById('manual-entry-panel');
+    panel.classList.toggle('d-none');
+    if (!panel.classList.contains('d-none')) {
+      manualMode = true;
+      setTimeout(() => document.getElementById('manual-passport').focus(), 50);
+    } else {
+      manualMode = false;
+      mrzInput.focus();
+    }
+  };
+
+  document.getElementById('btn-manual-cancel').onclick = () => {
+    document.getElementById('manual-entry-panel').classList.add('d-none');
+    manualMode = false;
+    mrzInput.focus();
+  };
+
+  document.getElementById('btn-manual-submit').onclick = async () => {
+    const passport = document.getElementById('manual-passport').value.trim();
+    const name = document.getElementById('manual-name').value.trim();
+    const gender = document.getElementById('manual-gender').value;
+    const nationality = document.getElementById('manual-nationality').value.trim();
+    const dob = document.getElementById('manual-dob').value.trim();
+
+    if (!passport || !name) {
+      alert('رقم الجواز والاسم مطلوبان');
+      return;
+    }
+
+    const result = await window.api.scan.submitManual({ passport, name, gender, nationality, date_of_birth: dob });
+    document.getElementById('manual-entry-panel').classList.add('d-none');
+    manualMode = false;
+    document.getElementById('manual-passport').value = '';
+    document.getElementById('manual-name').value = '';
+    document.getElementById('manual-gender').value = '';
+    document.getElementById('manual-nationality').value = '';
+    document.getElementById('manual-dob').value = '';
+    showScanResult(result, autoResetSeconds);
   };
 
   undoBtn.onclick = async () => {

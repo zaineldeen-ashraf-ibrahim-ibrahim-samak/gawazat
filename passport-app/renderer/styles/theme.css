@@ -50,6 +50,7 @@ body { overflow: hidden; }
   background: linear-gradient(135deg, var(--panel) 0%, var(--bg-secondary) 100%) !important;
   border-bottom: 1px solid var(--border);
   padding: 0.5rem 1rem;
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
 
@@ -234,6 +235,11 @@ body { overflow: hidden; }
 .form-select:focus {
   border-color: var(--accent) !important;
   box-shadow: 0 0 0 3px var(--accent-glow) !important;
+}
+
+.form-control::placeholder {
+  color: #8a9ab5 !important;
+  opacity: 1;
 }
 
 .form-label {

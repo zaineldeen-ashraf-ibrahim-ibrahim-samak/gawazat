@@ -46,28 +46,30 @@ function setPentaMode(newMode) {
 function startPolling() {
   if (pollingInterval) return;
 
-  const settings = storeInstance.getState().settings || {};
-  const url = settings.penta_url || 'http://localhost:8085';
-  const intervalMs = settings.penta_poll_ms || 500;
-
-  logger.info(`Starting DESKO Penta polling at ${url}`);
+  logger.info('Starting DESKO Penta polling');
 
   pollingInterval = setInterval(async () => {
     if (isProcessing) return;
 
+    // Read URL fresh each tick so settings changes take effect immediately
+    const settings = storeInstance.getState().settings || {};
+    const url = (settings.penta_url || 'http://localhost:8085').replace(/\/$/, '');
+
     try {
-      // DESKO Penta: Check device status
-      const status = await httpRequest('GET', `${url}/api/v1/scanner/status`);
+      const status = await httpRequest('GET', `${url}/api/v1/scanner/status`, null, 2000);
 
       if (status && status.documentPresent === true) {
         isProcessing = true;
-        await handleDocumentPlaced(url);
-        isProcessing = false;
+        try {
+          await handleDocumentPlaced(url);
+        } finally {
+          isProcessing = false;
+        }
       }
-    } catch (err) {
+    } catch (_) {
       // Silently ignore polling errors to avoid log spam
     }
-  }, intervalMs);
+  }, storeInstance.getState().settings?.penta_poll_ms || 500);
 }
 
 function stopPolling() {
@@ -89,22 +91,19 @@ async function handleDocumentPlaced(url) {
     });
 
     if (result && result.mrz) {
-      // DESKO returns MRZ as a single string with \n separators
       const rawMrz = result.mrz;
       const scanResult = await processMrz(storeInstance, rawMrz, 'penta');
 
-      // Emit result to all renderer windows
-      require('electron').BrowserWindow.getAllWindows().forEach(win => {
-        win.webContents.send('regula:event', scanResult);
-      });
+      const envelope = {
+        type: 'scan',
+        data: {
+          ...scanResult,
+          warning_message: scanResult.outcome === 'orange' ? 'هذا المسافر تم مسحه مسبقاً' : null,
+        },
+      };
 
-      // Emit device status
       require('electron').BrowserWindow.getAllWindows().forEach(win => {
-        win.webContents.send('regula:status', {
-          device: 'penta',
-          status: 'success',
-          outcome: scanResult.outcome
-        });
+        win.webContents.send('regula:event', envelope);
       });
     } else if (result && result.error) {
       logger.warn(`DESKO Penta read error: ${result.error}`);
@@ -134,23 +133,32 @@ async function handleDocumentPlaced(url) {
 /**
  * Helper for HTTP requests (no external dependencies)
  */
-function httpRequest(method, url, data = null) {
+function resolveIPv4(hostname) {
+  return new Promise((resolve) => {
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) return resolve(hostname);
+    require('dns').lookup(hostname, { family: 4 }, (err, address) => {
+      resolve(err ? hostname : address);
+    });
+  });
+}
+
+async function httpRequest(method, url, data = null, timeoutMs = 3000) {
+  const urlObj = new URL(url);
+  const ip = await resolveIPv4(urlObj.hostname);
+  const port = parseInt(urlObj.port) || 80;
+
   return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
     const options = {
       method,
-      hostname: urlObj.hostname,
-      port: urlObj.port,
-      path: urlObj.pathname,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+      hostname: ip,
+      port,
+      path: urlObj.pathname + (urlObj.search || ''),
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Host': urlObj.host },
     };
 
     const req = require('http').request(options, (res) => {
       let body = '';
-      res.on('data', (chunk) => body += chunk);
+      res.on('data', chunk => { body += chunk; });
       res.on('end', () => {
         try {
           if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -164,11 +172,8 @@ function httpRequest(method, url, data = null) {
       });
     });
 
-    req.on('error', (e) => reject(e));
-    req.setTimeout(3000, () => {
-      req.destroy();
-      reject(new Error('Request timeout'));
-    });
+    req.setTimeout(timeoutMs, () => { req.destroy(); reject(new Error('Request timeout')); });
+    req.on('error', reject);
     if (data) req.write(JSON.stringify(data));
     req.end();
   });

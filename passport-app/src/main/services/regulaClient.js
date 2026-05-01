@@ -1,38 +1,29 @@
 /**
  * Regula Device Client
- * Communicates with the Regula Document Reader SDK via HTTP API.
- * Contract: specs/001-seaport-passport-scanner/contracts/regula-service.md
+ * Polls the Regula Document Reader SDK HTTP API.
  */
 
 const { processMrz } = require('./scanProcessor');
 const logger = require('./logger');
 
-let mode = 'keyboard'; // 'keyboard' or 'api'
+let mode = 'keyboard';
 let pollingInterval = null;
 let isProcessing = false;
 let storeInstance = null;
 
-/**
- * Initialize Regula Client
- * @param {Object} store - EncryptedStore instance
- */
 function initRegula(store) {
   storeInstance = store;
   const settings = store.getState().settings || {};
   mode = settings.scan_mode || 'keyboard';
-  
-  if (mode === 'api') {
+
+  if (mode === 'regula' || mode === 'api') {
     startPolling();
   }
 }
 
-/**
- * Set scanning mode
- * @param {'keyboard'|'api'} newMode
- */
 function setMode(newMode) {
   mode = newMode;
-  if (mode === 'api') {
+  if (mode === 'regula' || mode === 'api') {
     startPolling();
   } else {
     stopPolling();
@@ -41,32 +32,31 @@ function setMode(newMode) {
 
 function startPolling() {
   if (pollingInterval) return;
-  
-  const settings = storeInstance.getState().settings || {};
-  const url = settings.regula_url || 'http://localhost:8080';
-  const intervalMs = settings.regula_poll_ms || 500;
 
-  logger.info(`Starting Regula polling at ${url}`);
+  logger.info('Starting Regula polling');
 
   pollingInterval = setInterval(async () => {
     if (isProcessing) return;
 
+    // Read URL fresh each tick so settings changes take effect immediately
+    const settings = storeInstance.getState().settings || {};
+    const url = (settings.regula_url || 'http://localhost:8080').replace(/\/$/, '');
+
     try {
-      // Check status
-      // const response = await axios.get(`${url}/api/device/status`);
-      // Use node http since axios might not be installed
-      const status = await httpRequest('GET', `${url}/api/device/status`);
-      
+      const status = await httpRequest('GET', `${url}/api/device/status`, null, 2000);
+
       if (status && status.documentPlaced === true) {
         isProcessing = true;
-        await handleDocumentPlaced(url);
-        isProcessing = false;
+        try {
+          await handleDocumentPlaced(url);
+        } finally {
+          isProcessing = false;
+        }
       }
-    } catch (err) {
-      // Don't log every poll error to avoid spam, but track status
-      // logger.debug(`Regula poll error: ${err.message}`);
+    } catch (_) {
+      // Device offline or not ready — suppress per-tick noise
     }
-  }, intervalMs);
+  }, storeInstance.getState().settings?.regula_poll_ms || 500);
 }
 
 function stopPolling() {
@@ -79,60 +69,91 @@ function stopPolling() {
 
 async function handleDocumentPlaced(url) {
   try {
-    logger.info('Document detected, processing...');
-    
-    // Process document
+    logger.info('Regula: document detected, processing…');
+
     const result = await httpRequest('POST', `${url}/api/process`, {
-      processParam: {
-        scenario: 'MrzOnly'
-      }
+      processParam: { scenario: 'MrzOnly' }
+    }, 8000);
+
+    let rawMrz = null;
+
+    // Regula SDK response: result.text.fieldList or result.text.fields
+    const fields =
+      result?.text?.fieldList ||
+      result?.text?.fields ||
+      [];
+
+    const mrzField = fields.find(
+      f => f.fieldName === 'MRZ' || f.fieldName === 'Document MRZ'
+    );
+    if (mrzField) {
+      rawMrz = mrzField.value || mrzField.valueList?.[0]?.value || null;
+    }
+
+    // Fallback: some SDK versions return MRZ directly
+    if (!rawMrz && result?.mrz) rawMrz = result.mrz;
+    if (!rawMrz && typeof result?.text === 'string') rawMrz = result.text;
+
+    if (!rawMrz) {
+      logger.warn('Regula: no MRZ in response');
+      return;
+    }
+
+    const scanResult = await processMrz(storeInstance, rawMrz, 'regula');
+
+    // Wrap in the same envelope that apiServer and scan.js expect
+    const envelope = {
+      type: 'scan',
+      data: {
+        ...scanResult,
+        warning_message: scanResult.outcome === 'orange'
+          ? 'هذا المسافر تم مسحه مسبقاً'
+          : null,
+      },
+    };
+
+    require('electron').BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('regula:event', envelope);
     });
 
-    if (result && result.text && result.text.fields) {
-      // Find MRZ fields
-      const mrzField = result.text.fields.find(f => f.fieldName === 'MRZ');
-      if (mrzField && mrzField.value) {
-        const rawMrz = mrzField.value;
-        const scanResult = await processMrz(storeInstance, rawMrz, 'api');
-        
-        // Emit to renderer via a global event emitter or directly if we have access to BrowserWindow
-        // In this architecture, main/index.js wires everything.
-        // We can use a custom event emitter.
-        require('electron').BrowserWindow.getAllWindows().forEach(win => {
-          win.webContents.send('regula:event', scanResult);
-        });
-      }
-    }
+    logger.info(`Regula scan: ${scanResult.outcome}`);
   } catch (err) {
     logger.error(`Regula process error: ${err.message}`);
   }
 }
 
-/**
- * Helper for HTTP requests without dependencies
- */
-function httpRequest(method, url, data = null) {
+function resolveIPv4(hostname) {
+  return new Promise((resolve) => {
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) return resolve(hostname);
+    require('dns').lookup(hostname, { family: 4 }, (err, address) => {
+      resolve(err ? hostname : address);
+    });
+  });
+}
+
+async function httpRequest(method, url, data = null, timeoutMs = 3000) {
+  const urlObj = new URL(url);
+  const ip = await resolveIPv4(urlObj.hostname);
+  const port = parseInt(urlObj.port) || 80;
+
   return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
     const options = {
       method,
-      hostname: urlObj.hostname,
-      port: urlObj.port,
-      path: urlObj.pathname,
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      hostname: ip,
+      port,
+      path: urlObj.pathname + (urlObj.search || ''),
+      headers: { 'Content-Type': 'application/json', 'Host': urlObj.host },
     };
 
     const req = require('http').request(options, (res) => {
       let body = '';
-      res.on('data', (chunk) => body += chunk);
+      res.on('data', chunk => { body += chunk; });
       res.on('end', () => {
         try {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(body ? JSON.parse(body) : {});
           } else {
-            reject(new Error(`HTTP ${res.statusCode}: ${body}`));
+            reject(new Error(`HTTP ${res.statusCode}`));
           }
         } catch (e) {
           reject(e);
@@ -140,7 +161,8 @@ function httpRequest(method, url, data = null) {
       });
     });
 
-    req.on('error', (e) => reject(e));
+    req.setTimeout(timeoutMs, () => { req.destroy(); reject(new Error('Request timeout')); });
+    req.on('error', reject);
     if (data) req.write(JSON.stringify(data));
     req.end();
   });

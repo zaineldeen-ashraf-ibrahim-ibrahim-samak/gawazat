@@ -7,18 +7,25 @@ import { t } from '../i18n/index.js';
 
 export async function renderDashboard(container) {
   const stats = await window.api.dashboard.stats();
-  const enteredPercent = stats.total > 0 ? Math.round((stats.entered / stats.total) * 100) : 0;
+  const totalAll = stats.total + (stats.totalNew || 0);
+  const rawPercent = totalAll > 0 ? (stats.entered / totalAll) * 100 : 0;
+  const enteredPercent = rawPercent > 0 && rawPercent < 1 ? rawPercent.toFixed(1) : Math.round(rawPercent);
 
   const html = `
     <div class="page-dashboard">
-      <h1 class="mb-4">${t('nav.dashboard')}</h1>
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <h1 class="mb-0">${t('nav.dashboard')}</h1>
+        ${stats.ship_name ? `<span class="badge bg-dark border border-secondary fs-6 px-3 py-2"><i class="bi bi-ship me-2 text-accent"></i>${stats.ship_name}</span>` : ''}
+      </div>
 
       <!-- Stats Cards -->
-      <div class="row g-4 mb-4">
-        ${renderStatCard(t('passengerList.filter.all'), stats.total, 'bi-people', 'text-info')}
-        ${renderStatCard(t('passengerList.filter.entered'), stats.entered, 'bi-check-circle', 'text-success')}
+      <div class="row g-3 mb-4">
+        ${renderStatCard('كشف المسافرون', stats.total, 'bi-people', 'text-info')}
+        ${renderStatCard('مسافرون جدد', stats.totalNew, 'bi-person-plus', 'text-accent')}
+        ${renderStatCard(`${t('passengerList.filter.entered')} `, stats.entered, 'bi-check-circle', 'text-success', `${stats.originalEntered} أصلي + ${stats.newEntered} جديد`)}
         ${renderStatCard(t('nav.pendingApproval'), stats.pending, 'bi-hourglass-split', 'text-warning')}
         ${renderStatCard(t('reports.warnings'), stats.warnings, 'bi-exclamation-triangle', 'text-danger')}
+        ${renderStatCard(t('dashboard.waitingNotScanned'), stats.waiting, 'bi-list-ul', 'text-secondary')}
       </div>
 
       <div class="row g-4">
@@ -34,7 +41,8 @@ export async function renderDashboard(container) {
                     <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
                          role="progressbar" style="width: ${enteredPercent}%"></div>
                   </div>
-                  <p class="mt-3 text-muted fs-5">${stats.entered} / ${stats.total} ${t('nav.passengerList')}</p>
+                  <p class="mt-3 text-muted fs-5">${stats.entered} / ${stats.total + (stats.totalNew || 0)} ${t('nav.passengerList')}</p>
+                  ${stats.totalNew > 0 ? `<p class="text-muted small mb-0">(${stats.originalEntered} أصلي + ${stats.newEntered} جديد)</p>` : ''}
                 </div>
               </div>
             </div>
@@ -74,17 +82,18 @@ export async function renderDashboard(container) {
   container.innerHTML = html;
 }
 
-function renderStatCard(title, value, icon, colorClass) {
+function renderStatCard(title, value, icon, colorClass, subtitle = '') {
   return `
-    <div class="col-md-3">
+    <div class="col">
       <div class="card bg-dark border-secondary shadow-sm h-100">
-        <div class="card-body d-flex align-items-center p-4">
+        <div class="card-body d-flex align-items-center p-3">
           <div class="rounded-circle bg-black bg-opacity-25 p-3 me-3">
             <i class="bi ${icon} fs-2 ${colorClass}"></i>
           </div>
           <div>
             <div class="text-muted small">${title}</div>
             <div class="fs-2 fw-bold">${value}</div>
+            ${subtitle ? `<div class="text-muted" style="font-size:0.72rem;">${subtitle}</div>` : ''}
           </div>
         </div>
       </div>

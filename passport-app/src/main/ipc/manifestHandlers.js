@@ -144,18 +144,18 @@ function createManifestHandlers(store) {
         // Create sheet 1: Template with header row only
         const templateData = [
           [
-            'رقم الجواز',     // passport_number
-            'الاسم',           // name
-            'النوع',           // gender
-            'الجنسية',         // nationality
-            'تاريخ الميلاد',   // date_of_birth
-            'السفينة',         // vessel (optional)
-            'المقعد'           // seat (optional)
+            'Passport Number',     // passport_number
+            'Name',                // name
+            'Gender',              // gender
+            'Nationality',         // nationality
+            'Date of Birth',       // date_of_birth
+            'Vessel',              // vessel (optional)
+            'Seat'                 // seat (optional)
           ],
           // One sample row for reference
           [
             'EG123456',
-            'محمد علي أحمد',
+            'John Doe',
             'M',
             'EGY',
             '1990-05-15',
@@ -177,14 +177,14 @@ function createManifestHandlers(store) {
 
         // Create sheet 2: Instructions
         const instructionsData = [
-          ['الحقل', 'الصيغة', 'ملاحظات', ''],
-          ['رقم الجواز', 'نص، ≥5 أحرف', 'مطلوب', ''],
-          ['الاسم', 'نص', 'مطلوب', ''],
-          ['النوع', 'M/F أو Male/Female أو ذكر/أنثى', 'مطلوب', ''],
-          ['الجنسية', 'كود ISO 3 أحرف (مثل EGY)', 'مطلوب', ''],
-          ['تاريخ الميلاد', 'YYYY-MM-DD أو تاريخ Excel', 'مطلوب، يجب أن يكون في الماضي', ''],
-          ['السفينة', 'نص', 'اختياري', ''],
-          ['المقعد', 'نص', 'اختياري', '']
+          ['Field', 'Format', 'Notes', ''],
+          ['Passport Number', 'Text, ≥5 chars', 'Required', ''],
+          ['Name', 'Text', 'Required', ''],
+          ['Gender', 'M/F, Male/Female, or Arabic equivalent', 'Required', ''],
+          ['Nationality', 'ISO 3-letter code (e.g., EGY)', 'Required', ''],
+          ['Date of Birth', 'YYYY-MM-DD or Excel Date', 'Required, must be in past', ''],
+          ['Vessel', 'Text', 'Optional', ''],
+          ['Seat', 'Text', 'Optional', '']
         ];
 
         const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
@@ -237,8 +237,9 @@ function createManifestHandlers(store) {
             const normalized = p.passport_number_normalized;
             return boarding[normalized] === undefined;
           });
+        } else if (filter === 'new') {
+          results = results.filter(p => p.source === 'added-at-gate');
         } else if (filter === 'M' || filter === 'F') {
-          // Gender filter
           results = results.filter(p => p.gender === filter);
         }
         // 'all' means no additional filtering
@@ -292,15 +293,15 @@ function createManifestHandlers(store) {
         const boarding = state.boarding_records || {};
 
         const headers = [
-          'رقم الجواز',
-          'الاسم',
-          'النوع',
-          'الجنسية',
-          'تاريخ الميلاد',
-          'السفينة',
-          'المقعد',
-          'حالة الدخول',
-          'وقت الدخول'
+          'Passport Number',
+          'Name',
+          'Gender',
+          'Nationality',
+          'DOB',
+          'Vessel',
+          'Seat',
+          'Status',
+          'Entered At'
         ];
 
         const data = [headers];
@@ -314,7 +315,7 @@ function createManifestHandlers(store) {
             p.date_of_birth,
             p.vessel || '',
             p.seat || '',
-            p.is_entered ? 'تم الدخول' : 'في الانتظار',
+            p.is_entered ? 'Entered' : 'Waiting',
             p.entered_at || ''
           ]);
         }
@@ -355,6 +356,22 @@ function createManifestHandlers(store) {
      * @param {{passport_number_normalized: string, entered: boolean}} args
      * @returns {Promise<{ok: boolean, message?: string}>}
      */
+    deletePassenger: async (args) => {
+      try {
+        const { passport_number_normalized } = args;
+        store.mutate(draft => {
+          draft.manifest = (draft.manifest || []).filter(p => p.passport_number_normalized !== passport_number_normalized);
+          delete draft.boarding_records[passport_number_normalized];
+        });
+        rebuildIndices(store.getState());
+        logger.info(`Deleted passenger: ${passport_number_normalized}`);
+        return { ok: true };
+      } catch (err) {
+        logger.error(`Delete failed: ${err.message}`);
+        return { ok: false, message: err.message };
+      }
+    },
+
     toggleEntered: async (args) => {
       try {
         const { passport_number_normalized, entered } = args;
