@@ -19,42 +19,54 @@ const logger = require('../services/logger');
 function createManifestHandlers(store) {
   const handlers = {
     /**
-     * Import an Excel manifest file
-     * @param {{filePath: string}} args - Path to Excel file
+     * Import Excel manifest files
+     * @param {{filePaths: string[]}} args - Paths to Excel files
      * @returns {Promise<{ok: boolean, voyage?: Voyage, passengers?: Passenger[], errors?: ImportError[], message?: string}>}
      */
     import: async (args) => {
       try {
-        const { filePath } = args;
+        const { filePaths } = args;
 
-        if (!filePath || typeof filePath !== 'string') {
-          return { ok: false, message: 'Invalid file path' };
+        if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
+          return { ok: false, message: 'Invalid file paths' };
         }
 
-        // Parse and validate the file
-        const parseResult = parseFile(filePath);
+        let allPassingRows = [];
+        let allErrors = [];
 
-        if (parseResult.errors.length > 0 && !parseResult.rows.some(r => r.outcome === 'Pass')) {
-          logger.warn(`Import failed: ${parseResult.errors.length} errors, 0 valid rows`);
+        for (const filePath of filePaths) {
+          const parseResult = parseFile(filePath);
+          // Add filename indicator to errors for better context
+          const fileErrors = parseResult.errors.map(e => ({
+            ...e,
+            message: `[${path.basename(filePath)}] ${e.message}`
+          }));
+          
+          allErrors.push(...fileErrors);
+          
+          const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
+          allPassingRows.push(...passingRows);
+        }
+
+        if (allErrors.length > 0 && allPassingRows.length === 0) {
+          logger.warn(`Import failed: ${allErrors.length} errors, 0 valid rows`);
           return {
             ok: false,
-            errors: parseResult.errors,
-            message: `File contains ${parseResult.errors.length} validation error(s) and no valid rows.`
+            errors: allErrors,
+            message: `Files contain ${allErrors.length} validation error(s) and no valid rows.`
           };
         }
 
-        // Extract passing rows
-        const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
-
-        if (passingRows.length === 0) {
+        if (allPassingRows.length === 0) {
           return {
             ok: false,
-            message: 'No valid rows in file',
-            errors: parseResult.rows.filter(r => r.outcome === 'Error').flatMap(r => r.errors)
+            message: 'No valid rows in files',
+            errors: allErrors
           };
         }
 
         // Create a new voyage (atomically replace the current one)
+
         const state = store.getState();
         const settings = state.settings || {};
 
@@ -64,7 +76,7 @@ function createManifestHandlers(store) {
         );
 
         // Create passenger records
-        const passengers = passingRows.map(row => {
+        const passengers = allPassingRows.map(row => {
           return makePassenger({
             passport_number: row.passport_number,
             passport_number_normalized: row.passport_number_normalized,
@@ -97,7 +109,7 @@ function createManifestHandlers(store) {
           ok: true,
           voyage,
           passengers,
-          errors: parseResult.rows.filter(r => r.outcome === 'Error').flatMap(r => r.errors)
+          errors: allErrors
         };
       } catch (err) {
         logger.error(`Import failed: ${err.message}`);
@@ -109,18 +121,35 @@ function createManifestHandlers(store) {
     },
 
     /**
-     * Preview an Excel manifest file without importing
-     * @param {{filePath: string}} args
+     * Preview Excel manifest files without importing
+     * @param {{filePaths: string[]}} args
      */
     preview: async (args) => {
       try {
-        const { filePath } = args;
-        const parseResult = parseFile(filePath);
+        const { filePaths } = args;
+        if (!filePaths || !Array.isArray(filePaths)) {
+           return { ok: false, message: 'Invalid file paths' };
+        }
+
+        let allPassingRows = [];
+        let allErrors = [];
+
+        for (const filePath of filePaths) {
+          const parseResult = parseFile(filePath);
+          
+          const fileErrors = parseResult.errors.map(e => ({
+            ...e,
+            message: `[${path.basename(filePath)}] ${e.message}`
+          }));
+          
+          allErrors.push(...fileErrors);
+          allPassingRows.push(...parseResult.rows.filter(r => r.outcome === 'Pass'));
+        }
 
         return {
           ok: true,
-          passengers: parseResult.rows.filter(r => r.outcome === 'Pass'),
-          errors: parseResult.rows.filter(r => r.outcome === 'Error').flatMap(r => r.errors)
+          passengers: allPassingRows,
+          errors: allErrors
         };
       } catch (err) {
         logger.error(`Preview failed: ${err.message}`);
@@ -289,9 +318,6 @@ function createManifestHandlers(store) {
         }
 
         // Build export data with boarding status
-        const state = store.getState();
-        const boarding = state.boarding_records || {};
-
         const headers = [
           'Passport Number',
           'Name',
