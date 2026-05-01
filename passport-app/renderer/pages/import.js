@@ -191,11 +191,28 @@ function renderPreviewRows(passengers, errors) {
 
   // Show errors
   errors.forEach(err => {
+    // Determine passport string
+    let rowPassport = err.passportRaw || err.value;
+    if (!rowPassport && err.message && err.message.includes('Duplicate passport')) {
+      const match = err.message.match(/Duplicate passport number \(([^)]+)\)/);
+      if (match) rowPassport = match[1];
+    }
+    
+    const isDuplicate = err.rule === 'duplicate' || err.rule === 'duplicate_file' || (err.message && err.message.includes('Duplicate'));
+    
+    // Choose appropriate message 
+    let displayMessage = esc(err.message);
+    if (err.rule === 'duplicate_file') {
+       displayMessage = `[${esc(err.fileName)}] ` + t('import.duplicateFileLine', { passport: rowPassport || '?' });
+    } else if (err.rule === 'duplicate') {
+       displayMessage = t('import.duplicateLine', { passport: rowPassport || '?' });
+    }
+
     html += `
-      <tr class="table-danger">
-        <td>${err.field === 'passport_number' ? '???' : ''}</td>
-        <td colspan="4">${esc(err.message)} (Row ${esc(err.rowIndex)})</td>
-        <td><span class="badge bg-danger">${t('import.errors')}</span></td>
+      <tr class="${isDuplicate ? 'table-warning' : 'table-danger'}">
+        <td>${rowPassport ? esc(rowPassport) : (err.field === 'passport_number' ? '???' : '')}</td>
+        <td colspan="4">${displayMessage} (Row ${esc(err.rowIndex)})</td>
+        <td><span class="badge ${isDuplicate ? 'bg-warning text-dark' : 'bg-danger'}">${isDuplicate ? (t('import.duplicateBadge') || 'Duplicate') : t('import.errors')}</span></td>
       </tr>
     `;
   });

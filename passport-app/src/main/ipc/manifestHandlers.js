@@ -31,6 +31,10 @@ function createManifestHandlers(store) {
           return { ok: false, message: 'Invalid file paths' };
         }
 
+        const state = store.getState();
+        const existingManifest = state.manifest || [];
+        const existingPassports = new Set(existingManifest.map(p => p.passport_number_normalized));
+
         let allPassingRowsMap = new Map();
         let allErrors = [];
 
@@ -46,16 +50,18 @@ function createManifestHandlers(store) {
           
           const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
           for (const row of passingRows) {
-            // Deduplicate across files
-            if (!allPassingRowsMap.has(row.passport_number_normalized)) {
-              allPassingRowsMap.set(row.passport_number_normalized, row);
-            } else {
+            // Deduplicate across files and existing manifest
+            if (existingPassports.has(row.passport_number_normalized) || allPassingRowsMap.has(row.passport_number_normalized)) {
               allErrors.push({
                 rowIndex: row.rowIndex,
                 field: 'passport_number',
-                rule: 'duplicate',
+                rule: 'duplicate_file',
+                fileName: path.basename(filePath),
+                passportRaw: row.passport_number,
                 message: `[${path.basename(filePath)}] Duplicate passport number (${row.passport_number}) ignored.`
               });
+            } else {
+              allPassingRowsMap.set(row.passport_number_normalized, row);
             }
           }
         }
@@ -74,17 +80,14 @@ function createManifestHandlers(store) {
         if (allPassingRows.length === 0) {
           return {
             ok: false,
-            message: 'No valid rows in files',
+            message: 'No new valid rows to import (they might be duplicates or invalid).',
             errors: allErrors
           };
         }
 
-        // Create a new voyage (atomically replace the current one)
-
-        const state = store.getState();
+        // Get or Create a voyage
         const settings = state.settings || {};
-
-        const voyage = makeVoyage(
+        const voyage = state.voyage || makeVoyage(
           settings.ship_name || '',
           settings.port_name || 'Port Said'
         );
@@ -104,24 +107,23 @@ function createManifestHandlers(store) {
           });
         });
 
-        // Atomically update store: replace voyage and manifest
+        // Atomically update store: append to manifest
         store.mutate((draft) => {
-          draft.voyage = voyage;
-          draft.manifest = passengers;
-          // Clear previous scan events, boarding records, pending entries
-          draft.scan_events = [];
-          draft.boarding_records = {};
-          draft.pending_approval = [];
+          if (!draft.voyage) draft.voyage = voyage;
+          if (!draft.manifest) draft.manifest = [];
+          
+          draft.manifest.push(...passengers);
+          // Keep existing boarding_records, scan_events, pending_approval!
         });
 
         // Rebuild indices
         rebuildIndices(store.getState());
 
-        logger.info(`Imported ${passengers.length} passengers for voyage ${voyage.id}`);
+        logger.info(`Appended ${passengers.length} passengers for voyage ${store.getState().voyage?.id}`);
 
         return {
           ok: true,
-          voyage,
+          voyage: store.getState().voyage,
           passengers,
           errors: allErrors
         };
@@ -145,6 +147,10 @@ function createManifestHandlers(store) {
            return { ok: false, message: 'Invalid file paths' };
         }
 
+        const state = store.getState();
+        const existingManifest = state.manifest || [];
+        const existingPassports = new Set(existingManifest.map(p => p.passport_number_normalized));
+
         let allPassingRowsMap = new Map();
         let allErrors = [];
 
@@ -160,16 +166,18 @@ function createManifestHandlers(store) {
           
           const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
           for (const row of passingRows) {
-            // Deduplicate across files
-            if (!allPassingRowsMap.has(row.passport_number_normalized)) {
-              allPassingRowsMap.set(row.passport_number_normalized, row);
-            } else {
+            // Deduplicate across files AND existing passenger manifests
+            if (existingPassports.has(row.passport_number_normalized) || allPassingRowsMap.has(row.passport_number_normalized)) {
               allErrors.push({
                 rowIndex: row.rowIndex,
                 field: 'passport_number',
-                rule: 'duplicate',
+                rule: 'duplicate_file',
+                fileName: path.basename(filePath),
+                passportRaw: row.passport_number,
                 message: `[${path.basename(filePath)}] Duplicate passport number (${row.passport_number}) ignored.`
               });
+            } else {
+              allPassingRowsMap.set(row.passport_number_normalized, row);
             }
           }
         }
