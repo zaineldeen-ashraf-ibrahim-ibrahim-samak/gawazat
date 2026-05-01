@@ -31,7 +31,7 @@ function createManifestHandlers(store) {
           return { ok: false, message: 'Invalid file paths' };
         }
 
-        let allPassingRows = [];
+        let allPassingRowsMap = new Map();
         let allErrors = [];
 
         for (const filePath of filePaths) {
@@ -45,8 +45,22 @@ function createManifestHandlers(store) {
           allErrors.push(...fileErrors);
           
           const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
-          allPassingRows.push(...passingRows);
+          for (const row of passingRows) {
+            // Deduplicate across files
+            if (!allPassingRowsMap.has(row.passport_number_normalized)) {
+              allPassingRowsMap.set(row.passport_number_normalized, row);
+            } else {
+              allErrors.push({
+                rowIndex: row.rowIndex,
+                field: 'passport_number',
+                rule: 'duplicate',
+                message: `[${path.basename(filePath)}] Duplicate passport number (${row.passport_number}) ignored.`
+              });
+            }
+          }
         }
+
+        const allPassingRows = Array.from(allPassingRowsMap.values());
 
         if (allErrors.length > 0 && allPassingRows.length === 0) {
           logger.warn(`Import failed: ${allErrors.length} errors, 0 valid rows`);
@@ -131,7 +145,7 @@ function createManifestHandlers(store) {
            return { ok: false, message: 'Invalid file paths' };
         }
 
-        let allPassingRows = [];
+        let allPassingRowsMap = new Map();
         let allErrors = [];
 
         for (const filePath of filePaths) {
@@ -143,8 +157,24 @@ function createManifestHandlers(store) {
           }));
           
           allErrors.push(...fileErrors);
-          allPassingRows.push(...parseResult.rows.filter(r => r.outcome === 'Pass'));
+          
+          const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
+          for (const row of passingRows) {
+            // Deduplicate across files
+            if (!allPassingRowsMap.has(row.passport_number_normalized)) {
+              allPassingRowsMap.set(row.passport_number_normalized, row);
+            } else {
+              allErrors.push({
+                rowIndex: row.rowIndex,
+                field: 'passport_number',
+                rule: 'duplicate',
+                message: `[${path.basename(filePath)}] Duplicate passport number (${row.passport_number}) ignored.`
+              });
+            }
+          }
         }
+
+        const allPassingRows = Array.from(allPassingRowsMap.values());
 
         return {
           ok: true,
