@@ -19,52 +19,81 @@ const logger = require('../services/logger');
 function createManifestHandlers(store) {
   const handlers = {
     /**
-     * Import an Excel manifest file
-     * @param {{filePath: string}} args - Path to Excel file
+     * Import Excel manifest files
+     * @param {{filePaths: string[]}} args - Paths to Excel files
      * @returns {Promise<{ok: boolean, voyage?: Voyage, passengers?: Passenger[], errors?: ImportError[], message?: string}>}
      */
     import: async (args) => {
       try {
-        const { filePath } = args;
+        const { filePaths } = args;
 
-        if (!filePath || typeof filePath !== 'string') {
-          return { ok: false, message: 'Invalid file path' };
+        if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
+          return { ok: false, message: 'Invalid file paths' };
         }
 
-        // Parse and validate the file
-        const parseResult = parseFile(filePath);
-
-        if (parseResult.errors.length > 0 && !parseResult.rows.some(r => r.outcome === 'Pass')) {
-          logger.warn(`Import failed: ${parseResult.errors.length} errors, 0 valid rows`);
-          return {
-            ok: false,
-            errors: parseResult.errors,
-            message: `File contains ${parseResult.errors.length} validation error(s) and no valid rows.`
-          };
-        }
-
-        // Extract passing rows
-        const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
-
-        if (passingRows.length === 0) {
-          return {
-            ok: false,
-            message: 'No valid rows in file',
-            errors: parseResult.rows.filter(r => r.outcome === 'Error').flatMap(r => r.errors)
-          };
-        }
-
-        // Create a new voyage (atomically replace the current one)
         const state = store.getState();
-        const settings = state.settings || {};
+        const existingManifest = state.manifest || [];
+        const existingPassports = new Set(existingManifest.map(p => p.passport_number_normalized));
 
-        const voyage = makeVoyage(
+        let allPassingRowsMap = new Map();
+        let allErrors = [];
+
+        for (const filePath of filePaths) {
+          const parseResult = parseFile(filePath);
+          // Add filename indicator to errors for better context
+          const fileErrors = parseResult.errors.map(e => ({
+            ...e,
+            message: `[${path.basename(filePath)}] ${e.message}`
+          }));
+          
+          allErrors.push(...fileErrors);
+          
+          const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
+          for (const row of passingRows) {
+            // Deduplicate across files and existing manifest
+            if (existingPassports.has(row.passport_number_normalized) || allPassingRowsMap.has(row.passport_number_normalized)) {
+              allErrors.push({
+                rowIndex: row.rowIndex,
+                field: 'passport_number',
+                rule: 'duplicate_file',
+                fileName: path.basename(filePath),
+                passportRaw: row.passport_number,
+                message: `[${path.basename(filePath)}] Duplicate passport number (${row.passport_number}) ignored.`
+              });
+            } else {
+              allPassingRowsMap.set(row.passport_number_normalized, row);
+            }
+          }
+        }
+
+        const allPassingRows = Array.from(allPassingRowsMap.values());
+
+        if (allErrors.length > 0 && allPassingRows.length === 0) {
+          logger.warn(`Import failed: ${allErrors.length} errors, 0 valid rows`);
+          return {
+            ok: false,
+            errors: allErrors,
+            message: `Files contain ${allErrors.length} validation error(s) and no valid rows.`
+          };
+        }
+
+        if (allPassingRows.length === 0) {
+          return {
+            ok: false,
+            message: 'No new valid rows to import (they might be duplicates or invalid).',
+            errors: allErrors
+          };
+        }
+
+        // Get or Create a voyage
+        const settings = state.settings || {};
+        const voyage = state.voyage || makeVoyage(
           settings.ship_name || '',
           settings.port_name || 'Port Said'
         );
 
         // Create passenger records
-        const passengers = passingRows.map(row => {
+        const passengers = allPassingRows.map(row => {
           return makePassenger({
             passport_number: row.passport_number,
             passport_number_normalized: row.passport_number_normalized,
@@ -78,26 +107,25 @@ function createManifestHandlers(store) {
           });
         });
 
-        // Atomically update store: replace voyage and manifest
+        // Atomically update store: append to manifest
         store.mutate((draft) => {
-          draft.voyage = voyage;
-          draft.manifest = passengers;
-          // Clear previous scan events, boarding records, pending entries
-          draft.scan_events = [];
-          draft.boarding_records = {};
-          draft.pending_approval = [];
+          if (!draft.voyage) draft.voyage = voyage;
+          if (!draft.manifest) draft.manifest = [];
+          
+          draft.manifest.push(...passengers);
+          // Keep existing boarding_records, scan_events, pending_approval!
         });
 
         // Rebuild indices
         rebuildIndices(store.getState());
 
-        logger.info(`Imported ${passengers.length} passengers for voyage ${voyage.id}`);
+        logger.info(`Appended ${passengers.length} passengers for voyage ${store.getState().voyage?.id}`);
 
         return {
           ok: true,
-          voyage,
+          voyage: store.getState().voyage,
           passengers,
-          errors: parseResult.rows.filter(r => r.outcome === 'Error').flatMap(r => r.errors)
+          errors: allErrors
         };
       } catch (err) {
         logger.error(`Import failed: ${err.message}`);
@@ -109,18 +137,57 @@ function createManifestHandlers(store) {
     },
 
     /**
-     * Preview an Excel manifest file without importing
-     * @param {{filePath: string}} args
+     * Preview Excel manifest files without importing
+     * @param {{filePaths: string[]}} args
      */
     preview: async (args) => {
       try {
-        const { filePath } = args;
-        const parseResult = parseFile(filePath);
+        const { filePaths } = args;
+        if (!filePaths || !Array.isArray(filePaths)) {
+           return { ok: false, message: 'Invalid file paths' };
+        }
+
+        const state = store.getState();
+        const existingManifest = state.manifest || [];
+        const existingPassports = new Set(existingManifest.map(p => p.passport_number_normalized));
+
+        let allPassingRowsMap = new Map();
+        let allErrors = [];
+
+        for (const filePath of filePaths) {
+          const parseResult = parseFile(filePath);
+          
+          const fileErrors = parseResult.errors.map(e => ({
+            ...e,
+            message: `[${path.basename(filePath)}] ${e.message}`
+          }));
+          
+          allErrors.push(...fileErrors);
+          
+          const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
+          for (const row of passingRows) {
+            // Deduplicate across files AND existing passenger manifests
+            if (existingPassports.has(row.passport_number_normalized) || allPassingRowsMap.has(row.passport_number_normalized)) {
+              allErrors.push({
+                rowIndex: row.rowIndex,
+                field: 'passport_number',
+                rule: 'duplicate_file',
+                fileName: path.basename(filePath),
+                passportRaw: row.passport_number,
+                message: `[${path.basename(filePath)}] Duplicate passport number (${row.passport_number}) ignored.`
+              });
+            } else {
+              allPassingRowsMap.set(row.passport_number_normalized, row);
+            }
+          }
+        }
+
+        const allPassingRows = Array.from(allPassingRowsMap.values());
 
         return {
           ok: true,
-          passengers: parseResult.rows.filter(r => r.outcome === 'Pass'),
-          errors: parseResult.rows.filter(r => r.outcome === 'Error').flatMap(r => r.errors)
+          passengers: allPassingRows,
+          errors: allErrors
         };
       } catch (err) {
         logger.error(`Preview failed: ${err.message}`);
@@ -289,9 +356,6 @@ function createManifestHandlers(store) {
         }
 
         // Build export data with boarding status
-        const state = store.getState();
-        const boarding = state.boarding_records || {};
-
         const headers = [
           'Passport Number',
           'Name',

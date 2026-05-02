@@ -90,12 +90,14 @@ export async function renderImport(container) {
     dropzone.classList.remove('border-primary', 'bg-dark');
     
     if (e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      // Note: In Electron with sandbox, e.dataTransfer.files[0].path might not be available
-      // unless we handle it specifically. But window.api.manifest.import needs the path.
-      // With contextIsolation and sandbox, we usually get a File object.
-      // We might need to use the dialog:openFile instead for real paths.
-      handleFilePath(file.path);
+      // Gather all paths from dropped files
+      const filePaths = Array.from(e.dataTransfer.files)
+        .map(f => f.path)
+        .filter(Boolean);
+      
+      if (filePaths.length > 0) {
+        handleFilePaths(filePaths);
+      }
     }
   };
 }
@@ -104,38 +106,27 @@ async function handleSelectFile() {
   const result = await window.api.dialog.openFile({
     title: t('import.selectFile'),
     filters: [
-      { name: 'Manifest Files', extensions: ['xlsx', 'xls', 'txt'] },
-      { name: 'Excel Files', extensions: ['xlsx', 'xls'] },
+      { name: 'Manifest Files', extensions: ['xlsx', 'xls', 'csv', 'txt'] },
+      { name: 'Excel/CSV Files', extensions: ['xlsx', 'xls', 'csv'] },
       { name: 'MRZ Text Files', extensions: ['txt'] }
-    ]
+    ],
+    properties: ['openFile', 'multiSelections']
   });
 
-  if (result && result.filePath) {
-    handleFilePath(result.filePath);
+  if (result && result.filePaths) {
+    handleFilePaths(result.filePaths);
   }
 }
 
-async function handleFilePath(filePath) {
+async function handleFilePaths(filePaths) {
   try {
     const previewArea = document.getElementById('import-preview');
     const dropzone = document.getElementById('import-dropzone');
-    const previewBody = document.getElementById('preview-body');
-    const statsArea = document.getElementById('preview-stats');
     const confirmBtn = document.getElementById('btn-confirm-import');
 
-    // Call main process to parse file (Note: main process already has the parseFile service)
-    // We'll use a new IPC method or update manifest:import to return preview first.
-    // Actually T032 implementation returns the full list.
-    
-    // For now, let's assume we use manifest:import which replaces the manifest.
-    // Wait, the task says "preview renders". So manifest:import should probably be two-step 
-    // or we add a manifest:preview.
-    
-    // Let's assume manifest:import returns the result but doesn't commit if we pass a flag?
-    // Or we just call it and it returns the data.
-    
-    const result = await window.api.manifest.preview({ filePath });
-    selectedFilePath = filePath;
+    const result = await window.api.manifest.preview({ filePaths });
+    selectedFilePath = filePaths; // Now stores array of paths
+
     
     if (!result.ok && !result.errors) {
        alert(result.message || t('common.error'));
@@ -200,11 +191,28 @@ function renderPreviewRows(passengers, errors) {
 
   // Show errors
   errors.forEach(err => {
+    // Determine passport string
+    let rowPassport = err.passportRaw || err.value;
+    if (!rowPassport && err.message && err.message.includes('Duplicate passport')) {
+      const match = err.message.match(/Duplicate passport number \(([^)]+)\)/);
+      if (match) rowPassport = match[1];
+    }
+    
+    const isDuplicate = err.rule === 'duplicate' || err.rule === 'duplicate_file' || (err.message && err.message.includes('Duplicate'));
+    
+    // Choose appropriate message 
+    let displayMessage = esc(err.message);
+    if (err.rule === 'duplicate_file') {
+       displayMessage = `[${esc(err.fileName)}] ` + t('import.duplicateFileLine', { passport: rowPassport || '?' });
+    } else if (err.rule === 'duplicate') {
+       displayMessage = t('import.duplicateLine', { passport: rowPassport || '?' });
+    }
+
     html += `
-      <tr class="table-danger">
-        <td>${err.field === 'passport_number' ? '???' : ''}</td>
-        <td colspan="4">${esc(err.message)} (Row ${esc(err.rowIndex)})</td>
-        <td><span class="badge bg-danger">${t('import.errors')}</span></td>
+      <tr class="${isDuplicate ? 'table-warning' : 'table-danger'}">
+        <td>${rowPassport ? esc(rowPassport) : (err.field === 'passport_number' ? '???' : '')}</td>
+        <td colspan="4">${displayMessage} (Row ${esc(err.rowIndex)})</td>
+        <td><span class="badge ${isDuplicate ? 'bg-warning text-dark' : 'bg-danger'}">${isDuplicate ? (t('import.duplicateBadge') || 'Duplicate') : t('import.errors')}</span></td>
       </tr>
     `;
   });
@@ -217,13 +225,13 @@ function renderPreviewRows(passengers, errors) {
 }
 
 async function handleConfirmImport() {
-  if (!selectedFilePath) return;
+  if (!selectedFilePath || selectedFilePath.length === 0) return;
   
   const confirmBtn = document.getElementById('btn-confirm-import');
   confirmBtn.disabled = true;
   confirmBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${t('common.loading')}`;
 
-  const result = await window.api.manifest.import({ filePath: selectedFilePath });
+  const result = await window.api.manifest.import({ filePaths: selectedFilePath });
   
   if (result.ok) {
     alert(t('import.success'));

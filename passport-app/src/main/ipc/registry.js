@@ -13,12 +13,12 @@ function registerAllHandlers(handlers) {
     const result = await dialog.showOpenDialog(win, {
       title: args?.title || 'Open File',
       filters: args?.filters || [],
-      properties: ['openFile']
+      properties: args?.properties || ['openFile']
     });
     if (result.canceled || result.filePaths.length === 0) {
       return null;
     }
-    return { filePath: result.filePaths[0] };
+    return { filePath: result.filePaths[0], filePaths: result.filePaths };
   });
 
   ipcMain.handle('dialog:saveFile', async (event, args) => {

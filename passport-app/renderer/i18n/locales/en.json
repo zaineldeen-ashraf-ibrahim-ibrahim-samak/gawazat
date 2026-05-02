@@ -44,6 +44,9 @@
     "invalidRows": "Rows with Errors",
     "importButton": "Import {{count}} Valid Rows",
     "errors": "Errors",
+    "duplicateBadge": "Duplicate",
+    "duplicateFileLine": "Duplicate passport number ({{passport}}) ignored.",
+    "duplicateLine": "Duplicate passport number ({{passport}}) ignored.",
     "table": {
       "passport": "Passport",
       "name": "Name",

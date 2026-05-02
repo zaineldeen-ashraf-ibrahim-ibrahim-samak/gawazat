@@ -43,8 +43,9 @@
     "validRows": "صفوف صالحة",
     "invalidRows": "صفوف بها أخطاء",
     "importButton": "استيراد {{count}} صفوف صالحة",
-    "errors": "أخطاء",
-    "table": {
+    "errors": "أخطاء",    "duplicateBadge": "مُكرر",
+    "duplicateFileLine": "رقم الجواز المكرر ({{passport}}) تم تجاهله.",
+    "duplicateLine": "رقم الجواز المكرر ({{passport}}) تم تجاهله.",    "table": {
       "passport": "رقم الجواز",
       "name": "الاسم",
       "gender": "النوع",
