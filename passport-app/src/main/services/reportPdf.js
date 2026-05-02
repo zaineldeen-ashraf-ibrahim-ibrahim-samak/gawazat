@@ -72,6 +72,7 @@ const KIND_TITLES = {
   pending:  'Waiting List',
   warnings: 'Warnings and Duplicate Entries Report',
   new:      'New Passengers List (Added at Gate)',
+  pendingApproval: 'Pending Approval List',
 };
 
 const STATUS_LABELS = {

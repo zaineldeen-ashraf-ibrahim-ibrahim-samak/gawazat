@@ -14,6 +14,7 @@ export async function renderReports(container) {
         ${renderReportCard('full', t('reports.full'), 'bi-file-earmark-pdf')}
         ${renderReportCard('entered', t('reports.entered'), 'bi-check-circle')}
         ${renderReportCard('pending', t('reports.pending'), 'bi-hourglass-split')}
+        ${renderReportCard('pendingApproval', t('reports.pendingApproval'), 'bi-ui-checks')}
         ${renderReportCard('warnings', t('reports.warnings'), 'bi-exclamation-triangle')}
         ${renderReportCard('new', t('reports.new'), 'bi-person-plus')}
       </div>

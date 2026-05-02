@@ -110,7 +110,8 @@
     "entered": "Entered Passengers List",
     "pending": "Waiting List",
     "warnings": "Warnings",
-    "new": "New Passengers List"
+    "new": "New Passengers List",
+    "pendingApproval": "Pending Approval List"
   },
   "settings": {
     "scanMode": {

@@ -111,7 +111,8 @@
     "pending": "قائمه الانتظار",
     "warnings": "التحذيرات",
     "new": "المسافرون الجدد",
-    "summary": "ملخص"
+    "summary": "ملخص",
+    "pendingApproval": "قائمة قيد المراجعة"
   },
   "settings": {
     "scanMode": {

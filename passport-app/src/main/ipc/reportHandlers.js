@@ -44,6 +44,17 @@ function createReportHandlers(store) {
           filtered = manifest.filter(p => (scanCounts[p.passport_number_normalized] || 0) > 1);
         } else if (kind === 'new') {
           filtered = manifest.filter(p => p.source === 'added-at-gate');
+        } else if (kind === 'pendingApproval') {
+          const pendingApproval = state.pending_approval || [];
+          filtered = pendingApproval.filter(e => e.state === 'awaiting').map(e => ({
+            passport_number: e.mrz_fields?.document_number || '',
+            passport_number_normalized: e.passport_number_normalized,
+            name: e.mrz_fields?.name || `${e.mrz_fields?.surname || ''} ${e.mrz_fields?.given_names || ''}`.trim(),
+            gender: e.mrz_fields?.gender || e.mrz_fields?.sex || '',
+            nationality: e.mrz_fields?.nationality || '',
+            date_of_birth: e.mrz_fields?.date_of_birth || '',
+            source: 'pending-approval',
+          }));
         }
 
         const settings = state.settings || {};
