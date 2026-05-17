@@ -23,7 +23,7 @@ export async function renderScanHistory(container) {
             <thead class="sticky-top bg-dark">
               <tr>
                 <th class="text-muted" style="width:40px">${t('reports.indexHeader')}</th>
-                <th>${t('common.loading')}</th> <!-- Timestamp Placeholder -->
+                <th>${t('history.table.timestamp')}</th>
                 <th>${t('import.table.status')}</th>
                 <th>${t('import.table.passport')}</th>
                 <th>${t('import.table.name')}</th>
