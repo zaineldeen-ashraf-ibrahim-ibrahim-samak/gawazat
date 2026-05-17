@@ -18,7 +18,8 @@
       "Bash(npx mocha *)",
       "Bash(npm run *)",
       "Bash(npm install *)",
-      "Bash(echo $NEW_FUNC *)"
+      "Bash(echo $NEW_FUNC *)",
+      "Bash(git checkout *)"
     ]
   }
 }

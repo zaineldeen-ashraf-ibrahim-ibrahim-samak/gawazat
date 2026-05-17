@@ -128,12 +128,17 @@ function normalizeGender(value) {
 function parseExcelDate(excelDate) {
   if (!excelDate) return null;
 
-  // If already ISO string format, return as-is
+  // Date object (xlsx with cellDates:true returns these). Use UTC to dodge
+  // timezone drift — the date itself, not the wall-clock interpretation,
+  // is what matters for a date of birth.
+  if (excelDate instanceof Date && !isNaN(excelDate.getTime())) {
+    return excelDate.toISOString().split('T')[0];
+  }
+
   if (typeof excelDate === 'string') {
     if (/^\d{4}-\d{2}-\d{2}$/.test(excelDate)) {
       return excelDate;
     }
-    // Try parsing as date string
     const parsed = new Date(excelDate);
     if (!isNaN(parsed.getTime())) {
       return parsed.toISOString().split('T')[0];
@@ -141,10 +146,9 @@ function parseExcelDate(excelDate) {
     return null;
   }
 
-  // Handle Excel serial number
   if (typeof excelDate === 'number') {
-    // Excel epoch is 1900-01-01, but it has a leap year bug (1900 was not a leap year)
-    // We account for this by adjusting
+    // Excel epoch is 1900-01-01 with the well-known leap-year bug; the -1
+    // here compensates for the off-by-one introduced by that.
     const excelEpoch = new Date(1900, 0, 1);
     const jsDate = new Date(excelEpoch.getTime() + (excelDate - 1) * 24 * 60 * 60 * 1000);
     return jsDate.toISOString().split('T')[0];
