@@ -5,6 +5,67 @@
 
 import { initI18n, t, setLanguage } from './i18n/index.js';
 import { initRouter, navigate, refreshCurrentRoute } from './router.js';
+import { initAudio, setSoundEnabled, playSuccess, playWarning } from './components/audio.js';
+
+function showGlobalScanToast(result) {
+  const outcome = result?.outcome || 'unknown';
+
+  // Use theme CSS variables (theme.css) rather than Bootstrap's text-bg-* palette
+  // so each outcome gets its semantic color (orange ≠ red ≠ yellow).
+  const styleByOutcome = {
+    green:         { cssVar: '--green',  icon: 'bi-check-circle-fill',       title: t('scan.green.title') },
+    yellow:        { cssVar: '--yellow', icon: 'bi-exclamation-triangle-fill', title: t('scan.yellow.title') },
+    orange:        { cssVar: '--orange', icon: 'bi-person-x-fill',           title: t('scan.orange.title') },
+    rejected:      { cssVar: '--orange', icon: 'bi-person-x-fill',           title: t('scan.orange.title') },
+    'read-failed': { cssVar: '--red',    icon: 'bi-x-circle-fill',           title: t('scan.readFailed.title') }
+  };
+  const style = styleByOutcome[outcome] || styleByOutcome['read-failed'];
+
+  const p = result?.passenger || result?.mrz_fields || {};
+  const name = p.name || [p.surname, p.given_names].filter(Boolean).join(' ') || '---';
+  const passport = p.passport_number || p.document_number || '---';
+  const subtitle = result?.warning_message
+    || (outcome === 'green' ? t('scan.green.subtitle')
+      : outcome === 'yellow' ? t('scan.yellow.subtitle')
+      : outcome === 'orange' ? t('scan.orange.subtitle', { enteredAt: result?.first_entered_at || '' })
+      : t('scan.readFailed.subtitle'));
+
+  let container = document.getElementById('global-scan-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'global-scan-toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '1200';
+    document.body.appendChild(container);
+  }
+
+  const toastEl = document.createElement('div');
+  toastEl.className = 'toast align-items-center text-white border-0 shadow-lg';
+  toastEl.style.backgroundColor = `var(${style.cssVar})`;
+  toastEl.setAttribute('role', 'alert');
+  toastEl.setAttribute('aria-live', 'assertive');
+  toastEl.setAttribute('aria-atomic', 'true');
+  toastEl.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body fs-6 py-3 w-100">
+        <div class="d-flex align-items-center fw-bold mb-1">
+          <i class="bi ${style.icon} me-2 fs-5"></i>
+          <span>${style.title}</span>
+        </div>
+        <div class="small opacity-90">${subtitle}</div>
+        <div class="mt-2 d-flex justify-content-between small bg-black bg-opacity-25 p-2 rounded">
+          <span><i class="bi bi-person me-1"></i>${name}</span>
+          <span class="font-monospace"><i class="bi bi-credit-card-2-front me-1"></i>${passport}</span>
+        </div>
+      </div>
+      <button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  `;
+  container.appendChild(toastEl);
+  const tInstance = new window.bootstrap.Toast(toastEl, { delay: 5000 });
+  tInstance.show();
+  toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+}
 
 let currentPage = null;
 
@@ -165,8 +226,14 @@ async function init() {
     if (window.api) {
       console.log('API bridge connected successfully');
       
+      // Initialize audio for global scan notifications (file-watcher / API scans)
+      // The scan page initializes its own audio when active; this ensures sound
+      // feedback when the user is on any other page.
+      initAudio();
+
       // Gemini Notice logic
       const settings = await window.api.settings.get();
+      setSoundEnabled(settings.sound_enabled !== false);
       if (settings.geminiEnabled && !settings.geminiNoticeAcknowledged) {
         const modalEl = document.getElementById('geminiNoticeModal');
         if (modalEl) {
@@ -186,15 +253,26 @@ async function init() {
       updateHeaderStats();
       setInterval(updateHeaderStats, 2000);
 
-      // Listen for global scan events to auto-refresh current page (if not on scan page)
+      // Listen for global scan events. When the user is NOT on the scan page
+      // (e.g. file-watcher scan arrives while viewing dashboard/list), surface
+      // the same UI + voice feedback the scan page provides: a result toast
+      // with passenger info plus a success/warning chime. The scan page handles
+      // its own UI/audio when active, so we skip duplicate feedback there.
       if (window.api.regula && window.api.regula.onEvent) {
         window.api.regula.onEvent((event) => {
-          if (event.type === 'scan') {
-            const hash = window.location.hash;
-            if (hash && !hash.includes('/scan')) {
-              refreshCurrentRoute();
-            }
+          if (event.type !== 'scan') return;
+          const hash = window.location.hash || '';
+          const onScanPage = hash.includes('/scan') && !hash.includes('/scan-history');
+          if (onScanPage) return;
+
+          const result = event.data || {};
+          showGlobalScanToast(result);
+          if (result.outcome === 'green') {
+            playSuccess();
+          } else {
+            playWarning();
           }
+          refreshCurrentRoute();
         });
       }
     } else {

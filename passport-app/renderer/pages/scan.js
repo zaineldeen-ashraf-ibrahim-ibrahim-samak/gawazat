@@ -275,7 +275,7 @@ async function showScanResult(result, autoResetSeconds) {
   let iconHtml = '';
 
   if (result.outcome === 'green') {
-    bgColor = '#064e3b'; // Dark green
+    bgColor = 'var(--green-bg-dark)';
     borderColor = 'var(--green)';
     iconHtml = '<i class="bi bi-check-circle-fill display-1 text-green"></i>';
     title.innerText = t('scan.green.title');
@@ -283,21 +283,21 @@ async function showScanResult(result, autoResetSeconds) {
     undoBtn.classList.remove('d-none');
     playSuccess();
   } else if (result.outcome === 'yellow') {
-    bgColor = '#422006'; // Dark yellow/orange
+    bgColor = 'var(--yellow-bg-dark)';
     borderColor = 'var(--yellow)';
     iconHtml = '<i class="bi bi-exclamation-triangle-fill display-1 text-yellow"></i>';
     title.innerText = t('scan.yellow.title');
     subtitle.innerText = t('scan.yellow.subtitle');
     playWarning();
   } else if (result.outcome === 'orange') {
-    bgColor = '#431407'; // Dark orange/red
+    bgColor = 'var(--orange-bg-dark)';
     borderColor = 'var(--orange)';
     iconHtml = '<i class="bi bi-person-x-fill display-1 text-orange"></i>';
     title.innerText = t('scan.orange.title');
     subtitle.innerText = result.warning_message || t('scan.orange.subtitle', { enteredAt: result.first_entered_at });
     playWarning();
   } else {
-    bgColor = '#450a0a'; // Dark red
+    bgColor = 'var(--red-bg-dark)';
     borderColor = 'var(--red)';
     iconHtml = '<i class="bi bi-x-circle-fill display-1 text-red"></i>';
     title.innerText = t('scan.readFailed.title');

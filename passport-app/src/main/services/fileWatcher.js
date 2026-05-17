@@ -70,9 +70,11 @@ async function handleFileChange(filePath) {
     // Notify UI
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
+      // Let the renderer localize the message via i18n based on outcome.
+      // Don't override with a hard-coded English string here.
       windows[0].webContents.send('regula:event', {
         type: 'scan',
-        data: { ...result, warning_message: result.outcome === 'orange' ? 'WARNING: This person is already scanned/added and will not be added again.' : null }
+        data: result
       });
     }
   } catch (err) {
