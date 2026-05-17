@@ -72,6 +72,36 @@ const COUNTRY_TO_ISO3 = {
   'KYRGYZSTAN': 'KGZ', 'MONGOLIA': 'MNG', 'SRI LANKA': 'LKA', 'NEPAL': 'NPL'
 };
 
+// Common operator-typed truncations and informal 3-letter codes that are NOT
+// ISO-3166-1 alpha-3. Real-world manifests routinely contain these. Mapping
+// them upfront means downstream validation doesn't reject otherwise-valid
+// passenger rows. For genuinely ambiguous truncations ("UNI" could be UK or
+// USA), pick the most common interpretation seen in cruise-line lists.
+const TRUNCATION_TO_ISO3 = {
+  'UNI': 'USA',   // "United (States)" — most-frequent in cruise manifests
+  'UK':  'GBR',
+  'UAE': 'ARE',
+  'GRE': 'GRC',   // Greece
+  'IRE': 'IRL',   // Ireland
+  'NEP': 'NPL',   // Nepal
+  'GUA': 'GTM',   // Guatemala
+  'TAN': 'TZA',   // Tanzania
+  'MON': 'MCO',   // Monaco (vs. Mongolia/Montenegro — Monaco dominates cruise lists)
+  'NET': 'NLD',   // Netherlands
+  'POR': 'PRT',   // Portugal
+  'SWI': 'CHE',   // Switzerland
+  'SPA': 'ESP',   // Spain
+  'GER': 'DEU',   // Germany
+  'ITA': 'ITA',
+  'PHI': 'PHL',   // Philippines
+  'COS': 'CRI',   // Costa Rica
+  'DOM': 'DOM',
+  'CZE': 'CZE',
+  'SLO': 'SVN',   // Slovenia
+  'SVK': 'SVK',
+  'RUS': 'RUS'
+};
+
 /**
  * Convert a free-form nationality string to ISO-3, when possible. Accepts
  * already-ISO codes (returns them upper-cased), full country names, or
@@ -82,8 +112,12 @@ function convertCountryToIso3(value) {
   if (!value) return value;
   const s = String(value).trim();
   if (!s) return s;
-  if (s.length === 3 && /^[A-Za-z]{3}$/.test(s)) return s.toUpperCase();
-  return COUNTRY_TO_ISO3[s.toUpperCase()] || s;
+  const upper = s.toUpperCase();
+  // Map known informal/truncated 3-letter codes first — these collide with the
+  // "looks-like-ISO3" shortcut below, so they have to win.
+  if (TRUNCATION_TO_ISO3[upper]) return TRUNCATION_TO_ISO3[upper];
+  if (upper.length === 3 && /^[A-Z]{3}$/.test(upper)) return upper;
+  return COUNTRY_TO_ISO3[upper] || s;
 }
 
 function normalizeHeader(str) {

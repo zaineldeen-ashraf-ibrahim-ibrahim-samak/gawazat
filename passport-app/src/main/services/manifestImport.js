@@ -255,8 +255,14 @@ async function validateRow(row, rowIndex, requirements, preNormalized) {
     result.gender = normalizedGender;
   }
 
-  // Validate nationality
-  const nat = normalizedData.nationality || nationalityRaw;
+  // Validate nationality. We try harder than the raw value: the xlsx parser
+  // already converts long names and common truncations to ISO-3, but if an
+  // operator typed a non-standard code that's still 3 letters, accept it
+  // with a warning rather than blocking the entire row. Real-world manifests
+  // routinely contain "UNI", "GRE", "NEP", etc., which a human can still
+  // process even if the code isn't strictly ISO-3.
+  const natRawValue = (normalizedData.nationality || nationalityRaw || '').toString().trim();
+  const nat = natRawValue.toUpperCase();
   if (!nat) {
     if (validation.missingRequired.includes('nationality')) {
       errors.push({
@@ -273,15 +279,16 @@ async function validateRow(row, rowIndex, requirements, preNormalized) {
       rule: 'invalid_format',
       message: 'Nationality must be a 3-letter ISO code (e.g., EGY)'
     });
-  } else if (!VALID_NATIONALITIES.has(nat)) {
-    errors.push({
-      rowIndex,
-      field: 'nationality',
-      rule: 'unknown_code',
-      message: `Unknown nationality code: ${nat}`
-    });
   } else {
+    // Keep the value even if it's not in the canonical ISO-3 set; emit a
+    // warning instead of failing so the row still imports.
     result.nationality = nat;
+    if (!VALID_NATIONALITIES.has(nat)) {
+      result.normalizationWarnings = [
+        ...(result.normalizationWarnings || []),
+        `NATIONALITY_NON_ISO3:${nat}`
+      ];
+    }
   }
 
   // Validate date_of_birth

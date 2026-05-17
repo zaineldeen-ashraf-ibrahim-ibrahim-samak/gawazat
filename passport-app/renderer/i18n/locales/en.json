@@ -224,6 +224,7 @@
     "optional": "Optional",
     "passportNumber": "Passport Number",
     "name": "Name",
+    "givenName": "Given Name",
     "dob": "Date of Birth",
     "nationality": "Nationality",
     "gender": "Gender"

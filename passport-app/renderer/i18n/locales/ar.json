@@ -222,6 +222,7 @@
     "optional": "اختياري",
     "passportNumber": "رقم الجواز",
     "name": "الاسم",
+    "givenName": "الاسم الأول",
     "dob": "تاريخ الميلاد",
     "nationality": "الجنسية",
     "gender": "النوع"
