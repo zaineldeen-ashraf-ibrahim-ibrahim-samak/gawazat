@@ -24,11 +24,11 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 **Purpose**: New dependencies and config plumbing needed by every story below.
 
-- [ ] T001 Install `@google/generative-ai` and `pdf-parse` in `passport-app/package.json` and lock the versions (`npm install --save @google/generative-ai pdf-parse`)
-- [ ] T002 [P] Create `passport-app/.env.example` documenting `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_TIMEOUT_MS`, `GEMINI_MAX_RETRIES`
-- [ ] T003 [P] Ensure `passport-app/.env.local` is listed in `.gitignore`
-- [ ] T004 [P] Add `dotenv` loading at the top of `passport-app/src/main/index.js` (`require('dotenv').config({ path: '.env.local' })` guarded for non-production)
-- [ ] T005 [P] Add npm scripts `test:unit:new` and `test:e2e:002` to `passport-app/package.json` scoped to the new test files for fast iteration
+- [X] T001 Install `@google/generative-ai` and `pdf-parse` in `passport-app/package.json` and lock the versions (`npm install --save @google/generative-ai pdf-parse`)
+- [X] T002 [P] Create `passport-app/.env.example` documenting `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_TIMEOUT_MS`, `GEMINI_MAX_RETRIES`
+- [X] T003 [P] Ensure `passport-app/.env.local` is listed in `.gitignore`
+- [X] T004 [P] Add `dotenv` loading at the top of `passport-app/src/main/index.js` (`require('dotenv').config({ path: '.env.local' })` guarded for non-production)
+- [X] T005 [P] Add npm scripts `test:unit:new` and `test:e2e:002` to `passport-app/package.json` scoped to the new test files for fast iteration
 
 ---
 
