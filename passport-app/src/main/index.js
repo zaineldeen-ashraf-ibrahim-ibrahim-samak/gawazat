@@ -1,4 +1,7 @@
 const { app, BrowserWindow, ipcMain, session, nativeImage, dialog } = require('electron');
+if (!app.isPackaged) {
+  require('dotenv').config({ path: '.env.local' });
+}
 const path = require('path');
 const config = require('./services/config');
 

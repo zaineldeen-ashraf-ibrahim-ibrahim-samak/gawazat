@@ -12,6 +12,8 @@
     "test:unit": "mocha tests/unit/**/*.spec.js",
     "test:locale": "mocha tests/locale/**/*.spec.js",
     "test:e2e": "playwright test",
+    "test:unit:new": "mocha tests/unit/duplicate-matcher.spec.js tests/unit/gemini-fallback.spec.js tests/unit/local-normalize.spec.js tests/unit/import-parsers.spec.js tests/unit/field-requirements.spec.js tests/unit/report-indexing.spec.js tests/unit/ipc-contract.spec.js tests/unit/filter-state.spec.js tests/unit/reasons-coverage.spec.js",
+    "test:e2e:002": "playwright test tests/e2e/",
     "build-win": "node scripts/build.js --win --x64",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -20,13 +22,16 @@
     "mrz-to-excel": "node scripts/mrz-to-excel.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "arabic-reshaper": "^1.1.0",
     "bidi-js": "^1.0.3",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.13.1",
+    "dotenv": "^17.4.2",
     "electron-log": "^5.0.0",
     "i18next": "^23.7.6",
     "i18next-fs-backend": "^2.3.1",
+    "pdf-parse": "^2.4.5",
     "pdfmake": "^0.3.7",
     "uuid": "^9.0.1",
     "xlsx": "^0.18.5"
