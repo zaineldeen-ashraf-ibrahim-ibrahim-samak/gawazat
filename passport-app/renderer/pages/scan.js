@@ -8,6 +8,7 @@ import { initAudio, setSoundEnabled, playSuccess, playWarning } from '../compone
 import { showDuplicateModal } from '../components/duplicateConfirmModal.js';
 import { showRecommendationsModal } from '../components/recommendationsModal.js';
 import { showReasonToast } from '../components/reasonToast.js';
+import { onPageDispose } from '../router.js';
 
 let resetTimer = null;
 let inputBuffer = '';
@@ -127,11 +128,20 @@ export async function renderScan(container) {
 
   // Auto-focus the hidden input
   mrzInput.focus();
-  document.onclick = (e) => {
-    if (manualMode) return; // never steal focus when manual panel is open
-    if (e.target.closest('input, select, button, textarea')) return;
+
+  // Re-focus the hidden MRZ input when the operator clicks dead space on the
+  // scan page. Guarded by `mrzInput.isConnected` so a stale handler can never
+  // affect another page after navigation. Skip when ANY editable element has
+  // focus (avoid stealing keys while the operator is typing in a modal).
+  const focusStealHandler = (e) => {
+    if (manualMode) return;
+    if (!mrzInput.isConnected) return;
+    if (e.target.closest('input, select, button, textarea, [contenteditable]')) return;
+    const ae = document.activeElement;
+    if (ae && ae !== mrzInput && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
     mrzInput.focus();
   };
+  document.addEventListener('click', focusStealHandler);
 
   mrzInput.onkeydown = (e) => {
     if (manualMode) return; // ignore keyboard when manual panel is open
@@ -210,10 +220,15 @@ export async function renderScan(container) {
     }
   }) : null;
 
-  // Cleanup
-  container.addEventListener('remove', () => {
+  // Cleanup — run when the router swaps this page out. The previous version
+  // used a non-existent 'remove' DOM event, so listeners accumulated across
+  // every visit and eventually swallowed keystrokes / hijacked focus on other
+  // pages. Going through onPageDispose guarantees every visit gets a clean
+  // slate.
+  onPageDispose(() => {
     window.removeEventListener('keydown', keyHandler);
-    if (resetTimer) clearTimeout(resetTimer);
+    document.removeEventListener('click', focusStealHandler);
+    if (resetTimer) { clearTimeout(resetTimer); resetTimer = null; }
     if (unsubscribe) unsubscribe();
   });
 }

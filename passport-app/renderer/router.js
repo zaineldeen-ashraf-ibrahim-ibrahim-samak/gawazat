@@ -24,6 +24,16 @@ const routes = {
 };
 
 let contentArea = null;
+let currentDispose = null;
+
+/**
+ * Pages call this from their render function to register cleanup that runs
+ * before the page is replaced (navigation or refresh). Removes accumulated
+ * global listeners, intervals, subscriptions, etc.
+ */
+export function onPageDispose(fn) {
+  currentDispose = fn;
+}
 
 export function initRouter(container) {
   if (!contentArea) {
@@ -44,11 +54,15 @@ export function refreshCurrentRoute() {
 function handleRoute() {
   const hash = window.location.hash.slice(1) || '/';
   const renderer = routes[hash];
-  
+
+  // Run any cleanup the current page registered before we tear it down.
+  if (typeof currentDispose === 'function') {
+    try { currentDispose(); } catch (e) { console.warn('Page dispose error:', e); }
+    currentDispose = null;
+  }
+
   if (renderer) {
-    // Clear content area
     contentArea.innerHTML = '';
-    // Render new page
     renderer(contentArea);
   } else {
     contentArea.innerHTML = '<h1>404 Not Found</h1>';

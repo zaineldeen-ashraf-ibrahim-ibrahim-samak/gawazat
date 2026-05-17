@@ -272,7 +272,22 @@ async function init() {
           } else {
             playWarning();
           }
-          refreshCurrentRoute();
+
+          // Refresh the current view so lists/counters reflect the new scan —
+          // BUT skip if the operator is mid-typing. A blind refresh wipes their
+          // input element and they lose focus / keystrokes. Refresh once they
+          // blur the input instead.
+          const ae = document.activeElement;
+          const isTyping = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName);
+          if (!isTyping) {
+            refreshCurrentRoute();
+          } else {
+            const refreshOnBlur = () => {
+              ae.removeEventListener('blur', refreshOnBlur);
+              refreshCurrentRoute();
+            };
+            ae.addEventListener('blur', refreshOnBlur, { once: true });
+          }
         });
       }
     } else {
