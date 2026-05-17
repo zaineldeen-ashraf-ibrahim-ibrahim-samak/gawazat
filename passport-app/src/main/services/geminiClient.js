@@ -124,4 +124,88 @@ ${JSON.stringify(raw)}
   throw lastError;
 }
 
-module.exports = { normalize, GeminiError };
+/**
+ * Normalize a batch of records in a single Gemini call. Returns an array
+ * the same length as the input. Throws GeminiError on failure so callers
+ * can decide whether to fall back to local-per-row normalization.
+ *
+ * Sending many rows in one prompt gives the model cross-row context (it can
+ * spot mis-aligned columns, infer country codes from siblings, etc.) and
+ * keeps the wall-clock import time roughly proportional to ceil(N/batch).
+ */
+async function normalizeBatch(records) {
+  if (!Array.isArray(records) || records.length === 0) return [];
+  if (disabledForSession) {
+    throw new GeminiError('Gemini is disabled for this session', 'GEMINI_DISABLED');
+  }
+
+  const prompt = `
+You are given an array of passenger records pulled from a manifest spreadsheet.
+The cells may include partial/misaligned data — your job is to read each row
+intelligently and produce a normalized passenger record.
+
+For EACH input record, return one object with these fields:
+- "passportNumber"  (verbatim, uppercase, alphanumerics only)
+- "givenName"
+- "familyName"
+- "name"            (full display name; family + given when both available)
+- "dob"             (ISO YYYY-MM-DD)
+- "nationality"     (ISO 3166-1 alpha-3 if at all possible — convert country names like "United Kingdom" → "GBR", "Egypt" → "EGY")
+- "gender"          ("M" / "F" / "X"; map "Male"/"Female"/Arabic equivalents)
+- "documentType"
+- "confidence"      (number 0..1)
+
+CRITICAL RULES:
+- Output a JSON ARRAY only — no markdown fences, no prose, same length and order as input.
+- If a field cannot be determined, set it to null (do NOT invent data).
+- Preserve Arabic script as Arabic; do not transliterate unless the input was already Latin.
+- Use cross-row context: if most rows in the batch are EGY and the column for one row says "Egypt", emit "EGY".
+
+Input Records (JSON array):
+${JSON.stringify(records)}
+`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), Math.max(GEMINI_TIMEOUT_MS, 8000));
+
+  try {
+    const result = await model.generateContent(prompt, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    const text = result.response.text();
+    const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch (e) {
+      throw new GeminiError('Batch response was not valid JSON', 'GEMINI_BAD_RESPONSE');
+    }
+    if (!Array.isArray(parsed)) {
+      throw new GeminiError('Batch response was not a JSON array', 'GEMINI_BAD_RESPONSE');
+    }
+    if (parsed.length !== records.length) {
+      logger.info(`Gemini batch length mismatch: got ${parsed.length}, expected ${records.length}`);
+      // tolerate by padding/truncating
+      while (parsed.length < records.length) parsed.push({});
+      parsed.length = records.length;
+    }
+    logger.info(`Gemini batch normalize: ${records.length} records → hit`);
+    return parsed.map(obj => {
+      const { confidence, ...rest } = (obj && typeof obj === 'object') ? obj : {};
+      return { normalized: rest, confidence: typeof confidence === 'number' ? confidence : null };
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof GeminiError) throw err;
+    if (err.name === 'AbortError') {
+      throw new GeminiError('Gemini batch request timed out', 'GEMINI_TIMEOUT');
+    }
+    if (err.status >= 400 && err.status < 500) {
+      disabledForSession = true;
+      throw new GeminiError('Gemini auth/config failed', 'GEMINI_AUTH_FAILED');
+    }
+    throw new GeminiError(`Gemini batch transient: ${err.message}`, 'GEMINI_TRANSIENT');
+  }
+}
+
+module.exports = { normalize, normalizeBatch, GeminiError };

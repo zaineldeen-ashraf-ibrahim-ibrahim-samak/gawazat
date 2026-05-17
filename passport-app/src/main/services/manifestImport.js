@@ -164,7 +164,7 @@ function parseExcelDate(excelDate) {
  * @param {Object} [requirements] - Field requirements map
  * @returns {Object} - { outcome: 'Pass'|'Warn'|'Error', errors: ImportError[], row: ParsedRow }
  */
-async function validateRow(row, rowIndex, requirements) {
+async function validateRow(row, rowIndex, requirements, preNormalized) {
   const errors = [];
   const result = {
     rowIndex,
@@ -180,11 +180,15 @@ async function validateRow(row, rowIndex, requirements) {
   const nationalityRaw = String(row.nationality || '').trim();
   const dobRaw = row.date_of_birth;
 
-  // Attempt normalization
-  const { createNormalizeHandlers } = require('../ipc/normalizeHandlers');
-  const normalizeHandlers = createNormalizeHandlers({}); // store not needed for this
-  const normalizeRes = await normalizeHandlers.normalizePassenger({}, row);
-  const normalizedData = normalizeRes.normalized;
+  // Use the pre-computed normalize result when provided (batch-AI path), else
+  // fall back to a per-row call. Either way `normalizedData` ends up populated.
+  let normalizeRes = preNormalized;
+  if (!normalizeRes) {
+    const { createNormalizeHandlers } = require('../ipc/normalizeHandlers');
+    const normalizeHandlers = createNormalizeHandlers({});
+    normalizeRes = await normalizeHandlers.normalizePassenger({}, row);
+  }
+  const normalizedData = normalizeRes.normalized || {};
 
   result.normalizationSource = normalizeRes.source;
   result.normalizationConfidence = normalizeRes.confidence;
@@ -377,6 +381,42 @@ async function parseTxtFile(filePath, requirements) {
     const duplicateNormalized = new Map();
     const parseErrors = [];
 
+    // Pre-batch the MRZ-extracted rows through AI normalize (with local
+    // fallback) just like the spreadsheet path. We build the raw rows first
+    // so a single batch call covers the whole file.
+    const preParsed = [];
+    for (let idx = 0; idx < records.length; idx++) {
+      const mrz = parseMrz(records[idx].join('\n'));
+      if (mrz.type === 'UNKNOWN') {
+        preParsed.push({ rowIndex: idx + 1, failed: true });
+        continue;
+      }
+      const fullName = [mrz.surname, mrz.given_names].filter(Boolean).join(' ').trim();
+      preParsed.push({
+        rowIndex: idx + 1,
+        mappedRow: {
+          passport_number: mrz.document_number,
+          name: fullName,
+          gender: mrz.sex,
+          nationality: mrz.nationality,
+          date_of_birth: mrz.date_of_birth
+        }
+      });
+    }
+
+    const validRows = preParsed.filter(p => !p.failed);
+    const BATCH_SIZE = 20;
+    const { createNormalizeHandlers } = require('../ipc/normalizeHandlers');
+    const normalizeHandlers = createNormalizeHandlers({});
+    const batchResults = new Map();
+    for (let start = 0; start < validRows.length; start += BATCH_SIZE) {
+      const slice = validRows.slice(start, start + BATCH_SIZE);
+      const batchRes = await normalizeHandlers.normalizePassengerBatch({}, slice.map(p => p.mappedRow));
+      for (let j = 0; j < batchRes.length; j++) {
+        batchResults.set(slice[j].rowIndex, batchRes[j]);
+      }
+    }
+
     // Parse MRZ first
     const rowPromises = records.map((lines, idx) => {
       const rowIndex = idx + 1;
@@ -406,7 +446,8 @@ async function parseTxtFile(filePath, requirements) {
         date_of_birth: mrz.date_of_birth
       };
 
-      return validateRow(mappedRow, rowIndex, requirements).then(validation => ({ validation, rowIndex }));
+      return validateRow(mappedRow, rowIndex, requirements, batchResults.get(rowIndex))
+        .then(validation => ({ validation, rowIndex }));
     });
 
     const results = await Promise.all(rowPromises);
@@ -513,14 +554,32 @@ async function parseFile(filePath, requirements, options = {}) {
     // Parse data rows
     const duplicateNormalized = new Map(); // Track duplicates
     const parseErrors = [];
-    
-    const rowPromises = [];
 
+    // ── AI-first batched normalization ──
+    // Send the parsed rows to Gemini in chunks; on any failure (or when no
+    // API key is configured) each row falls back to the local normalizer.
+    // This is faster than per-row AI calls and gives the model cross-row
+    // context to spot misaligned columns / infer ISO codes from siblings.
+    const BATCH_SIZE = 20;
+    const { createNormalizeHandlers } = require('../ipc/normalizeHandlers');
+    const normalizeHandlers = createNormalizeHandlers({});
+    const normalizeResults = new Array(rawRows.length);
+    for (let start = 0; start < rawRows.length; start += BATCH_SIZE) {
+      const slice = rawRows.slice(start, start + BATCH_SIZE);
+      const batchRes = await normalizeHandlers.normalizePassengerBatch({}, slice);
+      for (let j = 0; j < batchRes.length; j++) {
+        normalizeResults[start + j] = batchRes[j];
+      }
+    }
+
+    const rowPromises = [];
     for (let i = 0; i < rawRows.length; i++) {
       const mappedRow = rawRows[i];
-      const actualRowIndex = mappedRow._rowIndex || (i + 2); // default to something if not attached
-
-      rowPromises.push(validateRow(mappedRow, actualRowIndex, requirements).then(validation => ({ validation, rowIndex: actualRowIndex })));
+      const actualRowIndex = mappedRow._rowIndex || (i + 2);
+      rowPromises.push(
+        validateRow(mappedRow, actualRowIndex, requirements, normalizeResults[i])
+          .then(validation => ({ validation, rowIndex: actualRowIndex }))
+      );
     }
 
     const results = await Promise.all(rowPromises);

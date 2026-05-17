@@ -43,8 +43,46 @@ function createNormalizeHandlers(store) {
     }
   }
 
+  /**
+   * Normalize many records at once. Tries Gemini batch first; on any failure
+   * falls back to local normalize for every record so the caller never sees
+   * an empty/partial result. The returned array preserves input order and
+   * length.
+   */
+  async function normalizePassengerBatch(event, records) {
+    if (!Array.isArray(records)) {
+      const err = new Error('Invalid arguments: records must be an array');
+      err.code = 'IPC_INVALID_ARGS';
+      throw err;
+    }
+    if (records.length === 0) return [];
+
+    try {
+      const aiResults = await geminiClient.normalizeBatch(records);
+      return aiResults.map(r => ({
+        normalized: r.normalized,
+        confidence: r.confidence,
+        source: 'gemini-batch'
+      }));
+    } catch (err) {
+      const code = err instanceof geminiClient.GeminiError ? err.code : 'GEMINI_TRANSIENT';
+      // Local fallback for every record — keeps the import moving when AI is
+      // disabled, rate-limited, or returning malformed JSON.
+      return records.map(raw => {
+        const local = localNormalize(raw);
+        return {
+          normalized: local.normalized,
+          confidence: local.confidence,
+          source: 'local-fallback',
+          warnings: [code]
+        };
+      });
+    }
+  }
+
   return {
-    normalizePassenger
+    normalizePassenger,
+    normalizePassengerBatch
   };
 }
 
