@@ -168,7 +168,7 @@ function parseTD3(lines) {
     given_names,
     nationality,
     date_of_birth: convertDate(date_of_birth_raw),
-    sex: sex === 'M' ? 'M' : sex === 'F' ? 'F' : '?',
+    sex: sex === 'M' ? 'M' : sex === 'F' ? 'F' : '',
     expiry_date: convertDate(expiry_date_raw),
     check_digits_valid,
   };

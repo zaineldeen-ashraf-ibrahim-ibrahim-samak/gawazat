@@ -46,4 +46,25 @@ function getIndices() {
   return currentIndices;
 }
 
-module.exports = { rebuildIndices, getIndices };
+// Helpers for duplicateMatcher and tests
+function getByPassportKey(key) {
+  return currentIndices.manifestByNormalized.get(key);
+}
+
+function getAll() {
+  return Array.from(currentIndices.manifestByNormalized.values());
+}
+
+function reset() {
+  currentIndices = {
+    manifestByNormalized: new Map(),
+    boardingByNormalized: new Map(),
+    pendingAwaiting: [],
+  };
+}
+
+function insert(passenger) {
+  currentIndices.manifestByNormalized.set(passenger.passport_number_normalized, passenger);
+}
+
+module.exports = { rebuildIndices, getIndices, getByPassportKey, getAll, reset, insert };

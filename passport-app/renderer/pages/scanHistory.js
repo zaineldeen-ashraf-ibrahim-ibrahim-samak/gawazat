@@ -22,6 +22,7 @@ export async function renderScanHistory(container) {
           <table class="table table-dark table-hover mb-0 align-middle">
             <thead class="sticky-top bg-dark">
               <tr>
+                <th class="text-muted" style="width:40px">${t('reports.indexHeader')}</th>
                 <th>${t('common.loading')}</th> <!-- Timestamp Placeholder -->
                 <th>${t('import.table.status')}</th>
                 <th>${t('import.table.passport')}</th>
@@ -31,9 +32,10 @@ export async function renderScanHistory(container) {
             </thead>
             <tbody>
               ${events.length === 0 ? `
-                <tr><td colspan="5" class="text-center p-5 text-muted">${t('common.empty')}</td></tr>
-              ` : events.map(e => `
+                <tr><td colspan="6" class="text-center p-5 text-muted">${t('common.empty')}</td></tr>
+              ` : events.map((e, idx) => `
                 <tr>
+                  <td class="text-muted small text-center">${idx + 1}</td>
                   <td class="text-muted small">${(e.at || '').replace('T', ' ').split('.')[0]}</td>
                   <td>${getOutcomeBadge(e.outcome)}</td>
                   <td><code>${e.passport_number_normalized || '---'}</code></td>

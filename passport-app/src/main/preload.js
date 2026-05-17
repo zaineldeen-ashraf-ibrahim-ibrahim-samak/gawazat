@@ -63,6 +63,8 @@ const api = {
     set: (args) => ipcRenderer.invoke('settings:set', args),
     apiServerStatus: (args) => ipcRenderer.invoke('settings:apiServerStatus', args),
     testDeviceUrl: (args) => ipcRenderer.invoke('settings:testDeviceUrl', args),
+    getFieldRequirements: (args) => ipcRenderer.invoke('settings:getFieldRequirements', args),
+    setFieldRequirements: (args) => ipcRenderer.invoke('settings:setFieldRequirements', args),
   },
 
   session: {
@@ -79,6 +81,20 @@ const api = {
   dialog: {
     openFile: (args) => ipcRenderer.invoke('dialog:openFile', args),
     saveFile: (args) => ipcRenderer.invoke('dialog:saveFile', args),
+  },
+
+  // Duplicate Matching
+  detectDuplicate: (normalized) => {
+    if (!normalized || typeof normalized !== 'object' || !normalized.passportNumberKey) {
+      return Promise.reject({ code: 'IPC_INVALID_ARGS', message: 'Invalid payload' });
+    }
+    return ipcRenderer.invoke('duplicate:detect', normalized);
+  },
+  resolveDuplicate: (decisionPayload) => {
+    if (!decisionPayload || typeof decisionPayload !== 'object' || !['merge', 'keep-separate', 'cancel'].includes(decisionPayload.decision)) {
+      return Promise.reject({ code: 'IPC_INVALID_ARGS', message: 'Invalid payload' });
+    }
+    return ipcRenderer.invoke('duplicate:resolve', decisionPayload);
   },
 
   // App config from .env (safe values only — no secrets)

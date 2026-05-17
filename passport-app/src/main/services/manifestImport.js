@@ -157,9 +157,10 @@ function parseExcelDate(excelDate) {
  * Validate a parsed row
  * @param {Object} row - Row object with canonical column names
  * @param {number} rowIndex - 1-based row number
+ * @param {Object} [requirements] - Field requirements map
  * @returns {Object} - { outcome: 'Pass'|'Warn'|'Error', errors: ImportError[], row: ParsedRow }
  */
-function validateRow(row, rowIndex) {
+function validateRow(row, rowIndex, requirements) {
   const errors = [];
   const result = {
     rowIndex,
@@ -179,14 +180,19 @@ function validateRow(row, rowIndex) {
   const vessel = row.vessel ? String(row.vessel).trim() : undefined;
   const seat = row.seat ? String(row.seat).trim() : undefined;
 
+  const { validate } = require('../../shared/fieldRequirements');
+  const validation = validate(row, requirements);
+
   // Validate passport_number
   if (!passportNumber) {
-    errors.push({
-      rowIndex,
-      field: 'passport_number',
-      rule: 'required',
-      message: 'Passport number is required'
-    });
+    if (validation.missingRequired.includes('passportNumber')) {
+      errors.push({
+        rowIndex,
+        field: 'passport_number',
+        rule: 'required',
+        message: 'Passport number is required'
+      });
+    }
   } else {
     const normalized = normalizePassportNumber(passportNumber);
     if (normalized.length < 5) {
@@ -204,12 +210,14 @@ function validateRow(row, rowIndex) {
 
   // Validate name
   if (!name) {
-    errors.push({
-      rowIndex,
-      field: 'name',
-      rule: 'required',
-      message: 'Full name is required'
-    });
+    if (validation.missingRequired.includes('familyName') || validation.missingRequired.includes('givenName')) {
+      errors.push({
+        rowIndex,
+        field: 'name',
+        rule: 'required',
+        message: 'Full name is required'
+      });
+    }
   } else {
     result.name = name;
   }
@@ -217,24 +225,28 @@ function validateRow(row, rowIndex) {
   // Validate gender
   const normalizedGender = normalizeGender(genderRaw);
   if (!normalizedGender) {
-    errors.push({
-      rowIndex,
-      field: 'gender',
-      rule: 'invalid_value',
-      message: 'Gender must be M/F, Male/Female, or ذكر/أنثى'
-    });
+    if (validation.missingRequired.includes('gender')) {
+      errors.push({
+        rowIndex,
+        field: 'gender',
+        rule: 'invalid_value',
+        message: 'Gender must be M/F, Male/Female, or ذكر/أنثى'
+      });
+    }
   } else {
     result.gender = normalizedGender;
   }
 
   // Validate nationality
   if (!nationalityRaw) {
-    errors.push({
-      rowIndex,
-      field: 'nationality',
-      rule: 'required',
-      message: 'Nationality is required'
-    });
+    if (validation.missingRequired.includes('nationality')) {
+      errors.push({
+        rowIndex,
+        field: 'nationality',
+        rule: 'required',
+        message: 'Nationality is required'
+      });
+    }
   } else if (nationalityRaw.length !== 3) {
     errors.push({
       rowIndex,
@@ -256,12 +268,14 @@ function validateRow(row, rowIndex) {
   // Validate date_of_birth
   const parsedDob = parseExcelDate(dobRaw);
   if (!parsedDob) {
-    errors.push({
-      rowIndex,
-      field: 'date_of_birth',
-      rule: 'invalid_format',
-      message: 'Date of birth must be in YYYY-MM-DD format or valid Excel date, and must be in the past'
-    });
+    if (validation.missingRequired.includes('dob')) {
+      errors.push({
+        rowIndex,
+        field: 'date_of_birth',
+        rule: 'invalid_format',
+        message: 'Date of birth must be in YYYY-MM-DD format or valid Excel date, and must be in the past'
+      });
+    }
   } else {
     const dobDate = new Date(parsedDob);
     const now = new Date();
@@ -286,12 +300,15 @@ function validateRow(row, rowIndex) {
     result.seat = seat;
   }
 
+  if (validation.missingOptional?.length > 0) {
+    result.missingOptionalFields = validation.missingOptional;
+  }
+
   // Determine outcome
   if (errors.length > 0) {
     result.outcome = 'Error';
     result.errors = errors;
-  } else if (Object.keys(result).filter(k => !['rowIndex', 'source', 'errors', 'outcome'].includes(k)).length < 5) {
-    // If any optional field was skipped, it's a warn (but we don't have warnings in this simple version)
+  } else if (Object.keys(result).filter(k => !['rowIndex', 'source', 'errors', 'outcome', 'missingOptionalFields'].includes(k)).length < 5) {
     result.outcome = 'Pass';
   }
 
@@ -325,9 +342,10 @@ function splitMrzRecords(text) {
  * Parse a .txt file containing MRZ records and validate each as a manifest row.
  * Emits the same shape as parseFile so downstream handlers do not need to care.
  * @param {string} filePath
+ * @param {Object} [requirements]
  * @returns {Object} - { rows: ParsedRow[], errors: ImportError[], duplicates: string[] }
  */
-function parseTxtFile(filePath) {
+function parseTxtFile(filePath, requirements) {
   try {
     const text = fs.readFileSync(filePath, 'utf8');
     const records = splitMrzRecords(text);
@@ -374,7 +392,7 @@ function parseTxtFile(filePath) {
         date_of_birth: mrz.date_of_birth
       };
 
-      const validation = validateRow(mappedRow, rowIndex);
+      const validation = validateRow(mappedRow, rowIndex, requirements);
 
       if (validation.outcome === 'Pass' && validation.passport_number_normalized) {
         const normalized = validation.passport_number_normalized;
@@ -430,11 +448,12 @@ function parseTxtFile(filePath) {
  * Parse a manifest file and validate its contents.
  * Dispatches by extension: .txt → MRZ parser, otherwise Excel.
  * @param {string} filePath - Path to .xlsx, .xls, or .txt file
+ * @param {Object} [requirements] - Field requirements map
  * @returns {Object} - { rows: ParsedRow[], errors: ImportError[], duplicates: string[] }
  */
-function parseFile(filePath) {
+function parseFile(filePath, requirements) {
   if (path.extname(filePath).toLowerCase() === '.txt') {
-    return parseTxtFile(filePath);
+    return parseTxtFile(filePath, requirements);
   }
   try {
     const workbook = XLSX.readFile(filePath, { cellDates: true });
@@ -485,7 +504,7 @@ function parseFile(filePath) {
         }
       }
 
-      const validation = validateRow(mappedRow, i); // 1-based row numbering
+      const validation = validateRow(mappedRow, i, requirements); // 1-based row numbering
 
       // Check for duplicates (only for passing rows)
       if (validation.outcome === 'Pass' && validation.passport_number_normalized) {

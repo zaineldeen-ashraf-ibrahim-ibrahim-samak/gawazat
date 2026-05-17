@@ -98,6 +98,24 @@ const errorRows = [
 
 createFixture('manifest-with-errors.xlsx', errorRows);
 
+// Fixture 3: manifest-1000.xlsx (1000 valid rows)
+const largeRows = [];
+for (let i = 1; i <= 1000; i++) {
+  // Pad with leading zeros (e.g. EG0001)
+  const id = String(i).padStart(4, '0');
+  largeRows.push([
+    `EG${id}`, 
+    `راكب تجريبي ${i}`, 
+    i % 2 === 0 ? 'F' : 'M', 
+    'EGY', 
+    '1980-01-01', 
+    'MS LoadTest', 
+    `S${id}`
+  ]);
+}
+createFixture('manifest-1000.xlsx', largeRows);
+
 console.log('\n✓ Test fixtures generated successfully!');
 console.log('  - manifest-10.xlsx: 10 valid rows');
 console.log('  - manifest-with-errors.xlsx: 8 rows (2 missing passport, 1 bad nationality, 1 future DoB, 4 valid)');
+console.log('  - manifest-1000.xlsx: 1000 valid rows');

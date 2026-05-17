@@ -180,6 +180,57 @@ function createSettingsHandlers(store) {
         logger.error(`Session clear failed: ${err.message}`);
         return { ok: false, message: err.message };
       }
+    },
+
+    /**
+     * Get field requirements
+     */
+    getFieldRequirements: async (event, args) => {
+      const state = store.getState();
+      const { DEFAULT_FIELD_REQUIREMENTS } = require('../../shared/fieldRequirements');
+      return state.settings?.fieldRequirements || DEFAULT_FIELD_REQUIREMENTS;
+    },
+
+    /**
+     * Set field requirements
+     */
+    setFieldRequirements: async (event, requirements) => {
+      try {
+        const { FIELD_KEYS } = require('../../shared/fieldRequirements');
+        if (!requirements || typeof requirements !== 'object') {
+          const { ReasonCodes } = require('../../shared/reasonCodes');
+          const err = new Error('Invalid requirements object');
+          err.code = ReasonCodes.IPC_INVALID_ARGS;
+          throw err;
+        }
+
+        // Validate keys
+        for (const key of Object.keys(requirements)) {
+          if (!FIELD_KEYS.includes(key)) {
+            const { ReasonCodes } = require('../../shared/reasonCodes');
+            const err = new Error(`Unknown field key: ${key}`);
+            err.code = ReasonCodes.IPC_INVALID_ARGS;
+            throw err;
+          }
+        }
+
+        store.mutate(draft => {
+          if (!draft.settings) draft.settings = {};
+          draft.settings.fieldRequirements = {
+            ...(draft.settings.fieldRequirements || {}),
+            ...requirements
+          };
+        });
+
+        logger.info('Field requirements updated');
+        return { ok: true };
+      } catch (err) {
+        logger.error(`setFieldRequirements failed: ${err.message}`);
+        const { ReasonCodes } = require('../../shared/reasonCodes');
+        const errObj = new Error(err.message);
+        errObj.code = err.code || ReasonCodes.IPC_INVALID_ARGS;
+        throw errObj;
+      }
     }
   };
 }

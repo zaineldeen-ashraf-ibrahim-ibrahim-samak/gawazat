@@ -4,6 +4,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { getCurrentAdvancedFilter } from '../components/advancedFilterPanel.js';
 
 export async function renderReports(container) {
   const html = `
@@ -35,7 +36,8 @@ export async function renderReports(container) {
 
       if (result && result.filePath) {
         btn.disabled = true;
-        const exportResult = await window.api.reports.generatePdf({ kind, savePath: result.filePath });
+        const filterState = getCurrentAdvancedFilter();
+        const exportResult = await window.api.reports.generatePdf({ kind, savePath: result.filePath, filterState });
         btn.disabled = false;
         
         if (exportResult.ok) alert(t('import.success'));
@@ -48,7 +50,8 @@ export async function renderReports(container) {
     btn.onclick = async () => {
       const kind = btn.getAttribute('data-kind');
       btn.disabled = true;
-      const result = await window.api.reports.print({ kind });
+      const filterState = getCurrentAdvancedFilter();
+      const result = await window.api.reports.print({ kind, filterState });
       btn.disabled = false;
       
       if (!result.ok) alert(result.message || t('common.error'));

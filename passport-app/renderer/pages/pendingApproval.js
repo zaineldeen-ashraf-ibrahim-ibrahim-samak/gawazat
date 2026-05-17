@@ -27,6 +27,7 @@ export async function renderPendingApproval(container) {
               <table class="table table-dark table-hover mb-0 align-middle">
                  <thead>
                     <tr>
+                       <th class="text-muted" style="width:40px">${t('reports.indexHeader')}</th>
                        <th>${t('import.table.passport')}</th>
                        <th>${t('import.table.name')}</th>
                        <th>${t('import.table.gender')}</th>
@@ -36,13 +37,20 @@ export async function renderPendingApproval(container) {
                     </tr>
                  </thead>
                  <tbody>
-                    ${entries.map(e => `
+                    ${entries.map((e, idx) => `
                       <tr>
+                         <td class="text-muted text-center small">${idx + 1}</td>
                          <td><code>${e.passport_number_normalized}</code></td>
                          <td>${e.mrz_fields.name || `${e.mrz_fields.surname} ${e.mrz_fields.given_names}`}</td>
                          <td>${e.mrz_fields.gender || e.mrz_fields.sex}</td>
                          <td>${e.mrz_fields.nationality}</td>
-                         <td>${e.mrz_fields.date_of_birth}</td>
+                         <td>
+                           ${e.mrz_fields.date_of_birth}
+                           ${e.missingOptionalFields?.length > 0
+                             ? `<br><span class="badge bg-warning text-dark mt-1" title="حقول مفقودة: ${e.missingOptionalFields.join(', ')}"><i class="bi bi-exclamation-circle me-1"></i>مفقود (${e.missingOptionalFields.length})</span>`
+                             : ''
+                           }
+                         </td>
                          <td class="text-end">
                             <div class="btn-group">
                                <button class="btn btn-success btn-sm btn-approve" data-id="${e.id}">

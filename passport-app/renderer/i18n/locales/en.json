@@ -65,12 +65,14 @@
   },
   "passengerList": {
     "search": "Search",
+    "advancedFilter": "Advanced Filters",
     "filter": {
       "all": "All",
       "entered": "Entered",
       "pending": "Pending",
       "male": "Male",
-      "female": "Female"
+      "female": "Female",
+      "warnings": "Has Warning / Duplicate"
     },
     "source": {
       "original": "Original",
@@ -114,7 +116,9 @@
     "pending": "Waiting List",
     "warnings": "Warnings",
     "new": "New Passengers List",
-    "pendingApproval": "Pending Approval List"
+    "summary": "Summary",
+    "pendingApproval": "Pending Approval List",
+    "indexHeader": "#"
   },
   "settings": {
     "scanMode": {
@@ -158,6 +162,65 @@
       "statusStopped": "Stopped",
       "description": "Accepts incoming MRZ data from Regula or other devices via HTTP on 127.0.0.1."
     }
+  },
+  "reasons": {
+    "MRZ_CHECKSUM_FAILED": "MRZ checksum validation failed",
+    "DOB_UNPARSEABLE": "Date of birth could not be parsed",
+    "DUPLICATE_PASSPORT": "Passport already scanned",
+    "GEMINI_TIMEOUT": "AI normalization timed out",
+    "GEMINI_DISABLED": "AI normalization is disabled",
+    "GEMINI_BAD_RESPONSE": "Invalid response from AI service",
+    "GEMINI_AUTH_FAILED": "AI service authentication failed",
+    "GEMINI_TRANSIENT": "Temporary AI service error",
+    "REQUIRED_FIELD_MISSING": "A required field is missing",
+    "IPC_INVALID_ARGS": "Invalid arguments provided to system",
+    "IMPORT_NO_PASSPORT": "No passport number found in record",
+    "IMPORT_DOB_UNPARSEABLE": "Imported date of birth could not be parsed",
+    "IMPORT_JSON_BAD_ELEMENT": "Invalid JSON element format",
+    "IMPORT_PDF_NO_TABLE": "Could not detect tabular data in PDF",
+    "IMPORT_FORMAT_UNSUPPORTED": "Unsupported import file format",
+    "IMPORT_FILE_UNREADABLE": "Could not read the import file"
+  },
+  "duplicate": {
+    "title": "Is this the same passenger?",
+    "prompt": "We found a similar passenger. Please review the details.",
+    "merge": "Merge (Keep Existing)",
+    "keepSeparate": "Keep Separate",
+    "field": "Field",
+    "existing": "Existing",
+    "new": "New (Scanned)"
+  },
+  "filters": {
+    "title": "Advanced Filters",
+    "apply": "Apply Filters",
+    "clear": "Clear All",
+    "hasWarning": "Has Warnings",
+    "noWarning": "No Warnings",
+    "duplicate": "Duplicate",
+    "source": "Source",
+    "dobRange": "Date of Birth Range",
+    "from": "From",
+    "to": "To",
+    "ageRange": "Age Range",
+    "ageMin": "Min Age",
+    "ageMax": "Max Age"
+  },
+  "fieldRequirements": {
+    "title": "Field Requirements",
+    "required": "Required",
+    "optional": "Optional",
+    "passportNumber": "Passport Number",
+    "familyName": "Family Name",
+    "givenName": "Given Name",
+    "dob": "Date of Birth",
+    "nationality": "Nationality",
+    "gender": "Gender",
+    "documentType": "Document Type"
+  },
+  "geminiNotice": {
+    "title": "Data Processing Notice",
+    "message": "Passenger names and dates of birth will be securely sent to the configured AI service for normalization. No sensitive document numbers are transmitted.",
+    "acknowledge": "I Understand"
   },
   "common": {
     "ok": "OK",

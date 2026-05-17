@@ -4,6 +4,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { showDuplicateModal } from '../components/duplicateConfirmModal.js';
 
 let selectedFilePath = null;
 
@@ -234,7 +235,47 @@ async function handleConfirmImport() {
   const result = await window.api.manifest.import({ filePaths: selectedFilePath });
   
   if (result.ok) {
-    alert(t('import.success'));
+    let resolvedFuzzy = 0;
+    
+    if (result.fuzzyPrompts && result.fuzzyPrompts.length > 0) {
+      for (const prompt of result.fuzzyPrompts) {
+        const { match, raw, existingPassenger } = prompt;
+        
+        const incomingNormalized = {
+          passportNumberKey: raw.passport_number_normalized,
+          name: raw.name,
+          dob: raw.date_of_birth,
+          nationality: raw.nationality
+        };
+
+        const decision = await showDuplicateModal(
+          existingPassenger,
+          incomingNormalized,
+          match.differences
+        );
+
+        if (decision !== 'cancel') {
+          await window.api.resolveDuplicate({
+            incomingRaw: {
+              passport_number: raw.passport_number,
+              name: raw.name,
+              gender: raw.gender,
+              nationality: raw.nationality,
+              date_of_birth: raw.date_of_birth,
+              vessel: raw.vessel,
+              seat: raw.seat,
+              source: 'manifest'
+            },
+            incomingNormalized,
+            existingPassengerId: existingPassenger.id,
+            decision: decision
+          });
+          resolvedFuzzy++;
+        }
+      }
+    }
+    
+    alert(`${t('import.success')} (Inserted: ${result.inserted + resolvedFuzzy}, Duplicates Blocked: ${result.duplicatesBlocked})`);
     window.location.hash = '#/passengers';
   } else {
     alert(result.message || t('common.error'));

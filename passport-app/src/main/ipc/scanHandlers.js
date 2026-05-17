@@ -61,6 +61,23 @@ function createScanHandlers(store) {
         const existingBoarding = boardingByNormalized.get(normalized);
 
         const mrz_fields = { document_number: passport, name, gender, nationality, date_of_birth };
+        const normalizedPassenger = {
+          passportNumberKey: normalized,
+          name,
+          dob: date_of_birth,
+          nationality
+        };
+
+        const { detect } = require('../services/duplicateMatcher');
+        const duplicateMatch = detect(normalizedPassenger);
+
+        if (duplicateMatch.kind === 'exact') {
+          return { outcome: 'rejected', reason: 'DUPLICATE_PASSPORT', duplicateMatch };
+        } else if (duplicateMatch.kind === 'fuzzy') {
+          const existingPassenger = store.getState().manifest.find(p => p.id === duplicateMatch.existingPassengerId);
+          return { outcome: 'fuzzy', mrz_fields, normalizedPassenger, duplicateMatch, existingPassenger };
+        }
+
         let outcome = 'yellow';
         let firstEnteredAt = null;
 
@@ -71,6 +88,18 @@ function createScanHandlers(store) {
           } else {
             outcome = 'green';
           }
+        } else {
+          const { validate } = require('../../shared/fieldRequirements');
+          const reqs = store.getState().settings?.fieldRequirements;
+          const validation = validate(mrz_fields, reqs);
+          if (!validation.valid) {
+            return {
+              outcome: 'read-failed',
+              reason: 'REQUIRED_FIELD_MISSING',
+              message: `الحقول المطلوبة مفقودة: ${validation.missingRequired.join(', ')}`,
+              missingRequired: validation.missingRequired
+            };
+          }
         }
 
         const scanEvent = makeScanEvent({ outcome, mode: 'manual', passport_number_normalized: normalized, passenger_id: passenger?.id || null, mrz_fields });
@@ -80,9 +109,20 @@ function createScanHandlers(store) {
           if (outcome === 'green') {
             draft.boarding_records[normalized] = makeBoardingRecord({ passenger_id: passenger.id, passport_number_normalized: normalized, scan_event_id: scanEvent.id, via: 'manual' });
           } else if (outcome === 'yellow') {
-            draft.pending_approval.push(makePendingApprovalEntry({ scan_event_id: scanEvent.id, passport_number_normalized: normalized, mrz_fields, state: 'awaiting' }));
+            const { validate } = require('../../shared/fieldRequirements');
+            const reqs = store.getState().settings?.fieldRequirements;
+            const validation = validate(mrz_fields, reqs);
+
+            const pendingEntry = makePendingApprovalEntry({ scan_event_id: scanEvent.id, passport_number_normalized: normalized, mrz_fields, state: 'awaiting' });
+            if (validation.missingOptional?.length > 0) {
+              pendingEntry.missingOptionalFields = validation.missingOptional;
+            }
+            draft.pending_approval.push(pendingEntry);
           }
         });
+
+        // Rebuild so subsequent scans always see the updated boarding/pending state
+        rebuildIndices(store.getState());
 
         if (outcome === 'green') lastUndoableScanId = scanEvent.id;
         logger.info(`Manual entry: ${outcome} for ${normalized}`);

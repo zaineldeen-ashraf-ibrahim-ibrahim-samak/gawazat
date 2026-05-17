@@ -88,6 +88,7 @@ function makePassenger(data = {}) {
     vessel: data.vessel || '',
     seat: data.seat || '',
     source: data.source || 'manifest',
+    duplicateFlag: data.duplicateFlag || 'unique',
   };
 }
 

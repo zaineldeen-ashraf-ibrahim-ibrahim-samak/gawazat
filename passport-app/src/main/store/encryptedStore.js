@@ -49,6 +49,7 @@ class EncryptedStore {
         const encrypted = fs.readFileSync(encryptedPath);
         const decrypted = safeStorage.decryptString(encrypted);
         this.state = JSON.parse(decrypted);
+        this._ensureSettingsDefaults();
         logger.info('Store loaded (encrypted)');
         return;
       } catch (err) {
@@ -59,6 +60,7 @@ class EncryptedStore {
     if (fs.existsSync(plainPath)) {
       try {
         this.state = JSON.parse(fs.readFileSync(plainPath, 'utf-8'));
+        this._ensureSettingsDefaults();
         logger.info('Store loaded (plaintext)');
         return;
       } catch (err) {
@@ -72,6 +74,23 @@ class EncryptedStore {
       logger.info('Store initialized with defaults');
     } catch (err) {
       logger.error('Initial store save failed: ' + err.message);
+    }
+  }
+
+  _ensureSettingsDefaults() {
+    if (!this.state.settings) {
+      this.state.settings = this.getDefaultState().settings;
+    }
+    const { DEFAULT_FIELD_REQUIREMENTS } = require('../../shared/fieldRequirements');
+    if (this.state.settings.fieldRequirements === undefined) {
+      this.state.settings.fieldRequirements = { ...DEFAULT_FIELD_REQUIREMENTS };
+    }
+    if (this.state.settings.geminiNoticeAcknowledged === undefined) {
+      this.state.settings.geminiNoticeAcknowledged = false;
+    }
+    // Also patch in memory session defaults for duplication audit if needed
+    if (!this.state.session) {
+      this.state.session = { duplicateDecisionsAudit: [] };
     }
   }
 

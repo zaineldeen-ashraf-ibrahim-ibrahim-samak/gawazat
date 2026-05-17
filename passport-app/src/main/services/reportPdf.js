@@ -105,6 +105,7 @@ async function generateReport(kind, data, savePath) {
 
   // Table header row (LTR: leftmost column first)
   const headerRow = [
+    '#',
     'Passport Number',
     'Name',
     'Gender',
@@ -118,20 +119,27 @@ async function generateReport(kind, data, savePath) {
     alignment: 'center',
   }));
 
-  const dataRows = passengers.map((p, i) => [
-    { text: p.passport_number ?? '', alignment: 'center', style: 'tableCell', noWrap: true },
-    { text: p.name            ?? '', alignment: 'left',   style: 'tableCell' },
-    { text: p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : (p.gender ?? ''), alignment: 'center', style: 'tableCell' },
-    { text: p.date_of_birth   ?? '', alignment: 'center', style: 'tableCell' },
-    { text: p.nationality     ?? '', alignment: 'left',   style: 'tableCell' },
-    {
-      text: p.source === 'added-at-gate' ? 'New' : p.source === 'manual' ? 'Manual' : 'Original',
-      alignment: 'center',
-      style: 'tableCell',
-      color: p.source === 'added-at-gate' ? '#d97706' : p.source === 'manual' ? '#0891b2' : '#6b7280',
-    },
-    { text: passengerStatus(p), alignment: 'center', style: 'tableCell' },
-  ]);
+  const dataRows = passengers.map((p, i) => {
+    let statusTxt = passengerStatus(p);
+    if (p.missingOptionalFields?.length > 0) {
+      statusTxt += ` (Missing: ${p.missingOptionalFields.join(', ')})`;
+    }
+    return [
+      { text: String(i + 1), alignment: 'center', style: 'tableCell', color: '#94a3b8' },
+      { text: p.passport_number ?? '', alignment: 'center', style: 'tableCell', noWrap: true },
+      { text: p.name            ?? '', alignment: 'left',   style: 'tableCell' },
+      { text: p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : (p.gender ?? ''), alignment: 'center', style: 'tableCell' },
+      { text: p.date_of_birth   ?? '', alignment: 'center', style: 'tableCell' },
+      { text: p.nationality     ?? '', alignment: 'left',   style: 'tableCell' },
+      {
+        text: p.source === 'added-at-gate' ? 'New' : p.source === 'manual' ? 'Manual' : 'Original',
+        alignment: 'center',
+        style: 'tableCell',
+        color: p.source === 'added-at-gate' ? '#d97706' : p.source === 'manual' ? '#0891b2' : '#6b7280',
+      },
+      { text: statusTxt, alignment: 'center', style: 'tableCell' },
+    ];
+  });
 
   const docDefinition = {
     pageSize: 'A4',
@@ -173,7 +181,7 @@ async function generateReport(kind, data, savePath) {
       }] : [{
         table: {
           headerRows: 1,
-          widths: [80, 100, 35, 60, 50, 40, 40],
+          widths: [20, 75, 100, 35, 55, 45, 38, 38],
           body: [headerRow, ...dataRows],
         },
         layout: {

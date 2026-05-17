@@ -152,6 +152,34 @@ export async function renderSettings(container) {
             </div>
           </div>
 
+          <!-- ── Field Requirements (US8) ── -->
+          <div class="card border-secondary bg-dark shadow mb-4">
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+              <h5 class="mb-0 text-accent"><i class="bi bi-ui-checks me-2"></i>إعدادات الحقول المطلوبة (Field Requirements)</h5>
+              <button type="button" id="btn-save-field-reqs" class="btn btn-sm btn-primary">
+                <i class="bi bi-save me-1"></i>حفظ الحقول
+              </button>
+            </div>
+            <div class="card-body">
+              <p class="text-muted small mb-3">
+                حدد الحقول الإلزامية عند المسح الضوئي أو الاستيراد. الحقول غير المحددة ستُعتبر اختيارية وستظهر بشارة "مفقود" إذا لم تتوفر.
+              </p>
+              <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0" id="table-field-reqs">
+                  <thead>
+                    <tr>
+                      <th>الحقل (Field Key)</th>
+                      <th class="text-end">مطلوب (Required)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Will be populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- ── Danger Zone ── -->
           <div class="card border-danger bg-dark shadow mb-4">
             <div class="card-header border-danger">
@@ -320,6 +348,56 @@ export async function renderSettings(container) {
       errEl.classList.remove('d-none');
       document.getElementById('input-clear-password').value = '';
       document.getElementById('input-clear-password').focus();
+    }
+  };
+
+  // Field Requirements table population and save handler
+  const fieldReqs = await window.api.settings.getFieldRequirements();
+  const fieldReqsTbody = container.querySelector('#table-field-reqs tbody');
+  const fieldKeys = [
+    { key: 'passportNumber', label: 'رقم الجواز (Passport Number)' },
+    { key: 'familyName', label: 'اسم العائلة / اللقب (Family Name)' },
+    { key: 'givenName', label: 'الاسم الأول (Given Name)' },
+    { key: 'dob', label: 'تاريخ الميلاد (Date of Birth)' },
+    { key: 'nationality', label: 'الجنسية (Nationality)' },
+    { key: 'gender', label: 'الجنس (Gender)' },
+    { key: 'documentType', label: 'نوع الوثيقة (Document Type)' }
+  ];
+
+  fieldReqsTbody.innerHTML = fieldKeys.map(item => `
+    <tr>
+      <td class="fw-semibold">${item.label}</td>
+      <td class="text-end">
+        <div class="form-check form-switch d-inline-block">
+          <input class="form-check-input check-field-req" type="checkbox" data-key="${item.key}" ${fieldReqs[item.key] ? 'checked' : ''}>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  document.getElementById('btn-save-field-reqs').onclick = async () => {
+    const btn = document.getElementById('btn-save-field-reqs');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>جاري الحفظ...`;
+
+    const updatedReqs = {};
+    container.querySelectorAll('.check-field-req').forEach(input => {
+      updatedReqs[input.getAttribute('data-key')] = input.checked;
+    });
+
+    try {
+      const res = await window.api.settings.setFieldRequirements(updatedReqs);
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-save me-1"></i>حفظ الحقول`;
+      if (res.ok) {
+        alert('تم حفظ إعدادات الحقول بنجاح');
+      } else {
+        alert(res.message || t('common.error'));
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-save me-1"></i>حفظ الحقول`;
+      alert(err.message || t('common.error'));
     }
   };
 }

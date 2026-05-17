@@ -86,12 +86,21 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('session:clear', (event, args) => settingsHandlers.clearSession(args));
     ipcMain.handle('session:clearWithPassword', (event, args) => settingsHandlers.clearSessionWithPassword(args));
     ipcMain.handle('settings:testDeviceUrl', (event, args) => settingsHandlers.testDeviceUrl(args));
+    ipcMain.handle('settings:getFieldRequirements', (event, args) => settingsHandlers.getFieldRequirements(event, args));
+    ipcMain.handle('settings:setFieldRequirements', (event, args) => settingsHandlers.setFieldRequirements(event, args));
   }
 
   // ── Dashboard handlers ──
   const dashboardHandlers = handlers.dashboard;
   if (dashboardHandlers) {
     ipcMain.handle('dashboard:stats', (event, args) => dashboardHandlers.stats(args));
+  }
+
+  // ── Duplicate handlers ──
+  const duplicateHandlers = handlers.duplicate;
+  if (duplicateHandlers) {
+    ipcMain.handle('duplicate:detect', (event, args) => duplicateHandlers.detectDuplicate(event, args));
+    ipcMain.handle('duplicate:resolve', (event, args) => duplicateHandlers.resolveDuplicate(event, args));
   }
 
   logger.info('All IPC handlers registered');

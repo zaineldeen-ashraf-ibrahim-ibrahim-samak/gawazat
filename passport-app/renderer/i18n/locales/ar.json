@@ -63,12 +63,14 @@
   },
   "passengerList": {
     "search": "بحث",
+    "advancedFilter": "تصفية متقدمة",
     "filter": {
       "all": "الكل",
       "entered": "العدد الفعلي",
       "pending": "قائمه الانتظار",
       "male": "ذكر",
-      "female": "أنثى"
+      "female": "أنثى",
+      "warnings": "يحتوي على تحذير / مكرر"
     },
     "source": {
       "original": "أصلي",
@@ -113,7 +115,8 @@
     "warnings": "التحذيرات",
     "new": "المسافرون الجدد",
     "summary": "ملخص",
-    "pendingApproval": "قائمة قيد المراجعة"
+    "pendingApproval": "قائمة قيد المراجعة",
+    "indexHeader": "ترتيب"
   },
   "settings": {
     "scanMode": {
@@ -157,6 +160,65 @@
       "statusStopped": "متوقف",
       "description": "يستقبل بيانات MRZ من ريجولا أو أجهزة أخرى عبر HTTP على 127.0.0.1."
     }
+  },
+  "reasons": {
+    "MRZ_CHECKSUM_FAILED": "فشل التحقق من MRZ",
+    "DOB_UNPARSEABLE": "تعذر قراءة تاريخ الميلاد",
+    "DUPLICATE_PASSPORT": "تم مسح جواز السفر مسبقاً",
+    "GEMINI_TIMEOUT": "انتهى وقت طلب الذكاء الاصطناعي",
+    "GEMINI_DISABLED": "خدمة الذكاء الاصطناعي معطلة",
+    "GEMINI_BAD_RESPONSE": "استجابة غير صالحة من خدمة الذكاء الاصطناعي",
+    "GEMINI_AUTH_FAILED": "فشلت مصادقة الذكاء الاصطناعي",
+    "GEMINI_TRANSIENT": "خطأ مؤقت في خدمة الذكاء الاصطناعي",
+    "REQUIRED_FIELD_MISSING": "حقل مطلوب مفقود",
+    "IPC_INVALID_ARGS": "معطيات غير صالحة للنظام",
+    "IMPORT_NO_PASSPORT": "لم يتم العثور على رقم جواز سفر في السجل",
+    "IMPORT_DOB_UNPARSEABLE": "تعذر قراءة تاريخ الميلاد المستورد",
+    "IMPORT_JSON_BAD_ELEMENT": "تنسيق عنصر JSON غير صالح",
+    "IMPORT_PDF_NO_TABLE": "تعذر اكتشاف بيانات جدولية في ملف PDF",
+    "IMPORT_FORMAT_UNSUPPORTED": "تنسيق ملف الاستيراد غير مدعوم",
+    "IMPORT_FILE_UNREADABLE": "تعذر قراءة ملف الاستيراد"
+  },
+  "duplicate": {
+    "title": "هل هذا هو نفس المسافر؟",
+    "prompt": "وجدنا مسافراً مشابهاً. يرجى مراجعة التفاصيل.",
+    "merge": "دمج (الاحتفاظ بالحالي)",
+    "keepSeparate": "الاحتفاظ كمدخل منفصل",
+    "field": "الحقل",
+    "existing": "الحالي",
+    "new": "الجديد (الممسوح)"
+  },
+  "filters": {
+    "title": "تصفية متقدمة",
+    "apply": "تطبيق التصفية",
+    "clear": "مسح الكل",
+    "hasWarning": "يحتوي على تحذيرات",
+    "noWarning": "بدون تحذيرات",
+    "duplicate": "مكرر",
+    "source": "المصدر",
+    "dobRange": "فترة تاريخ الميلاد",
+    "from": "من",
+    "to": "إلى",
+    "ageRange": "الفئة العمرية",
+    "ageMin": "الحد الأدنى",
+    "ageMax": "الحد الأقصى"
+  },
+  "fieldRequirements": {
+    "title": "متطلبات الحقول",
+    "required": "مطلوب",
+    "optional": "اختياري",
+    "passportNumber": "رقم الجواز",
+    "familyName": "اسم العائلة",
+    "givenName": "الاسم الأول",
+    "dob": "تاريخ الميلاد",
+    "nationality": "الجنسية",
+    "gender": "النوع",
+    "documentType": "نوع الوثيقة"
+  },
+  "geminiNotice": {
+    "title": "إشعار معالجة البيانات",
+    "message": "سيتم إرسال أسماء المسافرين وتواريخ الميلاد بأمان إلى خدمة الذكاء الاصطناعي للتنسيق. لن يتم إرسال أرقام الوثائق الحساسة.",
+    "acknowledge": "موافق"
   },
   "common": {
     "ok": "حسنا",

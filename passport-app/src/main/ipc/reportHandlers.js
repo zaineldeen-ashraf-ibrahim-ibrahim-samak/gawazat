@@ -21,7 +21,7 @@ function createReportHandlers(store) {
      */
     generatePdf: async (args) => {
       try {
-        const { kind, savePath } = args;
+        const { kind, savePath, filterState } = args;
         const state = store.getState();
         const manifest = state.manifest || [];
         const boarding = state.boarding_records || {};
@@ -57,17 +57,25 @@ function createReportHandlers(store) {
           }));
         }
 
+        // Map with is_entered and is_duplicate before applying advanced filters
+        let mappedPassengers = filtered.map(p => ({
+          ...p,
+          is_entered:   boarding[p.passport_number_normalized] !== undefined,
+          is_duplicate: (scanCounts[p.passport_number_normalized] || 0) > 1,
+        }));
+
+        if (filterState) {
+          const { applyFilterState } = require('../../renderer/components/advancedFilterPanel.js');
+          mappedPassengers = applyFilterState(mappedPassengers, filterState);
+        }
+
         const settings = state.settings || {};
         const data = {
           voyage: {
             ...(state.voyage || {}),
             ship_name: settings.ship_name || state.voyage?.ship_name || '',
           },
-          passengers: filtered.map(p => ({
-            ...p,
-            is_entered:   boarding[p.passport_number_normalized] !== undefined,
-            is_duplicate: (scanCounts[p.passport_number_normalized] || 0) > 1,
-          }))
+          passengers: mappedPassengers
         };
 
         await generateReport(kind, data, savePath);
@@ -83,10 +91,10 @@ function createReportHandlers(store) {
      */
     print: async (args) => {
       try {
-        const { kind } = args;
+        const { kind, filterState } = args;
         const tempPath = path.join(require('electron').app.getPath('temp'), `print-${Date.now()}.pdf`);
 
-        const genResult = await createReportHandlers(store).generatePdf({ kind, savePath: tempPath });
+        const genResult = await createReportHandlers(store).generatePdf({ kind, savePath: tempPath, filterState });
         if (!genResult.ok) return { ok: false, message: genResult.message || 'فشل إنشاء الملف' };
 
         if (!fs.existsSync(tempPath)) return { ok: false, message: 'الملف لم يُنشأ' };

@@ -3,7 +3,7 @@ const path = require('path');
 const { app } = require('electron');
 
 // Configure file transport
-log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), 'logs', 'main.log');
+log.transports.file.resolvePathFn = () => path.join((app && app.getPath) ? app.getPath('userData') : '/tmp', 'logs', 'main.log');
 log.transports.file.maxSize = 5 * 1024 * 1024; // 5 MB per file
 log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s}.{ms} [{level}] {text}';
 

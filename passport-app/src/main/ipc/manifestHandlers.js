@@ -26,39 +26,58 @@ function createManifestHandlers(store) {
     import: async (args) => {
       try {
         const { filePaths } = args;
-
         if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
           return { ok: false, message: 'Invalid file paths' };
         }
 
         const state = store.getState();
         const existingManifest = state.manifest || [];
-        const existingPassports = new Set(existingManifest.map(p => p.passport_number_normalized));
+        const { detect } = require('../services/duplicateMatcher');
+        const { ReasonCodes } = require('../../shared/reasonCodes');
 
+        let inserted = 0;
+        let duplicatesBlocked = 0;
+        let fuzzyPrompted = 0;
+        const fuzzyPrompts = [];
+        const rowErrors = [];
         let allPassingRowsMap = new Map();
-        let allErrors = [];
 
         for (const filePath of filePaths) {
-          const parseResult = parseFile(filePath);
-          // Add filename indicator to errors for better context
-          const fileErrors = parseResult.errors.map(e => ({
-            ...e,
-            message: `[${path.basename(filePath)}] ${e.message}`
-          }));
+          const parseResult = parseFile(filePath, state.settings?.fieldRequirements);
           
-          allErrors.push(...fileErrors);
+          for (const err of parseResult.errors) {
+            rowErrors.push({ rowIndex: err.rowIndex, reason: 'IMPORT_JSON_BAD_ELEMENT', message: err.message }); // simplistic mapping
+          }
           
           const passingRows = parseResult.rows.filter(r => r.outcome === 'Pass');
           for (const row of passingRows) {
-            // Deduplicate across files and existing manifest
-            if (existingPassports.has(row.passport_number_normalized) || allPassingRowsMap.has(row.passport_number_normalized)) {
-              allErrors.push({
+            // First check within this batch
+            if (allPassingRowsMap.has(row.passport_number_normalized)) {
+              duplicatesBlocked++;
+              rowErrors.push({ rowIndex: row.rowIndex, reason: 'DUPLICATE_PASSPORT' });
+              continue;
+            }
+
+            const normalizedPassenger = {
+              passportNumberKey: row.passport_number_normalized,
+              name: row.name,
+              dob: row.date_of_birth,
+              nationality: row.nationality
+            };
+
+            const duplicateMatch = detect(normalizedPassenger);
+
+            if (duplicateMatch.kind === 'exact') {
+              duplicatesBlocked++;
+              rowErrors.push({ rowIndex: row.rowIndex, reason: 'DUPLICATE_PASSPORT' });
+            } else if (duplicateMatch.kind === 'fuzzy') {
+              fuzzyPrompted++;
+              const existingPassenger = store.getState().manifest.find(p => p.id === duplicateMatch.existingPassengerId);
+              fuzzyPrompts.push({
                 rowIndex: row.rowIndex,
-                field: 'passport_number',
-                rule: 'duplicate_file',
-                fileName: path.basename(filePath),
-                passportRaw: row.passport_number,
-                message: `[${path.basename(filePath)}] Duplicate passport number (${row.passport_number}) ignored.`
+                raw: row,
+                match: duplicateMatch,
+                existingPassenger
               });
             } else {
               allPassingRowsMap.set(row.passport_number_normalized, row);
@@ -66,35 +85,8 @@ function createManifestHandlers(store) {
           }
         }
 
-        const allPassingRows = Array.from(allPassingRowsMap.values());
-
-        if (allErrors.length > 0 && allPassingRows.length === 0) {
-          logger.warn(`Import failed: ${allErrors.length} errors, 0 valid rows`);
-          return {
-            ok: false,
-            errors: allErrors,
-            message: `Files contain ${allErrors.length} validation error(s) and no valid rows.`
-          };
-        }
-
-        if (allPassingRows.length === 0) {
-          return {
-            ok: false,
-            message: 'No new valid rows to import (they might be duplicates or invalid).',
-            errors: allErrors
-          };
-        }
-
-        // Get or Create a voyage
-        const settings = state.settings || {};
-        const voyage = state.voyage || makeVoyage(
-          settings.ship_name || '',
-          settings.port_name || 'Port Said'
-        );
-
-        // Create passenger records
-        const passengers = allPassingRows.map(row => {
-          return makePassenger({
+        const passengersToInsert = Array.from(allPassingRowsMap.values()).map(row => {
+          const p = makePassenger({
             passport_number: row.passport_number,
             passport_number_normalized: row.passport_number_normalized,
             name: row.name,
@@ -105,34 +97,38 @@ function createManifestHandlers(store) {
             seat: row.seat,
             source: 'manifest'
           });
+          if (row.missingOptionalFields?.length > 0) {
+            p.missingOptionalFields = row.missingOptionalFields;
+          }
+          return p;
         });
 
-        // Atomically update store: append to manifest
-        store.mutate((draft) => {
-          if (!draft.voyage) draft.voyage = voyage;
-          if (!draft.manifest) draft.manifest = [];
+        if (passengersToInsert.length > 0) {
+          const settings = state.settings || {};
+          const voyage = state.voyage || makeVoyage(settings.ship_name || '', settings.port_name || 'Port Said');
           
-          draft.manifest.push(...passengers);
-          // Keep existing boarding_records, scan_events, pending_approval!
-        });
-
-        // Rebuild indices
-        rebuildIndices(store.getState());
-
-        logger.info(`Appended ${passengers.length} passengers for voyage ${store.getState().voyage?.id}`);
+          store.mutate((draft) => {
+            if (!draft.voyage) draft.voyage = voyage;
+            if (!draft.manifest) draft.manifest = [];
+            draft.manifest.push(...passengersToInsert);
+          });
+          
+          rebuildIndices(store.getState());
+          inserted = passengersToInsert.length;
+          logger.info(`Appended ${inserted} passengers for voyage ${store.getState().voyage?.id}`);
+        }
 
         return {
-          ok: true,
-          voyage: store.getState().voyage,
-          passengers,
-          errors: allErrors
+          inserted,
+          duplicatesBlocked,
+          fuzzyPrompted,
+          fuzzyPrompts,
+          rowErrors,
+          ok: true
         };
       } catch (err) {
         logger.error(`Import failed: ${err.message}`);
-        return {
-          ok: false,
-          message: `Import failed: ${err.message}`
-        };
+        return { ok: false, message: `Import failed: ${err.message}` };
       }
     },
 

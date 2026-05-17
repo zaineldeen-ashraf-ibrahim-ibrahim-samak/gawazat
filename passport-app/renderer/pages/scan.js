@@ -5,10 +5,39 @@
 
 import { t } from '../i18n/index.js';
 import { initAudio, setSoundEnabled, playSuccess, playWarning } from '../components/audio.js';
+import { showDuplicateModal } from '../components/duplicateConfirmModal.js';
 
 let resetTimer = null;
 let inputBuffer = '';
 let lastKeyTime = 0;
+
+function showToast(message) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    container.style.zIndex = '1100';
+    document.body.appendChild(container);
+  }
+  const toastEl = document.createElement('div');
+  toastEl.className = 'toast align-items-center text-bg-danger border-0';
+  toastEl.setAttribute('role', 'alert');
+  toastEl.setAttribute('aria-live', 'assertive');
+  toastEl.setAttribute('aria-atomic', 'true');
+  toastEl.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body fs-5 fw-bold py-3">
+        <i class="bi bi-exclamation-octagon me-2"></i> ${message}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  `;
+  container.appendChild(toastEl);
+  const tInstance = new window.bootstrap.Toast(toastEl, { delay: 5000 });
+  tInstance.show();
+  toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+}
 
 export async function renderScan(container) {
   const settings = await window.api.settings.get();
@@ -178,7 +207,7 @@ export async function renderScan(container) {
     document.getElementById('manual-gender').value = '';
     document.getElementById('manual-nationality').value = '';
     document.getElementById('manual-dob').value = '';
-    showScanResult(result, autoResetSeconds);
+    await showScanResult(result, autoResetSeconds);
   };
 
   undoBtn.onclick = async () => {
@@ -201,9 +230,9 @@ export async function renderScan(container) {
   window.addEventListener('keydown', keyHandler);
 
   // Listen for API scan events
-  const unsubscribe = window.api.regula && window.api.regula.onEvent ? window.api.regula.onEvent((event) => {
+  const unsubscribe = window.api.regula && window.api.regula.onEvent ? window.api.regula.onEvent(async (event) => {
     if (event.type === 'scan' && event.data) {
-      showScanResult(event.data, autoResetSeconds);
+      await showScanResult(event.data, autoResetSeconds);
     }
   }) : null;
 
@@ -217,11 +246,41 @@ export async function renderScan(container) {
 
 async function handleScan(rawMrz, autoResetSeconds) {
   const result = await window.api.scan.submitMrz({ rawMrz });
-  showScanResult(result, autoResetSeconds);
+  await showScanResult(result, autoResetSeconds);
 }
 
-function showScanResult(result, autoResetSeconds) {
+async function showScanResult(result, autoResetSeconds) {
   if (resetTimer) clearTimeout(resetTimer);
+
+  if (result.outcome === 'rejected' && result.reason === 'DUPLICATE_PASSPORT') {
+    showToast(t('reasons.DUPLICATE_PASSPORT') || 'Already scanned');
+    playWarning();
+    clearScan();
+    return;
+  }
+
+  if (result.outcome === 'fuzzy') {
+    playWarning();
+    const decision = await showDuplicateModal(
+      result.existingPassenger,
+      result.normalizedPassenger,
+      result.duplicateMatch.differences
+    );
+    
+    await window.api.resolveDuplicate({
+      incomingRaw: result.mrz_fields,
+      incomingNormalized: result.normalizedPassenger,
+      existingPassengerId: result.existingPassenger.id,
+      decision: decision
+    });
+    
+    if (decision !== 'cancel') {
+      // Optional: play success or just clear
+      playSuccess();
+    }
+    clearScan();
+    return;
+  }
   
   const prompt = document.getElementById('scan-prompt');
   const resultPanel = document.getElementById('scan-result');
