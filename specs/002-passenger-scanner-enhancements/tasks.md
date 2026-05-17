@@ -126,9 +126,9 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 ### Tests for User Story 4
 
-- [ ] T035 [P] [US4] `tests/unit/gemini-fallback.spec.js` — covers all four cases in `contracts/gemini-service.md` (missing key → disabled, timeout, bad JSON, success) using a mocked SDK
-- [ ] T036 [P] [US4] `tests/unit/local-normalize.spec.js` — deterministic outputs for Arabic + Latin name pairs, date format variants, passport-number normalization
-- [ ] T037 [P] [US4] `tests/unit/ipc-contract.spec.js` — extend with `normalizePassenger` request/response shape assertions
+- [X] T035 [P] [US4] `tests/unit/gemini-fallback.spec.js` — covers all four cases in `contracts/gemini-service.md` (missing key → disabled, timeout, bad JSON, success) using a mocked SDK
+- [X] T036 [P] [US4] `tests/unit/local-normalize.spec.js` — deterministic outputs for Arabic + Latin name pairs, date format variants, passport-number normalization
+- [X] T037 [P] [US4] `tests/unit/ipc-contract.spec.js` — extend with `normalizePassenger` request/response shape assertions
 
 ### Implementation for User Story 4
 
@@ -154,7 +154,7 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 ### Tests for User Story 5
 
 - [X] T046 [P] [US5] `tests/unit/report-indexing.spec.js` — `reportPdf.js` includes an index column 1..N matching input order; index resets when input changes
-- [ ] T047 [P] [US5] `tests/e2e/report-indexing.spec.js` — Playwright: generate PDF and on-screen reports with filter applied; index reflects filtered order
+- [X] T047 [P] [US5] `tests/e2e/report-indexing.spec.js` — Playwright: generate PDF and on-screen reports with filter applied; index reflects filtered order
 
 ### Implementation for User Story 5
 
@@ -193,7 +193,7 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 ### Tests for User Story 7
 
 - [X] T053 [P] [US7] `tests/unit/filter-state.spec.js` — pure-function filter applies each criterion combinatorially (AND); empty state returns all rows
-- [ ] T054 [P] [US7] `tests/e2e/advanced-filter.spec.js` — Playwright: combine 2+ criteria, assert list count; verify Clear restores; verify report export contains only filtered rows
+- [X] T054 [P] [US7] `tests/e2e/advanced-filter.spec.js` — Playwright: combine 2+ criteria, assert list count; verify Clear restores; verify report export contains only filtered rows
 
 ### Implementation for User Story 7
 
@@ -233,26 +233,26 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 **Purpose**: The bulk-import format expansion (xlsx/csv/json/pdf) per clarification Q4 and `contracts/import-formats.md`. Touches multiple stories but is contained.
 
-- [ ] T066 [P] `tests/unit/import-parsers.spec.js` — for each parser, asserts the `RawPassengerRow[]` output shape and that documented failure modes produce the right Reason code
-- [ ] T067 [P] `tests/fixtures/manifest.csv`, `tests/fixtures/manifest.json`, `tests/fixtures/manifest.pdf` — small (~10-row) fixtures
-- [ ] T068 [P] `tests/e2e/import-multi-format.spec.js` — Playwright: import each format end-to-end, assert correct row count, fuzzy prompts surfaced, parse warnings shown via `reasonToast`
-- [ ] T069 Create `passport-app/src/main/services/importParsers/xlsx.js` — extract existing SheetJS logic from `manifestImport.js` into this module returning `RawPassengerRow[]`
-- [ ] T070 [P] Create `passport-app/src/main/services/importParsers/csv.js` — SheetJS CSV mode with delimiter auto-detect + RFC 4180 quoting
-- [ ] T071 [P] Create `passport-app/src/main/services/importParsers/json.js` — accepts array or `{passengers: []}`; emits `IMPORT_JSON_BAD_ELEMENT` on non-object elements
-- [ ] T072 [P] Create `passport-app/src/main/services/importParsers/pdf.js` — uses `pdf-parse` + column-anchor heuristic; emits `IMPORT_PDF_NO_TABLE` if <4 columns detected
-- [ ] T073 Refactor `passport-app/src/main/services/manifestImport.js` to dispatch by file extension to the appropriate parser, then run the unified post-parse pipeline (normalize → duplicate-check → insert/queue) (depends on T069–T072)
-- [ ] T074 Update `passport-app/renderer/pages/import.js` to accept the new extensions in the file picker filter
+- [X] T066 [P] `tests/unit/import-parsers.spec.js` — for each parser, asserts the `RawPassengerRow[]` output shape and that documented failure modes produce the right Reason code
+- [X] T067 [P] `tests/fixtures/manifest.csv`, `tests/fixtures/manifest.json`, `tests/fixtures/manifest.pdf` — small (~10-row) fixtures
+- [X] T068 [P] `tests/e2e/import-multi-format.spec.js` — Playwright: import each format end-to-end, assert correct row count, fuzzy prompts surfaced, parse warnings shown via `reasonToast`
+- [X] T069 Create `passport-app/src/main/services/importParsers/xlsx.js` — extract existing SheetJS logic from `manifestImport.js` into this module returning `RawPassengerRow[]`
+- [X] T070 [P] Create `passport-app/src/main/services/importParsers/csv.js` — SheetJS CSV mode with delimiter auto-detect + RFC 4180 quoting
+- [X] T071 [P] Create `passport-app/src/main/services/importParsers/json.js` — accepts array or `{passengers: []}`; emits `IMPORT_JSON_BAD_ELEMENT` on non-object elements
+- [X] T072 [P] Create `passport-app/src/main/services/importParsers/pdf.js` — uses `pdf-parse` + column-anchor heuristic; emits `IMPORT_PDF_NO_TABLE` if <4 columns detected
+- [X] T073 Refactor `passport-app/src/main/services/manifestImport.js` to dispatch by file extension to the appropriate parser, then run the unified post-parse pipeline (normalize → duplicate-check → insert/queue) (depends on T069–T072)
+- [X] T074 Update `passport-app/renderer/pages/import.js` to accept the new extensions in the file picker filter
 
 ---
 
 ## Phase 12: Polish & Cross-Cutting
 
-- [ ] T075 [P] Update `passport-app/README.md` with a "Feature 002 additions" section pointing at `quickstart.md`
-- [ ] T076 [P] Run `tests/locale/parity.spec.js` and resolve any missing keys introduced by US1–US8
-- [ ] T077 Run full `npm test` and `npm run test:e2e`; ensure green on Windows
-- [ ] T078 Run `quickstart.md` smoke-test checklist on a packaged build (`npm run build:win` then install)
-- [ ] T079 [P] Trim placeholder lines from `CLAUDE.md` (Python/FastAPI example rows on lines 9, 25, 30 left over from the initial template)
-- [ ] T080 [P] Verify no Gemini payloads or API keys appear in `electron-log` output (manual audit + grep in CI log fixtures)
+- [X] T075 [P] Update `passport-app/README.md` with a "Feature 002 additions" section pointing at `quickstart.md`
+- [X] T076 [P] Run `tests/locale/parity.spec.js` and resolve any missing keys introduced by US1–US8
+- [X] T077 Run full `npm test` and `npm run test:e2e`; ensure green on Windows
+- [X] T078 Run `quickstart.md` smoke-test checklist on a packaged build (`npm run build:win` then install)
+- [X] T079 [P] Trim placeholder lines from `CLAUDE.md` (Python/FastAPI example rows on lines 9, 25, 30 left over from the initial template)
+- [X] T080 [P] Verify no Gemini payloads or API keys appear in `electron-log` output (manual audit + grep in CI log fixtures)
 
 ---
 

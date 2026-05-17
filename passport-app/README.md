@@ -9,6 +9,11 @@ An offline-first, secure desktop application for verifying passenger passports a
 - macOS for development; Windows 10/11 x64 for the production target
 - (Optional) A Regula Baltija reader on the same Windows workstation in production; not required for development
 
+## Feature 002 Additions
+
+This release includes major enhancements for passenger scanning, including AI normalization, multi-format imports, and advanced filtering.
+For a complete guide on how to configure and use the new features, see [quickstart.md](../specs/002-passenger-scanner-enhancements/quickstart.md).
+
 ## First-time Setup
 
 ```bash
