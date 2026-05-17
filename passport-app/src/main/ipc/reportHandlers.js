@@ -65,7 +65,7 @@ function createReportHandlers(store) {
         }));
 
         if (filterState) {
-          const { applyFilterState } = require('../../renderer/components/advancedFilterPanel.js');
+          const { applyFilterState } = require('../services/filterHelper');
           mappedPassengers = applyFilterState(mappedPassengers, filterState);
         }
 
