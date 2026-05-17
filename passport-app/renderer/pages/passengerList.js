@@ -220,6 +220,14 @@ async function mountShell(container) {
   });
 
   tbody.addEventListener('click', async (e) => {
+    const badge = e.target.closest('.missing-fields-badge');
+    if (badge) {
+      const missingKeys = badge.getAttribute('data-missing').split(',').filter(Boolean);
+      const localizedNames = missingKeys.map(f => t(`import.table.${f}`) || t(`reasons.${f}`) || f).join('، ');
+      showMissingFieldsModal(localizedNames);
+      return;
+    }
+
     const btn = e.target.closest('.delete-btn');
     if (btn) {
       const passport = btn.getAttribute('data-passport');
@@ -244,6 +252,43 @@ async function mountShell(container) {
 /** Fetch data from main process (only the raw full list; filtering happens client-side) */
 async function loadData() {
   allPassengers = await window.api.manifest.list({ filter: 'all', search: '' });
+}
+
+function showMissingFieldsModal(fieldsStr) {
+  const modalId = 'modal-missing-fields-detail';
+  let modalEl = document.getElementById(modalId);
+  if (!modalEl) {
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}-label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content bg-dark text-white border-warning">
+            <div class="modal-header border-warning bg-warning bg-opacity-25">
+              <h5 class="modal-title text-warning" id="${modalId}-label">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>تفاصيل الحقول المفقودة
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+              <p class="fs-5 mb-2">تم قبول هذا المسافر مع وجود الحقول الاختيارية التالية مفقودة:</p>
+              <div id="${modalId}-list" class="p-3 bg-black bg-opacity-50 text-warning rounded border border-secondary fs-5 fw-bold text-center"></div>
+            </div>
+            <div class="modal-footer border-warning">
+              <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">${t('common.close') || 'إغلاق'}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(div.firstElementChild);
+    modalEl = document.getElementById(modalId);
+  }
+  document.getElementById(`${modalId}-list`).textContent = fieldsStr || 'لا توجد حقول محددة.';
+  if (window.bootstrap) {
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  } else {
+    alert(`تفاصيل الحقول المفقودة:\n\n${fieldsStr}`);
+  }
 }
 
 export async function renderPassengerList(container) {
@@ -288,7 +333,7 @@ function renderNextChunk() {
           : `<span class="badge bg-secondary opacity-50">${t('passengerList.filter.pending')}</span>`
         }
         ${p.missingOptionalFields?.length > 0
-          ? `<br><span class="badge bg-warning text-dark mt-1" title="حقول مفقودة: ${esc(p.missingOptionalFields.join(', '))}"><i class="bi bi-exclamation-circle me-1"></i>مفقود (${p.missingOptionalFields.length})</span>`
+          ? `<br><span class="badge bg-warning text-dark mt-1 missing-fields-badge cursor-pointer" data-missing="${esc(p.missingOptionalFields.join(','))}" title="انقر لعرض التفاصيل"><i class="bi bi-exclamation-circle me-1"></i>مفقود (${p.missingOptionalFields.length})</span>`
           : ''
         }
       </td>
