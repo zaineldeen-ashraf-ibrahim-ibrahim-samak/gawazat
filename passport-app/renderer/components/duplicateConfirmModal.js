@@ -75,29 +75,46 @@ export function showDuplicateModal(existing, incoming, differences) {
       </div>
     `;
 
-    // 3. Initialize Bootstrap Modal
-    // We assume bootstrap is loaded globally
+    // 3. Initialize Bootstrap Modal. Always dispose any prior instance first
+    //    so we don't end up with two modal controllers attached to the same
+    //    DOM element after a re-show (which was leaving the backdrop in place
+    //    and freezing the second invocation).
+    const prior = window.bootstrap.Modal.getInstance(modalEl);
+    if (prior) {
+      try { prior.dispose(); } catch (_) { /* ignore */ }
+    }
     modalInstance = new window.bootstrap.Modal(modalEl);
-    
+
     // 4. Attach event listeners
     let resolved = false;
+    let pendingDecision = null;
 
     const handleResolve = (decision) => {
       if (resolved) return;
       resolved = true;
+      pendingDecision = decision;
+      // Don't resolve the promise yet — wait for Bootstrap's hide animation
+      // to FULLY complete (and the backdrop/body class to be cleaned up).
+      // Otherwise the caller can synchronously open the next modal on top of
+      // a half-hidden backdrop, which makes the second modal look frozen.
       modalInstance.hide();
-      resolve(decision);
     };
 
     document.getElementById('btn-dup-cancel').onclick = () => handleResolve('cancel');
     document.getElementById('btn-dup-keep').onclick = () => handleResolve('keep-separate');
     document.getElementById('btn-dup-merge').onclick = () => handleResolve('merge');
-    
+
     modalEl.addEventListener('hidden.bs.modal', () => {
-      if (!resolved) {
-        resolved = true;
-        resolve('cancel'); // If they just dismiss by clicking outside or pressing Escape
-      }
+      // Bootstrap sometimes leaves <body class="modal-open"> or a stray
+      // backdrop when modals are shown/hidden in quick succession. Defensive
+      // cleanup before resolving so the next modal opens cleanly.
+      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
+
+      try { modalInstance.dispose(); } catch (_) { /* ignore */ }
+      resolve(pendingDecision || 'cancel');
     }, { once: true });
 
     // 5. Show
