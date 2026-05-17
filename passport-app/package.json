@@ -7,7 +7,7 @@
   "homepage": "./",
   "scripts": {
     "start": "electron .",
-    "dev": "nodemon --watch src --watch renderer --ext js,html,css --exec 'electron .'",
+    "dev": "nodemon --watch src --watch renderer --ext js,html,css --exec \"electron .\"",
     "test": "mocha tests/unit/**/*.spec.js && mocha tests/locale/**/*.spec.js && playwright test",
     "test:unit": "mocha tests/unit/**/*.spec.js",
     "test:locale": "mocha tests/locale/**/*.spec.js",
