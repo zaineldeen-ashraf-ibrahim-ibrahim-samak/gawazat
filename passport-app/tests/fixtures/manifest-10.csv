@@ -1,0 +1,11 @@
+passport_number,name,gender,nationality,date_of_birth,vessel,seat
+EG001,أحمد محمد علي,M,EGY,1990-05-15,MS Aida,A01
+EG002,John Doe,M,USA,1985-10-20,MS Aida,A02
+EG003,Jane Smith,F,GBR,1992-01-01,MS Aida,A03
+EG004,Ali Hassan,M,EGY,1988-08-08,,
+EG005,Sara Lee,F,CAN,1995-12-12,,
+EG006,Omar Ali,M,EGY,1980-04-04,,
+EG007,Mona Zaki,F,EGY,1982-03-03,,
+EG008,Tariq,M,EGY,1999-09-09,,
+EG009,Rana,F,EGY,2000-01-01,,
+EG010,Ziad,M,EGY,2001-02-02,,

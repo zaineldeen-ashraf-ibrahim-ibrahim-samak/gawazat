@@ -132,14 +132,14 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 ### Implementation for User Story 4
 
-- [ ] T038 [P] [US4] Create `passport-app/src/main/services/localNormalize.js` — synchronous deterministic normalizer (NFC, trim, Title-case Latin, leave Arabic, ISO date coercion for the formats listed in research.md R3)
-- [ ] T039 [P] [US4] Create `passport-app/src/main/services/geminiClient.js` per `contracts/gemini-service.md` — reads env vars at module load, exports `normalize(raw)`, throws typed errors on failure modes, never logs payload or key
-- [ ] T040 [US4] Create `passport-app/src/main/ipc/normalizeHandlers.js` registering `ipcMain.handle('normalizePassenger', ...)` — calls geminiClient, catches all errors, falls back to localNormalize, attaches the appropriate Reason warning, returns `NormalizationResult` per contract (depends on T038, T039)
-- [ ] T041 [US4] Wire normalize handlers in `registry.js` and expose `window.api.normalizePassenger` in `preload.js`
-- [ ] T042 [US4] Modify `passport-app/src/main/services/scanProcessor.js` and `manifestImport.js` to call normalize BEFORE duplicateMatcher (so duplicate detection runs on normalized keys) — replaces any inline normalization
-- [ ] T043 [US4] Extend `passport-app/src/shared/entities.js` Passenger factory with `raw`, `normalized`, `normalizationSource`, `normalizationConfidence` per data-model.md
-- [ ] T044 [P] [US4] Add the one-time PII-transmission notice: extend `renderer/pages/settings.js` to render a Bootstrap modal on app boot when `settings.geminiNoticeAcknowledged === false`; on Acknowledge call `window.api.acknowledgeGeminiNotice` (add handler in `settingsHandlers.js`)
-- [ ] T045 [P] [US4] Add structured logging in `geminiClient.js` via `electron-log`: one `info` event per call with outcome (`hit` / `fallback-{code}` / `error-{code}`); never include payload
+- [X] T038 [P] [US4] Create `passport-app/src/main/services/localNormalize.js` — synchronous deterministic normalizer (NFC, trim, Title-case Latin, leave Arabic, ISO date coercion for the formats listed in research.md R3)
+- [X] T039 [P] [US4] Create `passport-app/src/main/services/geminiClient.js` per `contracts/gemini-service.md` — reads env vars at module load, exports `normalize(raw)`, throws typed errors on failure modes, never logs payload or key
+- [X] T040 [US4] Create `passport-app/src/main/ipc/normalizeHandlers.js` registering `ipcMain.handle('normalizePassenger', ...)` — calls geminiClient, catches all errors, falls back to localNormalize, attaches the appropriate Reason warning, returns `NormalizationResult` per contract (depends on T038, T039)
+- [X] T041 [US4] Wire normalize handlers in `registry.js` and expose `window.api.normalizePassenger` in `preload.js`
+- [X] T042 [US4] Modify `passport-app/src/main/services/scanProcessor.js` and `manifestImport.js` to call normalize BEFORE duplicateMatcher (so duplicate detection runs on normalized keys) — replaces any inline normalization
+- [X] T043 [US4] Extend `passport-app/src/shared/entities.js` Passenger factory with `raw`, `normalized`, `normalizationSource`, `normalizationConfidence` per data-model.md
+- [X] T044 [P] [US4] Add the one-time PII-transmission notice: extend `renderer/pages/settings.js` to render a Bootstrap modal on app boot when `settings.geminiNoticeAcknowledged === false`; on Acknowledge call `window.api.acknowledgeGeminiNotice` (add handler in `settingsHandlers.js`)
+- [X] T045 [P] [US4] Add structured logging in `geminiClient.js` via `electron-log`: one `info` event per call with outcome (`hit` / `fallback-{code}` / `error-{code}`); never include payload
 
 **Checkpoint**: US4 fully functional; US1 fuzzy-match quality improves automatically.
 

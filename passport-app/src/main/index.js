@@ -116,6 +116,7 @@ async function initialize() {
     const settingsHandlers = require('./ipc/settingsHandlers').createSettingsHandlers(store);
     const dashboardHandlers = require('./ipc/dashboardHandlers').createDashboardHandlers(store);
     const duplicateHandlers = require('./ipc/duplicateHandlers').createDuplicateHandlers(store);
+    const normalizeHandlers = require('./ipc/normalizeHandlers').createNormalizeHandlers(store);
 
     registerAllHandlers({
       manifest: manifestHandlers,
@@ -126,6 +127,7 @@ async function initialize() {
       settings: settingsHandlers,
       dashboard: dashboardHandlers,
       duplicate: duplicateHandlers,
+      normalize: normalizeHandlers,
     });
 
     logger.info('IPC handlers registered');

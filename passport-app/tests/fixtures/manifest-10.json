@@ -1,0 +1,12 @@
+[
+  { "passport_number": "EG001", "name": "أحمد محمد علي", "gender": "M", "nationality": "EGY", "date_of_birth": "1990-05-15", "vessel": "MS Aida", "seat": "A01" },
+  { "passport_number": "EG002", "name": "John Doe", "gender": "M", "nationality": "USA", "date_of_birth": "1985-10-20", "vessel": "MS Aida", "seat": "A02" },
+  { "passport_number": "EG003", "name": "Jane Smith", "gender": "F", "nationality": "GBR", "date_of_birth": "1992-01-01", "vessel": "MS Aida", "seat": "A03" },
+  { "passport_number": "EG004", "name": "Ali Hassan", "gender": "M", "nationality": "EGY", "date_of_birth": "1988-08-08" },
+  { "passport_number": "EG005", "name": "Sara Lee", "gender": "F", "nationality": "CAN", "date_of_birth": "1995-12-12" },
+  { "passport_number": "EG006", "name": "Omar Ali", "gender": "M", "nationality": "EGY", "date_of_birth": "1980-04-04" },
+  { "passport_number": "EG007", "name": "Mona Zaki", "gender": "F", "nationality": "EGY", "date_of_birth": "1982-03-03" },
+  { "passport_number": "EG008", "name": "Tariq", "gender": "M", "nationality": "EGY", "date_of_birth": "1999-09-09" },
+  { "passport_number": "EG009", "name": "Rana", "gender": "F", "nationality": "EGY", "date_of_birth": "2000-01-01" },
+  { "passport_number": "EG010", "name": "Ziad", "gender": "M", "nationality": "EGY", "date_of_birth": "2001-02-02" }
+]

@@ -58,7 +58,11 @@ function createSettingsHandlers(store) {
      */
     get: async () => {
       const state = store.getState();
-      return state.settings || {};
+      const settings = state.settings || {};
+      return {
+        ...settings,
+        geminiEnabled: !!process.env.GEMINI_API_KEY
+      };
     },
 
     /**
@@ -178,6 +182,23 @@ function createSettingsHandlers(store) {
         return { ok: true };
       } catch (err) {
         logger.error(`Session clear failed: ${err.message}`);
+        return { ok: false, message: err.message };
+      }
+    },
+
+    /**
+     * Acknowledge the Gemini PII Notice
+     */
+    acknowledgeGeminiNotice: async () => {
+      try {
+        store.mutate(draft => {
+          if (!draft.settings) draft.settings = {};
+          draft.settings.geminiNoticeAcknowledged = true;
+        });
+        logger.info('Gemini notice acknowledged');
+        return { ok: true };
+      } catch (err) {
+        logger.error(`Acknowledge notice failed: ${err.message}`);
         return { ok: false, message: err.message };
       }
     },

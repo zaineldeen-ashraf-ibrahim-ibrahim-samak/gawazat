@@ -88,6 +88,7 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('settings:testDeviceUrl', (event, args) => settingsHandlers.testDeviceUrl(args));
     ipcMain.handle('settings:getFieldRequirements', (event, args) => settingsHandlers.getFieldRequirements(event, args));
     ipcMain.handle('settings:setFieldRequirements', (event, args) => settingsHandlers.setFieldRequirements(event, args));
+    ipcMain.handle('settings:acknowledgeGeminiNotice', (event, args) => settingsHandlers.acknowledgeGeminiNotice(args));
   }
 
   // ── Dashboard handlers ──
@@ -101,6 +102,12 @@ function registerAllHandlers(handlers) {
   if (duplicateHandlers) {
     ipcMain.handle('duplicate:detect', (event, args) => duplicateHandlers.detectDuplicate(event, args));
     ipcMain.handle('duplicate:resolve', (event, args) => duplicateHandlers.resolveDuplicate(event, args));
+  }
+
+  // ── Normalize handlers ──
+  const normalizeHandlers = handlers.normalize;
+  if (normalizeHandlers) {
+    ipcMain.handle('normalizePassenger', (event, args) => normalizeHandlers.normalizePassenger(event, args));
   }
 
   logger.info('All IPC handlers registered');

@@ -43,7 +43,8 @@ function createManifestHandlers(store) {
         let allPassingRowsMap = new Map();
 
         for (const filePath of filePaths) {
-          const parseResult = parseFile(filePath, state.settings?.fieldRequirements);
+          logger.info(`Importing manifest from ${filePath}`);
+          const parseResult = await parseFile(filePath, state.settings?.fieldRequirements);
           
           for (const err of parseResult.errors) {
             rowErrors.push({ rowIndex: err.rowIndex, reason: 'IMPORT_JSON_BAD_ELEMENT', message: err.message }); // simplistic mapping
@@ -151,7 +152,7 @@ function createManifestHandlers(store) {
         let allErrors = [];
 
         for (const filePath of filePaths) {
-          const parseResult = parseFile(filePath);
+          const parseResult = await parseFile(filePath);
           
           const fileErrors = parseResult.errors.map(e => ({
             ...e,

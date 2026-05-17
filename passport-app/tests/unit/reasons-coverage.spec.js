@@ -85,7 +85,7 @@ describe('Specific Error & Warning Reasons Coverage (US3 - T030)', () => {
 
     // 2. Provoke manifestImport validation errors
     const rowMissingPassport = { name: 'Ahmed Ali', nationality: 'EGY', date_of_birth: '1990-01-01', gender: 'M' };
-    const valRes = validateRow(rowMissingPassport, 1, { passportNumber: true });
+    const valRes = await validateRow(rowMissingPassport, 1, { passportNumber: true });
     expect(valRes.outcome).to.equal('Error');
     expect(valRes.errors[0].rule).to.equal('required');
 

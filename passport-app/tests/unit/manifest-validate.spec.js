@@ -7,7 +7,7 @@ describe('Manifest Import Validation', () => {
   const fixturesDir = path.join(__dirname, '../fixtures');
 
   describe('validateRow', () => {
-    it('should validate a correct passenger row', () => {
+    it('should validate a correct passenger row', async () => {
       const row = {
         passport_number: 'EG001',
         name: 'أحمد محمد علي',
@@ -17,7 +17,7 @@ describe('Manifest Import Validation', () => {
         vessel: 'MS Aida',
         seat: 'A01'
       };
-      const result = validateRow(row, 2);
+      const result = await validateRow(row, 2);
 
       expect(result.outcome).to.equal('Pass');
       expect(result.errors).to.be.an('array').that.is.empty;
@@ -27,14 +27,14 @@ describe('Manifest Import Validation', () => {
       expect(result.nationality).to.equal('EGY');
     });
 
-    it('should reject a row missing passport number', () => {
+    it('should reject a row missing passport number', async () => {
       const row = {
         name: 'محمد علي',
         gender: 'M',
         nationality: 'EGY',
         date_of_birth: '1990-05-15'
       };
-      const result = validateRow(row, 2);
+      const result = await validateRow(row, 2);
 
       expect(result.outcome).to.equal('Error');
       expect(result.errors).to.be.an('array').that.is.not.empty;
@@ -42,7 +42,7 @@ describe('Manifest Import Validation', () => {
       expect(result.errors[0].rule).to.equal('required');
     });
 
-    it('should reject a row with future date of birth', () => {
+    it('should reject a row with future date of birth', async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const futureDate = tomorrow.toISOString().split('T')[0];
@@ -54,14 +54,14 @@ describe('Manifest Import Validation', () => {
         nationality: 'EGY',
         date_of_birth: futureDate
       };
-      const result = validateRow(row, 2);
+      const result = await validateRow(row, 2);
 
       expect(result.outcome).to.equal('Error');
       expect(result.errors).to.be.an('array').that.is.not.empty;
       expect(result.errors.find(e => e.field === 'date_of_birth')).to.exist;
     });
 
-    it('should reject a row with invalid nationality code', () => {
+    it('should reject a row with invalid nationality code', async () => {
       const row = {
         passport_number: 'EG001',
         name: 'محمد علي',
@@ -69,17 +69,18 @@ describe('Manifest Import Validation', () => {
         nationality: 'XXX', // Invalid
         date_of_birth: '1990-05-15'
       };
-      const result = validateRow(row, 2);
+      const result = await validateRow(row, 2);
 
       expect(result.outcome).to.equal('Error');
       expect(result.errors).to.be.an('array').that.is.not.empty;
       expect(result.errors.find(e => e.field === 'nationality')).to.exist;
     });
 
-    it('should accept various gender formats', () => {
+    it('should accept various gender formats', async () => {
       const testCases = ['M', 'F', 'Male', 'Female', 'ذكر', 'أنثى'];
 
-      testCases.forEach((gender, idx) => {
+      for (let idx = 0; idx < testCases.length; idx++) {
+        const gender = testCases[idx];
         const row = {
           passport_number: `EG0000${idx}`, // Make sure normalized length >= 5
           name: `Name ${idx}`,
@@ -87,13 +88,13 @@ describe('Manifest Import Validation', () => {
           nationality: 'EGY',
           date_of_birth: '1990-05-15'
         };
-        const result = validateRow(row, 2);
+        const result = await validateRow(row, 2);
         expect(result.outcome).to.equal('Pass', `Gender format '${gender}' should be valid`);
         expect(['M', 'F']).to.include(result.gender);
-      });
+      }
     });
 
-    it('should accept optional vessel and seat fields', () => {
+    it('should accept optional vessel and seat fields', async () => {
       const row = {
         passport_number: 'EG001',
         name: 'محمد علي',
@@ -103,14 +104,14 @@ describe('Manifest Import Validation', () => {
         vessel: 'MS Aida',
         seat: 'A01'
       };
-      const result = validateRow(row, 2);
+      const result = await validateRow(row, 2);
 
       expect(result.outcome).to.equal('Pass');
       expect(result.vessel).to.equal('MS Aida');
       expect(result.seat).to.equal('A01');
     });
 
-    it('should handle missing optional fields gracefully', () => {
+    it('should handle missing optional fields gracefully', async () => {
       const row = {
         passport_number: 'EG001',
         name: 'محمد علي',
@@ -119,7 +120,7 @@ describe('Manifest Import Validation', () => {
         date_of_birth: '1990-05-15'
         // No vessel or seat
       };
-      const result = validateRow(row, 2);
+      const result = await validateRow(row, 2);
 
       expect(result.outcome).to.equal('Pass');
       expect(result.vessel).to.be.undefined;
@@ -128,9 +129,9 @@ describe('Manifest Import Validation', () => {
   });
 
   describe('parseFile', () => {
-    it('should parse valid manifest fixture with 10 rows', () => {
+    it('should parse valid manifest fixture with 10 rows', async () => {
       const filePath = path.join(fixturesDir, 'manifest-10.xlsx');
-      const result = parseFile(filePath);
+      const result = await parseFile(filePath);
 
       expect(result.rows).to.be.an('array');
       expect(result.rows.length).to.equal(10);
@@ -143,9 +144,9 @@ describe('Manifest Import Validation', () => {
       expect(result.rows[0].name).to.include('أحمد');
     });
 
-    it('should handle error fixture with validation errors', () => {
+    it('should handle error fixture with validation errors', async () => {
       const filePath = path.join(fixturesDir, 'manifest-with-errors.xlsx');
-      const result = parseFile(filePath);
+      const result = await parseFile(filePath);
 
       expect(result.rows).to.be.an('array');
       expect(result.rows.length).to.be.greaterThan(0);
@@ -164,7 +165,7 @@ describe('Manifest Import Validation', () => {
       });
     });
 
-    it('should detect duplicate passport numbers', () => {
+    it('should detect duplicate passport numbers', async () => {
       // Create a minimal test with duplicates
       const testRows = [
         {
@@ -183,16 +184,16 @@ describe('Manifest Import Validation', () => {
         }
       ];
 
-      const result1 = validateRow(testRows[0], 2);
-      const result2 = validateRow(testRows[1], 3);
+      const result1 = await validateRow(testRows[0], 2);
+      const result2 = await validateRow(testRows[1], 3);
 
       expect(result1.outcome).to.equal('Pass');
       expect(result2.outcome).to.equal('Pass');
       // Note: Duplicate detection happens at parseFile level, not validateRow level
     });
 
-    it('should handle empty or invalid files gracefully', () => {
-      const result = parseFile('/nonexistent/file.xlsx');
+    it('should handle empty or invalid files gracefully', async () => {
+      const result = await parseFile('/nonexistent/file.xlsx');
 
       expect(result.rows).to.be.an('array').that.is.empty;
       expect(result.errors).to.be.an('array').that.is.not.empty;
@@ -201,7 +202,7 @@ describe('Manifest Import Validation', () => {
   });
 
   describe('Integration', () => {
-    it('should round-trip a valid passenger through validation', () => {
+    it('should round-trip a valid passenger through validation', async () => {
       const original = {
         passport_number: 'EG99999',
         name: 'محمد أحمد علي عبدالله',
@@ -212,7 +213,7 @@ describe('Manifest Import Validation', () => {
         seat: 'A12'
       };
 
-      const result = validateRow(original, 5);
+      const result = await validateRow(original, 5);
 
       expect(result.outcome).to.equal('Pass');
       expect(result.passport_number).to.equal(original.passport_number);

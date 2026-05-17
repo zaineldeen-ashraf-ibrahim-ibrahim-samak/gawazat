@@ -42,21 +42,30 @@ async function processMrz(store, rawMrz, mode = 'keyboard') {
       };
     }
 
-    // 3. Normalize passport number
-    const normalized = normalizePassportNumber(parsed.document_number);
+    // 3. Normalize using AI / fallback
+    const { createNormalizeHandlers } = require('../ipc/normalizeHandlers');
+    const normalizeHandlers = createNormalizeHandlers(store);
+    const normalizeRes = await normalizeHandlers.normalizePassenger({}, parsed);
     
-    const nameStr = [parsed.surname, parsed.given_names].filter(Boolean).join(' ');
+    // Add normalization metadata back into parsed (so it is saved in mrz_fields or passenger entity)
+    const normalizedData = normalizeRes.normalized;
+    const normalized = normalizedData.passportNumber; // The key
+    const nameStr = [normalizedData.familyName, normalizedData.givenName].filter(Boolean).join(' ').trim() || normalizedData.name;
     const normalizedPassenger = {
       passportNumberKey: normalized,
       name: nameStr,
-      dob: parsed.date_of_birth,
-      nationality: parsed.nationality
+      dob: normalizedData.dob,
+      nationality: normalizedData.nationality,
+      // Metadata for later
+      normalizationSource: normalizeRes.source,
+      normalizationConfidence: normalizeRes.confidence,
+      normalizationWarnings: normalizeRes.warnings
     };
 
     // T063: Consult settings.fieldRequirements before duplicate matching or pending entry
     const { validate } = require('../../shared/fieldRequirements');
     const reqs = store.getState().settings?.fieldRequirements;
-    const validation = validate(parsed, reqs);
+    const validation = validate(normalizedData, reqs);
     if (!validation.valid) {
       const event = makeScanEvent({
         outcome: 'read-failed',

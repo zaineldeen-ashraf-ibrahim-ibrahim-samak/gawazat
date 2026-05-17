@@ -89,6 +89,11 @@ function makePassenger(data = {}) {
     seat: data.seat || '',
     source: data.source || 'manifest',
     duplicateFlag: data.duplicateFlag || 'unique',
+    raw: data.raw || null,
+    normalized: data.normalized || null,
+    normalizationSource: data.normalizationSource || null,
+    normalizationConfidence: data.normalizationConfidence || null,
+    normalizationWarnings: data.normalizationWarnings || [],
   };
 }
 

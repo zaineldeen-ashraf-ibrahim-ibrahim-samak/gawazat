@@ -160,7 +160,7 @@ function parseExcelDate(excelDate) {
  * @param {Object} [requirements] - Field requirements map
  * @returns {Object} - { outcome: 'Pass'|'Warn'|'Error', errors: ImportError[], row: ParsedRow }
  */
-function validateRow(row, rowIndex, requirements) {
+async function validateRow(row, rowIndex, requirements) {
   const errors = [];
   const result = {
     rowIndex,
@@ -169,22 +169,32 @@ function validateRow(row, rowIndex, requirements) {
     outcome: 'Pass'
   };
 
-  // Required fields
+  // Extract raw fields
   const passportNumber = String(row.passport_number || '').trim();
   const name = String(row.name || '').trim();
   const genderRaw = row.gender;
-  const nationalityRaw = String(row.nationality || '').trim().toUpperCase();
+  const nationalityRaw = String(row.nationality || '').trim();
   const dobRaw = row.date_of_birth;
+
+  // Attempt normalization
+  const { createNormalizeHandlers } = require('../ipc/normalizeHandlers');
+  const normalizeHandlers = createNormalizeHandlers({}); // store not needed for this
+  const normalizeRes = await normalizeHandlers.normalizePassenger({}, row);
+  const normalizedData = normalizeRes.normalized;
+
+  result.normalizationSource = normalizeRes.source;
+  result.normalizationConfidence = normalizeRes.confidence;
+  result.normalizationWarnings = normalizeRes.warnings;
 
   // Optional fields
   const vessel = row.vessel ? String(row.vessel).trim() : undefined;
   const seat = row.seat ? String(row.seat).trim() : undefined;
 
   const { validate } = require('../../shared/fieldRequirements');
-  const validation = validate(row, requirements);
+  const validation = validate(normalizedData, requirements);
 
   // Validate passport_number
-  if (!passportNumber) {
+  if (!passportNumber && !normalizedData.passportNumber) {
     if (validation.missingRequired.includes('passportNumber')) {
       errors.push({
         rowIndex,
@@ -194,7 +204,7 @@ function validateRow(row, rowIndex, requirements) {
       });
     }
   } else {
-    const normalized = normalizePassportNumber(passportNumber);
+    const normalized = normalizedData.passportNumber || normalizePassportNumber(passportNumber);
     if (normalized.length < 5) {
       errors.push({
         rowIndex,
@@ -203,13 +213,13 @@ function validateRow(row, rowIndex, requirements) {
         message: 'Normalized passport number must be at least 5 characters'
       });
     } else {
-      result.passport_number = passportNumber;
+      result.passport_number = passportNumber || normalizedData.passportNumber;
       result.passport_number_normalized = normalized;
     }
   }
 
   // Validate name
-  if (!name) {
+  if (!name && !normalizedData.name && !normalizedData.familyName && !normalizedData.givenName) {
     if (validation.missingRequired.includes('name')) {
       errors.push({
         rowIndex,
@@ -219,11 +229,11 @@ function validateRow(row, rowIndex, requirements) {
       });
     }
   } else {
-    result.name = name;
+    result.name = normalizedData.name || [normalizedData.familyName, normalizedData.givenName].filter(Boolean).join(' ') || name;
   }
 
   // Validate gender
-  const normalizedGender = normalizeGender(genderRaw);
+  const normalizedGender = normalizeGender(normalizedData.gender || genderRaw);
   if (!normalizedGender) {
     if (validation.missingRequired.includes('gender')) {
       errors.push({
@@ -238,7 +248,8 @@ function validateRow(row, rowIndex, requirements) {
   }
 
   // Validate nationality
-  if (!nationalityRaw) {
+  const nat = normalizedData.nationality || nationalityRaw;
+  if (!nat) {
     if (validation.missingRequired.includes('nationality')) {
       errors.push({
         rowIndex,
@@ -247,26 +258,26 @@ function validateRow(row, rowIndex, requirements) {
         message: 'Nationality is required'
       });
     }
-  } else if (nationalityRaw.length !== 3) {
+  } else if (nat.length !== 3) {
     errors.push({
       rowIndex,
       field: 'nationality',
       rule: 'invalid_format',
       message: 'Nationality must be a 3-letter ISO code (e.g., EGY)'
     });
-  } else if (!VALID_NATIONALITIES.has(nationalityRaw)) {
+  } else if (!VALID_NATIONALITIES.has(nat)) {
     errors.push({
       rowIndex,
       field: 'nationality',
       rule: 'unknown_code',
-      message: `Unknown nationality code: ${nationalityRaw}`
+      message: `Unknown nationality code: ${nat}`
     });
   } else {
-    result.nationality = nationalityRaw;
+    result.nationality = nat;
   }
 
   // Validate date_of_birth
-  const parsedDob = parseExcelDate(dobRaw);
+  const parsedDob = normalizedData.dob || parseExcelDate(dobRaw);
   if (!parsedDob) {
     if (validation.missingRequired.includes('dob')) {
       errors.push({
@@ -345,7 +356,7 @@ function splitMrzRecords(text) {
  * @param {Object} [requirements]
  * @returns {Object} - { rows: ParsedRow[], errors: ImportError[], duplicates: string[] }
  */
-function parseTxtFile(filePath, requirements) {
+async function parseTxtFile(filePath, requirements) {
   try {
     const text = fs.readFileSync(filePath, 'utf8');
     const records = splitMrzRecords(text);
@@ -362,7 +373,8 @@ function parseTxtFile(filePath, requirements) {
     const duplicateNormalized = new Map();
     const parseErrors = [];
 
-    records.forEach((lines, idx) => {
+    // Parse MRZ first
+    const rowPromises = records.map((lines, idx) => {
       const rowIndex = idx + 1;
       const mrz = parseMrz(lines.join('\n'));
 
@@ -378,9 +390,7 @@ function parseTxtFile(filePath, requirements) {
             message: 'Could not parse MRZ block (expected TD1 = 3×30 or TD3 = 2×44)'
           }]
         };
-        rows.push(failed);
-        parseErrors.push(...failed.errors);
-        return;
+        return Promise.resolve({ failed, rowIndex });
       }
 
       const fullName = [mrz.surname, mrz.given_names].filter(Boolean).join(' ').trim();
@@ -392,22 +402,31 @@ function parseTxtFile(filePath, requirements) {
         date_of_birth: mrz.date_of_birth
       };
 
-      const validation = validateRow(mappedRow, rowIndex, requirements);
+      return validateRow(mappedRow, rowIndex, requirements).then(validation => ({ validation, rowIndex }));
+    });
 
-      if (validation.outcome === 'Pass' && validation.passport_number_normalized) {
-        const normalized = validation.passport_number_normalized;
-        if (duplicateNormalized.has(normalized)) {
-          duplicateNormalized.get(normalized).push(rowIndex);
-        } else {
-          duplicateNormalized.set(normalized, [rowIndex]);
+    const results = await Promise.all(rowPromises);
+
+    for (const res of results) {
+      if (res.failed) {
+        rows.push(res.failed);
+        parseErrors.push(...res.failed.errors);
+      } else if (res.validation) {
+        const validation = res.validation;
+        if (validation.outcome === 'Pass' && validation.passport_number_normalized) {
+          const normalized = validation.passport_number_normalized;
+          if (duplicateNormalized.has(normalized)) {
+            duplicateNormalized.get(normalized).push(validation.rowIndex);
+          } else {
+            duplicateNormalized.set(normalized, [validation.rowIndex]);
+          }
+        }
+        rows.push(validation);
+        if (validation.outcome === 'Error') {
+          parseErrors.push(...validation.errors);
         }
       }
-
-      rows.push(validation);
-      if (validation.outcome === 'Error') {
-        parseErrors.push(...validation.errors);
-      }
-    });
+    }
 
     const duplicates = [];
     for (const [normalized, rowIndices] of duplicateNormalized) {
@@ -446,80 +465,81 @@ function parseTxtFile(filePath, requirements) {
 
 /**
  * Parse a manifest file and validate its contents.
- * Dispatches by extension: .txt → MRZ parser, otherwise Excel.
- * @param {string} filePath - Path to .xlsx, .xls, or .txt file
+ * Dispatches by extension: .txt → MRZ parser, otherwise uses correct parser.
+ * @param {string} filePath - Path to file
  * @param {Object} [requirements] - Field requirements map
  * @returns {Object} - { rows: ParsedRow[], errors: ImportError[], duplicates: string[] }
  */
-function parseFile(filePath, requirements) {
-  if (path.extname(filePath).toLowerCase() === '.txt') {
-    return parseTxtFile(filePath, requirements);
-  }
-  try {
-    const workbook = XLSX.readFile(filePath, { cellDates: true });
-    const sheetName = workbook.SheetNames[0]; // Use first sheet
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Get as array of arrays
+async function parseFile(filePath, requirements) {
+  const ext = path.extname(filePath).toLowerCase();
 
-    if (data.length < 2) {
-      // Header + at least 1 data row
-      return {
-        rows: [],
-        errors: [{ message: 'File must contain at least one data row (plus header)' }],
-        duplicates: []
-      };
+  if (ext === '.txt') {
+    return await parseTxtFile(filePath, requirements);
+  }
+
+  try {
+    let rawRows = [];
+
+    if (ext === '.xlsx' || ext === '.xls') {
+      const { parseXlsx } = require('./importParsers/xlsx');
+      rawRows = parseXlsx(filePath);
+    } else if (ext === '.csv') {
+      const { parseCsv } = require('./importParsers/csv');
+      rawRows = parseCsv(filePath);
+    } else if (ext === '.json') {
+      const { parseJson } = require('./importParsers/json');
+      rawRows = parseJson(filePath);
+    } else if (ext === '.pdf') {
+      const { parsePdf } = require('./importParsers/pdf');
+      rawRows = await parsePdf(filePath);
+    } else {
+      throw new Error(`Unsupported file type: ${ext}`);
     }
 
-    const headers = data[0];
-    const headerMap = mapHeaders(headers);
-
-    // Check required columns
-    const missingRequired = ['passport_number', 'name', 'gender', 'nationality', 'date_of_birth']
-      .filter(col => !(col in headerMap));
-
-    if (missingRequired.length > 0) {
+    if (rawRows.length === 0) {
       return {
         rows: [],
-        errors: [{ message: `Missing required columns: ${missingRequired.join(', ')}` }],
+        errors: [{ message: 'File must contain at least one passenger record' }],
         duplicates: []
       };
     }
 
     // Parse data rows
-    const rows = [];
     const duplicateNormalized = new Map(); // Track duplicates
     const parseErrors = [];
+    
+    const rowPromises = [];
 
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
+    for (let i = 0; i < rawRows.length; i++) {
+      const mappedRow = rawRows[i];
+      const actualRowIndex = mappedRow._rowIndex || (i + 2); // default to something if not attached
 
-      // Skip empty rows
-      if (!row || row.every(cell => !cell)) continue;
+      rowPromises.push(validateRow(mappedRow, actualRowIndex, requirements).then(validation => ({ validation, rowIndex: actualRowIndex })));
+    }
 
-      // Map row data to canonical object
-      const mappedRow = {};
-      for (const [canonical, colIndex] of Object.entries(headerMap)) {
-        if (colIndex !== undefined && colIndex < row.length) {
-          mappedRow[canonical] = row[colIndex];
+    const results = await Promise.all(rowPromises);
+    const rows = [];
+
+    for (const res of results) {
+      if (res.validation) {
+        const validation = res.validation;
+        
+        // Track duplicates
+        if (validation.outcome === 'Pass' && validation.passport_number_normalized) {
+          const normalized = validation.passport_number_normalized;
+          if (duplicateNormalized.has(normalized)) {
+            duplicateNormalized.get(normalized).push(validation.rowIndex);
+          } else {
+            duplicateNormalized.set(normalized, [validation.rowIndex]);
+          }
         }
-      }
 
-      const validation = validateRow(mappedRow, i, requirements); // 1-based row numbering
+        rows.push(validation);
 
-      // Check for duplicates (only for passing rows)
-      if (validation.outcome === 'Pass' && validation.passport_number_normalized) {
-        const normalized = validation.passport_number_normalized;
-        if (duplicateNormalized.has(normalized)) {
-          duplicateNormalized.get(normalized).push(i);
-        } else {
-          duplicateNormalized.set(normalized, [i]);
+        // Collect errors
+        if (validation.outcome === 'Error') {
+          parseErrors.push(...validation.errors);
         }
-      }
-
-      rows.push(validation);
-
-      if (validation.outcome === 'Error') {
-        parseErrors.push(...validation.errors);
       }
     }
 
@@ -558,7 +578,7 @@ function parseFile(filePath, requirements) {
   } catch (err) {
     return {
       rows: [],
-      errors: [{ message: `File parsing failed: ${err.message}` }],
+      errors: [{ message: err.message, code: err.code, rowIndex: err.rowIndex }],
       duplicates: []
     };
   }

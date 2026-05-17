@@ -65,6 +65,7 @@ const api = {
     testDeviceUrl: (args) => ipcRenderer.invoke('settings:testDeviceUrl', args),
     getFieldRequirements: (args) => ipcRenderer.invoke('settings:getFieldRequirements', args),
     setFieldRequirements: (args) => ipcRenderer.invoke('settings:setFieldRequirements', args),
+    acknowledgeGeminiNotice: (args) => ipcRenderer.invoke('settings:acknowledgeGeminiNotice', args),
   },
 
   session: {
@@ -95,6 +96,11 @@ const api = {
       return Promise.reject({ code: 'IPC_INVALID_ARGS', message: 'Invalid payload' });
     }
     return ipcRenderer.invoke('duplicate:resolve', decisionPayload);
+  },
+
+  // AI Normalization
+  normalizePassenger: (raw) => {
+    return ipcRenderer.invoke('normalizePassenger', raw);
   },
 
   // App config from .env (safe values only — no secrets)

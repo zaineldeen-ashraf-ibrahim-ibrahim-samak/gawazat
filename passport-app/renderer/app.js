@@ -108,6 +108,27 @@ async function init() {
             </div>
           </div>
         </div>
+        <!-- Gemini PII Notice Modal -->
+        <div class="modal fade" id="geminiNoticeModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-warning text-white">
+              <div class="modal-header border-warning bg-warning bg-opacity-25">
+                <h5 class="modal-title text-warning text=white"><i class="bi bi-shield-exclamation me-2"></i>إشعار استخدام الذكاء الاصطناعي (Gemini)</h5>
+              </div>
+              <div class="modal-body">
+                <p>لقد تم اكتشاف مفتاح API خاص بخدمة <strong>Google Gemini</strong>.</p>
+                <p>يرجى العلم بأنه عند تفعيل هذه الميزة، سيتم إرسال بيانات المسافرين (بما في ذلك الأسماء، تواريخ الميلاد، والجنسيات) إلى خوادم Google لغرض تصحيح النصوص وتنقيتها (Normalization).</p>
+                <div class="alert alert-dark border-secondary">
+                  <i class="bi bi-info-circle me-2"></i>هذا الإجراء يتطلب اتصالاً بالإنترنت ويخضع لسياسة خصوصية Google. إذا كنت لا توافق، يرجى إزالة مفتاح <code>GEMINI_API_KEY</code> من ملف <code>.env</code>.
+                </div>
+                <p class="mb-0 text-muted small">هل توافق على استخدام هذه الخدمة ومعالجة البيانات خارجياً؟</p>
+              </div>
+              <div class="modal-footer border-warning">
+                <button type="button" class="btn btn-warning" id="btn-ack-gemini">موافق، استمر</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -143,6 +164,24 @@ async function init() {
     // Initialize window API check
     if (window.api) {
       console.log('API bridge connected successfully');
+      
+      // Gemini Notice logic
+      const settings = await window.api.settings.get();
+      if (settings.geminiEnabled && !settings.geminiNoticeAcknowledged) {
+        const modalEl = document.getElementById('geminiNoticeModal');
+        if (modalEl) {
+          const modal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+          modal.show();
+          
+          document.getElementById('btn-ack-gemini').addEventListener('click', async () => {
+            const res = await window.api.settings.acknowledgeGeminiNotice();
+            if (res && res.ok) {
+              modal.hide();
+            }
+          });
+        }
+      }
+
       // Start auto-updating header stats
       updateHeaderStats();
       setInterval(updateHeaderStats, 2000);
