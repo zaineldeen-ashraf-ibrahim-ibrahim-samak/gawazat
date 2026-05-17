@@ -9,7 +9,7 @@ add new feture when import or scan called is that is ? to avoid repteading and t
 * [X] in alll repoet system function add indexes numbering
 * [X] the sreach bar is broken when enter letter is making me clicking the sreach bar again to click and enter the next letter
 
-add give me reason of waarong or eror when import or scan and else ...
+add give me reason of waarong or eror when import or scan and else ...>>
 
 * [X] add filter system adnced in passngers list
 * [X] add that can i make not all fileds reqired or sanning

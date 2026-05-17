@@ -11,7 +11,6 @@
 cd passport-app
 npm install @google/generative-ai pdf-parse
 ```
-
 That's all the new packages this feature needs. SheetJS, pdfmake, i18next, electron-log, Bootstrap RTL, Mocha/Chai, and Playwright are all already in `package.json` from feature 001.
 
 ## 2. Environment variables (for the Gemini integration)
