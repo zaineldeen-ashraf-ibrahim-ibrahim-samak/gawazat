@@ -1,6 +1,6 @@
 const { ipcMain } = require('electron');
 const { detect } = require('../services/duplicateMatcher');
-const { makePassenger } = require('../../shared/entities');
+const { makePassenger, makeBoardingRecord, makeScanEvent } = require('../../shared/entities');
 const { ReasonCodes } = require('../../shared/reasonCodes');
 const logger = require('../services/logger');
 
@@ -41,12 +41,46 @@ function createDuplicateHandlers(store) {
         if (decision === 'merge') {
           const existing = state.manifest.find(p => p.id === existingPassengerId);
           if (existing) {
-            // Update fields from incoming
-            Object.assign(existing, {
-              ...incomingRaw,
-              ...incomingNormalized,
-              duplicateFlag: 'merged',
-            });
+            // Merge incoming fields onto existing, but DON'T overwrite an existing
+            // value with an empty/undefined one — this preserves manifest data
+            // when the operator confirmed a partial scan against an existing
+            // passenger (some passports don't carry every field in the MRZ).
+            const incomingMerged = { ...incomingRaw, ...incomingNormalized };
+            for (const [k, v] of Object.entries(incomingMerged)) {
+              if (v === undefined || v === null || (typeof v === 'string' && v.trim() === '')) continue;
+              existing[k] = v;
+            }
+            existing.duplicateFlag = 'merged';
+
+            // Treat operator confirmation as a successful identification: record a
+            // scan event and board the passenger if not already boarded. Without
+            // this, a confirmed partial-scan would leave the passenger un-entered.
+            const normalizedKey = existing.passport_number_normalized
+              || incomingNormalized?.passportNumberKey
+              || incomingRaw?.passport_number
+              || incomingRaw?.document_number;
+            if (normalizedKey) {
+              const scanEvent = makeScanEvent({
+                outcome: 'green',
+                mode: 'duplicate-confirm',
+                passport_number_normalized: normalizedKey,
+                passenger_id: existing.id,
+                raw_data: incomingRaw?.rawMrz || '',
+                mrz_fields: incomingRaw || {}
+              });
+              if (!state.scan_events) state.scan_events = [];
+              state.scan_events.push(scanEvent);
+
+              if (!state.boarding_records) state.boarding_records = {};
+              if (!state.boarding_records[normalizedKey]) {
+                state.boarding_records[normalizedKey] = makeBoardingRecord({
+                  passenger_id: existing.id,
+                  passport_number_normalized: normalizedKey,
+                  scan_event_id: scanEvent.id,
+                  via: 'duplicate-confirm'
+                });
+              }
+            }
           }
         } else if (decision === 'keep-separate') {
           const newPassenger = makePassenger({ ...incomingRaw, ...incomingNormalized });

@@ -66,25 +66,59 @@ async function processMrz(store, rawMrz, mode = 'keyboard') {
     const { validate } = require('../../shared/fieldRequirements');
     const reqs = store.getState().settings?.fieldRequirements;
     const validation = validate(normalizedData, reqs);
-    if (!validation.valid) {
-      const event = makeScanEvent({
-        outcome: 'read-failed',
-        mode,
-        raw_data: rawMrz,
-        mrz_fields: parsed
-      });
-      store.mutate(draft => draft.scan_events.push(event));
-      return {
-        outcome: 'read-failed',
-        reason: 'REQUIRED_FIELD_MISSING',
-        scan_event_id: event.id,
-        passenger: null,
-        mrz_fields: parsed,
-        missingRequired: validation.missingRequired
-      };
-    }
 
     const { detect } = require('./duplicateMatcher');
+
+    if (!validation.valid) {
+      // Some passports don't carry every required field in the MRZ. Before giving
+      // up, try to resolve the scan against the manifest:
+      //   1. If the passport number matches a manifest entry exactly, the manifest
+      //      already has the missing fields — fall through to the normal flow,
+      //      which will mark this green (or orange if already boarded).
+      //   2. Otherwise try a fuzzy match (name/dob/nationality) and surface the
+      //      "Is this <existing passenger>?" confirmation so the operator can
+      //      confirm and pull the missing fields from the manifest record.
+      const { manifestByNormalized: _mfNorm } = getIndices();
+      const exactManifestEntry = normalized ? _mfNorm.get(normalized) : null;
+
+      if (!exactManifestEntry) {
+        const fallbackMatch = detect(normalizedPassenger);
+        if (fallbackMatch.kind === 'fuzzy') {
+          const existingPassenger = store.getState().manifest.find(p => p.id === fallbackMatch.existingPassengerId);
+          if (existingPassenger) {
+            return {
+              outcome: 'fuzzy',
+              scan_event_id: null,
+              passenger: null,
+              mrz_fields: parsed,
+              normalizedPassenger,
+              duplicateMatch: fallbackMatch,
+              existingPassenger,
+              missingRequired: validation.missingRequired,
+              partialScan: true
+            };
+          }
+        }
+
+        const event = makeScanEvent({
+          outcome: 'read-failed',
+          mode,
+          raw_data: rawMrz,
+          mrz_fields: parsed
+        });
+        store.mutate(draft => draft.scan_events.push(event));
+        return {
+          outcome: 'read-failed',
+          reason: 'REQUIRED_FIELD_MISSING',
+          scan_event_id: event.id,
+          passenger: null,
+          mrz_fields: parsed,
+          missingRequired: validation.missingRequired
+        };
+      }
+      // exactManifestEntry exists — fall through to the manifest-lookup branch below.
+    }
+
     const duplicateMatch = detect(normalizedPassenger);
 
     if (duplicateMatch.kind === 'exact') {
