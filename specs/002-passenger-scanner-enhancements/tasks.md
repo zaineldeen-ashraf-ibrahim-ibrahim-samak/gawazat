@@ -36,12 +36,12 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 **Purpose**: Cross-story building blocks. No user-story phase may start until this phase is green.
 
-- [ ] T006 Create `passport-app/src/shared/reasonCodes.js` exporting frozen constants for every `Reason.code` listed in data-model.md and contracts/ (`MRZ_CHECKSUM_FAILED`, `DOB_UNPARSEABLE`, `DUPLICATE_PASSPORT`, `GEMINI_TIMEOUT`, `GEMINI_DISABLED`, `GEMINI_BAD_RESPONSE`, `GEMINI_AUTH_FAILED`, `GEMINI_TRANSIENT`, `REQUIRED_FIELD_MISSING`, `IPC_INVALID_ARGS`, `IMPORT_NO_PASSPORT`, `IMPORT_DOB_UNPARSEABLE`, `IMPORT_JSON_BAD_ELEMENT`, `IMPORT_PDF_NO_TABLE`, `IMPORT_FORMAT_UNSUPPORTED`, `IMPORT_FILE_UNREADABLE`)
-- [ ] T007 [P] Create `passport-app/src/shared/fieldRequirements.js` exporting the canonical `FIELD_KEYS` list and `DEFAULT_FIELD_REQUIREMENTS` matching feature 001's required set (passport number, family name, given name, DOB, nationality required; gender, document type optional)
-- [ ] T008 [P] Extend `passport-app/renderer/i18n/locales/ar.json` and `en.json` with a `reasons.*` namespace — one key per code from T006 — and matching `duplicate.*`, `filters.*`, `fieldRequirements.*`, `geminiNotice.*` namespaces (keep AR and EN at perfect key-parity)
-- [ ] T009 Extend `passport-app/src/main/store/encryptedStore.js` to persist new settings keys (`settings.fieldRequirements`, `settings.geminiNoticeAcknowledged`) with safe defaults if absent; preserve atomic-write behavior
-- [ ] T010 [P] Audit `passport-app/src/main/services/manifestImport.js`, `scanProcessor.js`, `store/encryptedStore.js`, and `renderer/pages/passengerList.js` for any explicit `100` / `slice(0, 100)` / `length > 100` guard; remove or replace with windowed rendering; document findings inline as a one-line comment per removal
-- [ ] T011 [P] Add `tests/unit/reason-codes.spec.js` asserting every code referenced in production code exists in `src/shared/reasonCodes.js` and every code has matching `ar` + `en` i18n keys (extends the existing locale-parity test in `tests/locale/parity.spec.js`)
+- [X] T006 Create `passport-app/src/shared/reasonCodes.js` exporting frozen constants for every `Reason.code` listed in data-model.md and contracts/ (`MRZ_CHECKSUM_FAILED`, `DOB_UNPARSEABLE`, `DUPLICATE_PASSPORT`, `GEMINI_TIMEOUT`, `GEMINI_DISABLED`, `GEMINI_BAD_RESPONSE`, `GEMINI_AUTH_FAILED`, `GEMINI_TRANSIENT`, `REQUIRED_FIELD_MISSING`, `IPC_INVALID_ARGS`, `IMPORT_NO_PASSPORT`, `IMPORT_DOB_UNPARSEABLE`, `IMPORT_JSON_BAD_ELEMENT`, `IMPORT_PDF_NO_TABLE`, `IMPORT_FORMAT_UNSUPPORTED`, `IMPORT_FILE_UNREADABLE`)
+- [X] T007 [P] Create `passport-app/src/shared/fieldRequirements.js` exporting the canonical `FIELD_KEYS` list and `DEFAULT_FIELD_REQUIREMENTS` matching feature 001's required set (passport number, family name, given name, DOB, nationality required; gender, document type optional)
+- [X] T008 [P] Extend `passport-app/renderer/i18n/locales/ar.json` and `en.json` with a `reasons.*` namespace — one key per code from T006 — and matching `duplicate.*`, `filters.*`, `fieldRequirements.*`, `geminiNotice.*` namespaces (keep AR and EN at perfect key-parity)
+- [X] T009 Extend `passport-app/src/main/store/encryptedStore.js` to persist new settings keys (`settings.fieldRequirements`, `settings.geminiNoticeAcknowledged`) with safe defaults if absent; preserve atomic-write behavior
+- [X] T010 [P] Audit `passport-app/src/main/services/manifestImport.js`, `scanProcessor.js`, `store/encryptedStore.js`, and `renderer/pages/passengerList.js` for any explicit `100` / `slice(0, 100)` / `length > 100` guard; remove or replace with windowed rendering; document findings inline as a one-line comment per removal
+- [X] T011 [P] Add `tests/unit/reason-codes.spec.js` asserting every code referenced in production code exists in `src/shared/reasonCodes.js` and every code has matching `ar` + `en` i18n keys (extends the existing locale-parity test in `tests/locale/parity.spec.js`)
 
 **Checkpoint**: Foundation ready — user-story phases may begin in parallel.
 
@@ -55,22 +55,22 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 ### Tests for User Story 1 (write first, ensure failing)
 
-- [ ] T012 [P] [US1] `tests/unit/duplicate-matcher.spec.js` — exact match on normalized passport key blocks; fuzzy match on name+DOB+nationality with ≤2 differing/missing fields returns `kind: 'fuzzy'`; no false positives across name length difference > 2 Levenshtein
-- [ ] T013 [P] [US1] `tests/unit/ipc-contract.spec.js` (new file) — `detectDuplicate` and `resolveDuplicate` accept/reject argument shapes per `contracts/ipc-bridge-additions.md`
-- [ ] T014 [P] [US1] `tests/e2e/duplicate-flow.spec.js` — Playwright: scan same passport twice → toast "Already scanned"; scan partial-match → modal opens; selecting Merge updates existing row; selecting Keep separate creates a second row; Cancel inserts nothing
+- [X] T012 [P] [US1] `tests/unit/duplicate-matcher.spec.js` — exact match on normalized passport key blocks; fuzzy match on name+DOB+nationality with ≤2 differing/missing fields returns `kind: 'fuzzy'`; no false positives across name length difference > 2 Levenshtein
+- [X] T013 [P] [US1] `tests/unit/ipc-contract.spec.js` (new file) — `detectDuplicate` and `resolveDuplicate` accept/reject argument shapes per `contracts/ipc-bridge-additions.md`
+- [X] T014 [P] [US1] `tests/e2e/duplicate-flow.spec.js` — Playwright: scan same passport twice → toast "Already scanned"; scan partial-match → modal opens; selecting Merge updates existing row; selecting Keep separate creates a second row; Cancel inserts nothing
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Create `passport-app/src/main/services/duplicateMatcher.js` implementing in-memory `Map<passportNumberKey, Passenger>` + `Map<\`${normalizedName}|${dob}|${nationality}\`, Passenger>` and exporting `detect(normalized)` returning `{kind:'none'|'exact'|'fuzzy', existingPassengerId?, differences?}` (Levenshtein helper inline; no new dep)
-- [ ] T016 [US1] Extend `passport-app/src/main/store/indices.js` to build both maps on session load and update them on every insert/merge/delete (depends on T015)
-- [ ] T017 [P] [US1] Create `passport-app/src/main/ipc/duplicateHandlers.js` registering `ipcMain.handle('detectDuplicate', ...)` and `ipcMain.handle('resolveDuplicate', ...)` per `contracts/ipc-bridge-additions.md`; persist a `DuplicateDecision` audit entry on every resolve
-- [ ] T018 [US1] Wire the new handlers in `passport-app/src/main/ipc/registry.js` and expose `window.api.detectDuplicate` and `window.api.resolveDuplicate` in `passport-app/src/main/preload.js` (with shape re-validation that emits `IPC_INVALID_ARGS`)
-- [ ] T019 [US1] Modify `passport-app/src/main/services/scanProcessor.js` so every accepted scan calls `duplicateMatcher.detect` BEFORE insert; on `exact` short-circuit with a warning event; on `fuzzy` emit a renderer event with the candidate
-- [ ] T020 [US1] Modify `passport-app/src/main/services/manifestImport.js` to apply the same gating during bulk import, collecting fuzzy candidates into `ImportResult.fuzzyPrompts` (per `contracts/ipc-bridge-additions.md`)
-- [ ] T021 [P] [US1] Create `passport-app/renderer/components/duplicateConfirmModal.js` — Bootstrap 5 RTL modal that renders the field-difference table and emits `merge|keep-separate|cancel`; all strings via `i18next` `duplicate.*` keys
-- [ ] T022 [US1] Update `passport-app/renderer/pages/scan.js` to show "Already scanned" toast on `kind:'exact'` and open the modal on `kind:'fuzzy'`, then call `window.api.resolveDuplicate` with the operator's choice
-- [ ] T023 [US1] Update `passport-app/renderer/pages/import.js` to walk `fuzzyPrompts` one at a time via the same modal and report final counts in the import summary
-- [ ] T024 [US1] Add `duplicateFlag` to each persisted Passenger in `passport-app/src/shared/entities.js` factory (default `'unique'`; mutated by handlers in T017)
+- [X] T015 [P] [US1] Create `passport-app/src/main/services/duplicateMatcher.js` implementing in-memory `Map<passportNumberKey, Passenger>` + `Map<\`${normalizedName}|${dob}|${nationality}\`, Passenger>` and exporting `detect(normalized)` returning `{kind:'none'|'exact'|'fuzzy', existingPassengerId?, differences?}` (Levenshtein helper inline; no new dep)
+- [X] T016 [US1] Extend `passport-app/src/main/store/indices.js` to build both maps on session load and update them on every insert/merge/delete (depends on T015)
+- [X] T017 [P] [US1] Create `passport-app/src/main/ipc/duplicateHandlers.js` registering `ipcMain.handle('detectDuplicate', ...)` and `ipcMain.handle('resolveDuplicate', ...)` per `contracts/ipc-bridge-additions.md`; persist a `DuplicateDecision` audit entry on every resolve
+- [X] T018 [US1] Wire the new handlers in `passport-app/src/main/ipc/registry.js` and expose `window.api.detectDuplicate` and `window.api.resolveDuplicate` in `passport-app/src/main/preload.js` (with shape re-validation that emits `IPC_INVALID_ARGS`)
+- [X] T019 [P] [US1] Modify `passport-app/src/main/services/scanProcessor.js` so every accepted scan calls `duplicateMatcher.detect` BEFORE insert; on `exact` short-circuit with a warning event; on `fuzzy` emit a renderer event with the candidate
+- [X] T020 [US1] Modify `passport-app/src/main/services/manifestImport.js` to apply the same gating during bulk import, collecting fuzzy candidates into `ImportResult.fuzzyPrompts` (per `contracts/ipc-bridge-additions.md`)
+- [X] T021 [P] [US1] Create `passport-app/renderer/components/duplicateConfirmModal.js` — Bootstrap 5 RTL modal that renders the field-difference table and emits `merge|keep-separate|cancel`; all strings via `i18next` `duplicate.*` keys
+- [X] T022 [US1] Update `passport-app/renderer/pages/scan.js` to show "Already scanned" toast on `kind:'exact'` and open the modal on `kind:'fuzzy'`, then call `window.api.resolveDuplicate` with the operator's choice
+- [X] T023 [US1] Update `passport-app/renderer/pages/import.js` to walk `fuzzyPrompts` one at a time via the same modal and report final counts in the import summary
+- [X] T024 [US1] Add `duplicateFlag` to each persisted Passenger in `passport-app/src/shared/entities.js` factory (default `'unique'`; mutated by handlers in T017)
 
 **Checkpoint**: US1 fully functional with local normalization only.
 
@@ -84,14 +84,14 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 ### Tests for User Story 2
 
-- [ ] T025 [P] [US2] `tests/e2e/capacity-1000.spec.js` — Playwright: import `tests/fixtures/manifest-1000.xlsx`, assert all 1,000 rows present in list, scroll smoothly, generate report, assert performance budget (<2 s for filter and search interactions)
-- [ ] T026 [P] [US2] `tests/fixtures/_generate.js` — extend the existing fixture generator with a `manifest-1000.xlsx` builder (idempotent)
+- [X] T025 [P] [US2] `tests/e2e/capacity-1000.spec.js` — Playwright: import `tests/fixtures/manifest-1000.xlsx`, assert all 1,000 rows present in list, scroll smoothly, generate report, assert performance budget (<2 s for filter and search interactions)
+- [X] T026 [P] [US2] `tests/fixtures/_generate.js` — extend the existing fixture generator with a `manifest-1000.xlsx` builder (idempotent)
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Apply the cap-removal edits located in T010 (T010 is the audit; this task is the actual code removal) across `manifestImport.js`, `scanProcessor.js`, `encryptedStore.js`, and `passengerList.js`
-- [ ] T028 [US2] Add windowed rendering to `passport-app/renderer/pages/passengerList.js` — render `<tr>` rows in 100-row chunks via `IntersectionObserver`, all 1,000 rows always in memory (no virtual-scrolling lib per Constitution V)
-- [ ] T029 [US2] Confirm `passport-app/src/main/services/reportPdf.js` paginates for arbitrary row counts; add a unit test `tests/unit/report-pagination.spec.js` covering 1,000 rows
+- [X] T027 [US2] Apply the cap-removal edits located in T010 (T010 is the audit; this task is the actual code removal) across `manifestImport.js`, `scanProcessor.js`, `encryptedStore.js`, and `passengerList.js`
+- [X] T028 [US2] Add windowed rendering to `passport-app/renderer/pages/passengerList.js` — render `<tr>` rows in 100-row chunks via `IntersectionObserver`, all 1,000 rows always in memory (no virtual-scrolling lib per Constitution V)
+- [X] T029 [US2] Confirm `passport-app/src/main/services/reportPdf.js` paginates for arbitrary row counts; add a unit test `tests/unit/report-pagination.spec.js` covering 1,000 rows
 
 **Checkpoint**: US2 fully functional, performance budget met.
 
@@ -153,14 +153,14 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 ### Tests for User Story 5
 
-- [ ] T046 [P] [US5] `tests/unit/report-indexing.spec.js` — `reportPdf.js` includes an index column 1..N matching input order; index resets when input changes
+- [X] T046 [P] [US5] `tests/unit/report-indexing.spec.js` — `reportPdf.js` includes an index column 1..N matching input order; index resets when input changes
 - [ ] T047 [P] [US5] `tests/e2e/report-indexing.spec.js` — Playwright: generate PDF and on-screen reports with filter applied; index reflects filtered order
 
 ### Implementation for User Story 5
 
-- [ ] T048 [US5] Modify `passport-app/src/main/services/reportPdf.js` to inject a leading "#" column populated 1..N at render time (not persisted)
-- [ ] T049 [P] [US5] Update on-screen list/table renderers in `renderer/pages/passengerList.js`, `scanHistory.js`, `pendingApproval.js`, and `reports.js` to show a leading index column derived from the visible (post-filter, post-sort) order
-- [ ] T050 [P] [US5] Add i18n keys `reports.indexHeader` to `ar.json` (`#` or "م") and `en.json` (`#`)
+- [X] T048 [US5] Modify `passport-app/src/main/services/reportPdf.js` to inject a leading "#" column populated 1..N at render time (not persisted)
+- [X] T049 [P] [US5] Update on-screen list/table renderers in `renderer/pages/passengerList.js`, `scanHistory.js`, `pendingApproval.js`, and `reports.js` to show a leading index column derived from the visible (post-filter, post-sort) order
+- [X] T050 [P] [US5] Add i18n keys `reports.indexHeader` to `ar.json` (`م`) and `en.json` (`#`)
 
 **Checkpoint**: US5 fully functional.
 
@@ -174,11 +174,11 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 ### Tests for User Story 6
 
-- [ ] T051 [P] [US6] `tests/e2e/search-focus.spec.js` — Playwright: open Passenger List, click search input, type `mohamed1234`, assert input value is the full string and `document.activeElement` is still the search input
+- [X] T051 [P] [US6] `tests/e2e/search-focus.spec.js` — Playwright: open Passenger List, click search input, type `mohamed1234`, assert input value is the full string and `document.activeElement` is still the search input
 
 ### Implementation for User Story 6
 
-- [ ] T052 [US6] Refactor `passport-app/renderer/pages/passengerList.js` so the search `<input>` is rendered ONCE at page mount and only the `<tbody>` is re-rendered on each `input` event (root cause per research.md R5); attach the listener with a debounced 100 ms filter call
+- [X] T052 [US6] Refactor `passport-app/renderer/pages/passengerList.js` so the search `<input>` is rendered ONCE at page mount and only the `<tbody>` is re-rendered on each `input` event (root cause per research.md R5); attach the listener with a debounced 100 ms filter call
 
 **Checkpoint**: US6 fully functional.
 
@@ -192,14 +192,14 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 ### Tests for User Story 7
 
-- [ ] T053 [P] [US7] `tests/unit/filter-state.spec.js` — pure-function filter applies each criterion combinatorially (AND); empty state returns all rows
+- [X] T053 [P] [US7] `tests/unit/filter-state.spec.js` — pure-function filter applies each criterion combinatorially (AND); empty state returns all rows
 - [ ] T054 [P] [US7] `tests/e2e/advanced-filter.spec.js` — Playwright: combine 2+ criteria, assert list count; verify Clear restores; verify report export contains only filtered rows
 
 ### Implementation for User Story 7
 
-- [ ] T055 [P] [US7] Create `passport-app/renderer/components/advancedFilterPanel.js` — Bootstrap form-controls offcanvas/modal emitting a `FilterState` object per data-model.md; includes Apply + Clear + active-filter badge
-- [ ] T056 [US7] Wire the panel into `passport-app/renderer/pages/passengerList.js`; maintain `currentFilter` page state; recompute visible rows on Apply/Clear; pass `currentFilter` into report-generation calls
-- [ ] T057 [US7] Update `passport-app/src/main/services/reportPdf.js` and `passport-app/renderer/pages/reports.js` to accept and respect a `FilterState` parameter (defaults to empty = no filter)
+- [X] T055 [P] [US7] Create `passport-app/renderer/components/advancedFilterPanel.js` — Bootstrap form-controls offcanvas/modal emitting a `FilterState` object per data-model.md; includes Apply + Clear + active-filter badge
+- [X] T056 [US7] Wire the panel into `passport-app/renderer/pages/passengerList.js`; maintain `currentFilter` page state; recompute visible rows on Apply/Clear; pass `currentFilter` into report-generation calls
+- [X] T057 [US7] Update `passport-app/src/main/services/reportPdf.js` and `passport-app/renderer/pages/reports.js` to accept and respect a `FilterState` parameter (defaults to empty = no filter)
 
 **Checkpoint**: US7 fully functional.
 
@@ -213,17 +213,17 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 ### Tests for User Story 8
 
-- [ ] T058 [P] [US8] `tests/unit/field-requirements.spec.js` — `validate(record, requirements)` returns `[]` for missing-optional, `[REQUIRED_FIELD_MISSING]` Reason for missing-required
-- [ ] T059 [P] [US8] `tests/unit/ipc-contract.spec.js` — extend with `getFieldRequirements` / `setFieldRequirements` shape assertions; unknown keys rejected
-- [ ] T060 [P] [US8] `tests/e2e/field-requirements.spec.js` — Playwright: toggle a field optional, save, scan record missing that field, assert acceptance + badge
+- [X] T058 [P] [US8] `tests/unit/field-requirements.spec.js` — `validate(record, requirements)` returns `[]` for missing-optional, `[REQUIRED_FIELD_MISSING]` Reason for missing-required
+- [X] T059 [P] [US8] `tests/unit/ipc-contract.spec.js` — extend with `getFieldRequirements` / `setFieldRequirements` shape assertions; unknown keys rejected
+- [X] T060 [P] [US8] `tests/e2e/field-requirements.spec.js` — Playwright: toggle a field optional, save, scan record missing that field, assert acceptance + badge
 
 ### Implementation for User Story 8
 
-- [ ] T061 [P] [US8] Extend `passport-app/src/main/ipc/settingsHandlers.js` with `getFieldRequirements` and `setFieldRequirements` handlers; validate against `FIELD_KEYS`; persist via `encryptedStore`
-- [ ] T062 [US8] Expose `window.api.getFieldRequirements` and `window.api.setFieldRequirements` in `preload.js`
-- [ ] T063 [US8] Modify `passport-app/src/main/services/manifestImport.js`, `scanProcessor.js`, and any manual-entry handler to consult `settings.fieldRequirements` before rejecting; on missing-optional, attach the field key to `Passenger.missingOptionalFields`
-- [ ] T064 [P] [US8] Update `passport-app/renderer/pages/settings.js` with a "Field Requirements" Bootstrap table — one row per `FIELD_KEYS` entry with a toggle; Save calls `window.api.setFieldRequirements`
-- [ ] T065 [P] [US8] Update `passport-app/renderer/pages/passengerList.js` and `reports.js` to render a "missing" badge for keys in `Passenger.missingOptionalFields`
+- [X] T061 [P] [US8] Extend `passport-app/src/main/ipc/settingsHandlers.js` with `getFieldRequirements` and `setFieldRequirements` handlers; validate against `FIELD_KEYS`; persist via `encryptedStore`
+- [X] T062 [US8] Expose `window.api.getFieldRequirements` and `window.api.setFieldRequirements` in `preload.js`
+- [X] T063 [US8] Modify `passport-app/src/main/services/manifestImport.js`, `scanProcessor.js`, and any manual-entry handler to consult `settings.fieldRequirements` before rejecting; on missing-optional, attach the field key to `Passenger.missingOptionalFields`
+- [X] T064 [P] [US8] Update `passport-app/renderer/pages/settings.js` with a "Field Requirements" Bootstrap table — one row per `FIELD_KEYS` entry with a toggle; Save calls `window.api.setFieldRequirements`
+- [X] T065 [P] [US8] Update `passport-app/renderer/pages/passengerList.js` and `reports.js` to render a "missing" badge for keys in `Passenger.missingOptionalFields`
 
 **Checkpoint**: US8 fully functional.
 
