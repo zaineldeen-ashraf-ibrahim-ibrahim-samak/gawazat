@@ -105,14 +105,14 @@ description: "Task list for Passenger Scanner Enhancements (feature 002)"
 
 ### Tests for User Story 3
 
-- [ ] T030 [P] [US3] `tests/unit/reasons-coverage.spec.js` — for every production path that emits a Reason, assert the emitted `code` is in `reasonCodes.js` and resolves to a localized string in both `ar` and `en`
-- [ ] T031 [P] [US3] `tests/e2e/error-reasons.spec.js` — Playwright: provoke each failure mode and assert the visible message in the active locale
+- [x] T030 [P] [US3] `tests/unit/reasons-coverage.spec.js` — for every production path that emits a Reason, assert the emitted `code` is in `reasonCodes.js` and resolves to a localized string in both `ar` and `en`
+- [x] T031 [P] [US3] `tests/e2e/error-reasons.spec.js` — Playwright: provoke each failure mode and assert the visible message in the active locale
 
 ### Implementation for User Story 3
 
-- [ ] T032 [P] [US3] Update `passport-app/src/main/services/manifestImport.js`, `scanProcessor.js`, and each `importParsers/*.js` (created later in US4 phase but pre-existing for xlsx) to emit `Reason` objects rather than throw/log raw strings
-- [ ] T033 [US3] Create `passport-app/renderer/components/reasonToast.js` — Bootstrap toast that takes a `Reason` and renders code + localized message + optional field/suggestion
-- [ ] T034 [US3] Replace all generic error displays in `renderer/pages/{scan,import,passengerList,reports,settings}.js` with `reasonToast` calls
+- [x] T032 [P] [US3] Update `passport-app/src/main/services/manifestImport.js`, `scanProcessor.js`, and each `importParsers/*.js` (created later in US4 phase but pre-existing for xlsx) to emit `Reason` objects rather than throw/log raw strings
+- [x] T033 [US3] Create `passport-app/renderer/components/reasonToast.js` — Bootstrap toast that takes a `Reason` and renders code + localized message + optional field/suggestion
+- [x] T034 [US3] Replace all generic error displays in `renderer/pages/{scan,import,passengerList,reports,settings}.js` with `reasonToast` calls
 
 **Checkpoint**: US3 fully functional.
 
