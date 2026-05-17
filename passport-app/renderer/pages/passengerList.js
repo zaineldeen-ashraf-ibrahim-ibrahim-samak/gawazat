@@ -296,7 +296,7 @@ function showMissingFieldsModal(fieldsStr) {
 }
 
 export async function renderPassengerList(container) {
-  if (!shellRendered || container !== containerEl) {
+  if (!shellRendered || container !== containerEl || !container.querySelector('.page-passenger-list')) {
     await mountShell(container);
   }
   await loadData();
