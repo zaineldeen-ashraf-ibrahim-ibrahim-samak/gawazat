@@ -108,8 +108,10 @@ async function handleSelectFile() {
   const result = await window.api.dialog.openFile({
     title: t('import.selectFile'),
     filters: [
-      { name: 'Manifest Files', extensions: ['xlsx', 'xls', 'csv', 'txt'] },
+      { name: 'Manifest Files', extensions: ['xlsx', 'xls', 'csv', 'json', 'pdf', 'txt'] },
       { name: 'Excel/CSV Files', extensions: ['xlsx', 'xls', 'csv'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'PDF Files', extensions: ['pdf'] },
       { name: 'MRZ Text Files', extensions: ['txt'] }
     ],
     properties: ['openFile', 'multiSelections']
