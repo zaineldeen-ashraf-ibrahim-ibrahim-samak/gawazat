@@ -93,6 +93,26 @@ function createScanHandlers(store) {
           const reqs = store.getState().settings?.fieldRequirements;
           const validation = validate(mrz_fields, reqs);
           if (!validation.valid) {
+            // Mirror processMrz: before failing, try a fuzzy manifest match using
+            // whatever fields the operator did supply. If found, surface the
+            // "Is this <existing passenger>?" prompt so missing fields can come
+            // from the manifest record. Some manual entries (and some passports)
+            // don't include every required field.
+            const fallbackMatch = detect(normalizedPassenger);
+            if (fallbackMatch.kind === 'fuzzy') {
+              const existingPassenger = store.getState().manifest.find(p => p.id === fallbackMatch.existingPassengerId);
+              if (existingPassenger) {
+                return {
+                  outcome: 'fuzzy',
+                  mrz_fields,
+                  normalizedPassenger,
+                  duplicateMatch: fallbackMatch,
+                  existingPassenger,
+                  missingRequired: validation.missingRequired,
+                  partialScan: true
+                };
+              }
+            }
             return {
               outcome: 'read-failed',
               reason: 'REQUIRED_FIELD_MISSING',
