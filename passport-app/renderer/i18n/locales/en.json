@@ -210,12 +210,10 @@
     "required": "Required",
     "optional": "Optional",
     "passportNumber": "Passport Number",
-    "familyName": "Family Name",
-    "givenName": "Given Name",
+    "name": "Name",
     "dob": "Date of Birth",
     "nationality": "Nationality",
-    "gender": "Gender",
-    "documentType": "Document Type"
+    "gender": "Gender"
   },
   "geminiNotice": {
     "title": "Data Processing Notice",

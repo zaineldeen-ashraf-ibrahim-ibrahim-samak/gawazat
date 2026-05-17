@@ -14,7 +14,7 @@ describe('Specific Error & Warning Reasons Coverage (US3 - T030)', () => {
         boarding_records: {},
         pending_approval: [],
         scan_events: [],
-        settings: { fieldRequirements: { gender: true, passportNumber: true, familyName: true, givenName: true, dob: true, nationality: true } }
+        settings: { fieldRequirements: { gender: true, passportNumber: true, name: true, dob: true, nationality: true } }
       }),
       mutate: (fn) => { /* mock mutation */ }
     };

@@ -2,22 +2,18 @@ const { ReasonCodes } = require('./reasonCodes');
 
 const FIELD_KEYS = Object.freeze([
   'passportNumber',
-  'familyName',
-  'givenName',
+  'name',
   'dob',
   'nationality',
-  'gender',
-  'documentType'
+  'gender'
 ]);
 
 const DEFAULT_FIELD_REQUIREMENTS = Object.freeze({
   passportNumber: true,
-  familyName: true,
-  givenName: true,
+  name: true,
   dob: true,
   nationality: true,
-  gender: false,
-  documentType: false
+  gender: false
 });
 
 /**
@@ -37,12 +33,10 @@ function validate(record = {}, requirements = DEFAULT_FIELD_REQUIREMENTS) {
     let val = record[key];
     if (val === undefined) {
       if (key === 'passportNumber') val = record.passportNumber || record.passport_number || record.document_number || record.documentNumber;
-      else if (key === 'familyName') val = record.familyName || record.surname || record.name;
-      else if (key === 'givenName') val = record.givenName || record.given_names || record.givenNames || record.name;
+      else if (key === 'name') val = record.name || record.fullName || (record.surname ? `${record.surname} ${record.given_names || ''}`.trim() : undefined) || record.familyName || record.givenName || record.surname || record.given_names;
       else if (key === 'dob') val = record.dob || record.date_of_birth || record.dateOfBirth;
       else if (key === 'nationality') val = record.nationality;
       else if (key === 'gender') val = record.gender || record.sex;
-      else if (key === 'documentType') val = record.documentType || record.document_code || record.documentCode;
     }
 
     const isEmpty = val === undefined || val === null || String(val).trim() === '';

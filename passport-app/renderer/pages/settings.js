@@ -193,7 +193,7 @@ export async function renderSettings(container) {
           <!-- ── Danger Zone ── -->
           <div class="card bg-dark border-danger shadow mb-4">
             <div class="card-header border-danger bg-danger bg-opacity-25">
-              <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>منطقة الخطر</h5>
+              <h5 class="mb-0 text-danger text-white"><i class="bi bi-exclamation-triangle-fill me-2"></i>منطقة الخطر</h5>
             </div>
             <div class="card-body text-center p-4">
               <p class="text-muted small mb-4">${t('settings.help.clearSession')}</p>
@@ -210,11 +210,11 @@ export async function renderSettings(container) {
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content bg-dark text-white border-danger">
             <div class="modal-header border-danger bg-danger bg-opacity-25">
-              <h5 class="modal-title text-danger" id="clearModalLabel"><i class="bi bi-shield-lock-fill me-2"></i>تأكيد مسح البيانات</h5>
+              <h5 class="modal-title text-danger text-white" id="clearModalLabel"><i class="bi bi-shield-lock-fill me-2"></i>تأكيد مسح البيانات</h5>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-              <p class="mb-3">يرجى إدخال كلمة مرور المشرف لتأكيد مسح كافة بيانات الرحلة والسجلات الحالية:</p>
+              <p class="mb-3 text-white">يرجى إدخال كلمة مرور المشرف لتأكيد مسح كافة بيانات الرحلة والسجلات الحالية:</p>
               <input type="password" id="input-clear-password" class="form-control bg-black bg-opacity-50 text-white border-secondary mb-2" placeholder="كلمة المرور">
               <div id="clear-error" class="text-danger small d-none">كلمة المرور غير صحيحة</div>
             </div>
@@ -363,12 +363,10 @@ export async function renderSettings(container) {
   const fieldReqsTbody = container.querySelector('#table-field-reqs tbody');
   const fieldKeys = [
     { key: 'passportNumber', label: 'رقم الجواز (Passport Number)' },
-    { key: 'familyName', label: 'اسم العائلة / اللقب (Family Name)' },
-    { key: 'givenName', label: 'الاسم الأول (Given Name)' },
+    { key: 'name', label: 'الاسم (Name)' },
     { key: 'dob', label: 'تاريخ الميلاد (Date of Birth)' },
     { key: 'nationality', label: 'الجنسية (Nationality)' },
-    { key: 'gender', label: 'الجنس (Gender)' },
-    { key: 'documentType', label: 'نوع الوثيقة (Document Type)' }
+    { key: 'gender', label: 'الجنس (Gender)' }
   ];
 
   fieldReqsTbody.innerHTML = fieldKeys.map(item => `

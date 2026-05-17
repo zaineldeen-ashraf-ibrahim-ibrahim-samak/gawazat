@@ -208,12 +208,10 @@
     "required": "مطلوب",
     "optional": "اختياري",
     "passportNumber": "رقم الجواز",
-    "familyName": "اسم العائلة",
-    "givenName": "الاسم الأول",
+    "name": "الاسم",
     "dob": "تاريخ الميلاد",
     "nationality": "الجنسية",
-    "gender": "النوع",
-    "documentType": "نوع الوثيقة"
+    "gender": "النوع"
   },
   "geminiNotice": {
     "title": "إشعار معالجة البيانات",

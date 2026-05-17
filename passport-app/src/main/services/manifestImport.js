@@ -210,7 +210,7 @@ function validateRow(row, rowIndex, requirements) {
 
   // Validate name
   if (!name) {
-    if (validation.missingRequired.includes('familyName') || validation.missingRequired.includes('givenName')) {
+    if (validation.missingRequired.includes('name')) {
       errors.push({
         rowIndex,
         field: 'name',
