@@ -286,9 +286,19 @@ async function handleConfirmImport() {
     let resolvedFuzzy = 0;
     
     if (result.fuzzyPrompts && result.fuzzyPrompts.length > 0) {
+      // Track decisions already made so the operator isn't re-prompted for
+      // the SAME person. Two passes:
+      //   - resolvedExistingIds: existing manifest passengers already merged
+      //     into. Any later prompt pointing at the same existing record is
+      //     auto-merged silently (collapse already handled server-side).
+      //   - resolvedIncomingKeys: incoming passport keys already decided.
+      //     Subsequent prompts for the same incoming row reuse the decision.
+      const resolvedExistingIds = new Set();
+      const resolvedIncomingKeys = new Map(); // key → decision
+
       for (const prompt of result.fuzzyPrompts) {
         const { match, raw, existingPassenger } = prompt;
-        
+
         const incomingNormalized = {
           passportNumberKey: raw.passport_number_normalized,
           name: raw.name,
@@ -296,11 +306,24 @@ async function handleConfirmImport() {
           nationality: raw.nationality
         };
 
-        const decision = await showDuplicateModal(
-          existingPassenger,
-          incomingNormalized,
-          match.differences
-        );
+        const incomingKey = raw.passport_number_normalized || raw.passport_number || '';
+
+        // If this incoming row was already decided in an earlier prompt,
+        // re-use that decision without prompting again.
+        let decision = resolvedIncomingKeys.get(incomingKey);
+        // If we already merged into this existing passenger, skip the
+        // prompt — the server-side merge has already consolidated rows.
+        if (!decision && resolvedExistingIds.has(existingPassenger.id)) {
+          decision = 'merge';
+        }
+
+        if (!decision) {
+          decision = await showDuplicateModal(
+            existingPassenger,
+            incomingNormalized,
+            match.differences
+          );
+        }
 
         if (decision !== 'cancel') {
           await window.api.resolveDuplicate({
@@ -318,7 +341,12 @@ async function handleConfirmImport() {
             existingPassengerId: existingPassenger.id,
             decision: decision
           });
+          if (decision === 'merge') resolvedExistingIds.add(existingPassenger.id);
+          if (incomingKey) resolvedIncomingKeys.set(incomingKey, decision);
           resolvedFuzzy++;
+        } else {
+          // Record the cancel so we don't re-prompt for the same incoming.
+          if (incomingKey) resolvedIncomingKeys.set(incomingKey, 'cancel');
         }
       }
     }
