@@ -10,12 +10,26 @@ import { t } from '../i18n/index.js';
  *   or null if the operator cancelled.
  */
 export function showSheetPicker(fileSheets) {
-  // Filter to only files with multiple sheets — others don't need prompting.
-  const needsPick = (fileSheets || []).filter(f => Array.isArray(f.sheetNames) && f.sheetNames.length > 1);
+  // For each file: keep only the sheets that actually look like a passenger
+  // list (sheetInfo[i].isPassengerSheet). Workbooks with exactly one such
+  // sheet are auto-selected silently; only ambiguous ones prompt.
+  const passengerSheetsForFile = (f) => {
+    if (!Array.isArray(f.sheetNames) || f.sheetNames.length === 0) return [];
+    if (Array.isArray(f.sheetInfo) && f.sheetInfo.length > 0) {
+      const filtered = f.sheetInfo.filter(s => s.isPassengerSheet).map(s => s.name);
+      // If filtering left us with nothing (every sheet looked like a
+      // breakdown/summary), fall back to the full list so the operator can
+      // still pick something rather than seeing an empty modal.
+      return filtered.length > 0 ? filtered : f.sheetNames.slice();
+    }
+    return f.sheetNames.slice();
+  };
+
+  const enriched = (fileSheets || []).map(f => ({ ...f, candidateSheets: passengerSheetsForFile(f) }));
+  const needsPick = enriched.filter(f => f.candidateSheets.length > 1);
   const autoPick = {};
-  for (const f of (fileSheets || [])) {
-    if (!Array.isArray(f.sheetNames) || f.sheetNames.length === 0) continue;
-    if (f.sheetNames.length === 1) autoPick[f.filePath] = f.sheetNames[0];
+  for (const f of enriched) {
+    if (f.candidateSheets.length === 1) autoPick[f.filePath] = f.candidateSheets[0];
   }
   if (needsPick.length === 0) {
     return Promise.resolve(autoPick);
@@ -34,16 +48,22 @@ export function showSheetPicker(fileSheets) {
 
     const fileBlocks = needsPick.map((f, idx) => {
       const fileName = (f.filePath || '').split(/[\\/]/).pop();
-      const options = f.sheetNames.map((name, i) => `
-        <div class="form-check">
-          <input class="form-check-input sheet-radio" type="radio"
-                 name="sheet-${idx}" id="sheet-${idx}-${i}"
-                 value="${name.replace(/"/g, '&quot;')}"
-                 data-file="${(f.filePath || '').replace(/"/g, '&quot;')}"
-                 ${i === 0 ? 'checked' : ''}>
-          <label class="form-check-label" for="sheet-${idx}-${i}">${name}</label>
-        </div>
-      `).join('');
+      const options = f.candidateSheets.map((name, i) => {
+        const meta = Array.isArray(f.sheetInfo) ? f.sheetInfo.find(s => s.name === name) : null;
+        const rowHint = meta && Number.isFinite(meta.rowCount)
+          ? `<span class="small ms-2" style="color: var(--text-dim);">(${Math.max(0, meta.rowCount - 1)} ${t('import.sheetPicker.rows') || 'rows'})</span>`
+          : '';
+        return `
+          <div class="form-check">
+            <input class="form-check-input sheet-radio" type="radio"
+                   name="sheet-${idx}" id="sheet-${idx}-${i}"
+                   value="${name.replace(/"/g, '&quot;')}"
+                   data-file="${(f.filePath || '').replace(/"/g, '&quot;')}"
+                   ${i === 0 ? 'checked' : ''}>
+            <label class="form-check-label" for="sheet-${idx}-${i}">${name}${rowHint}</label>
+          </div>
+        `;
+      }).join('');
 
       return `
         <div class="mb-3 p-3 rounded" style="background: var(--bg-secondary); border: 1px solid var(--border);">

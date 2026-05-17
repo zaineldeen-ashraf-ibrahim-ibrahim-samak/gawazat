@@ -148,18 +148,28 @@ function createManifestHandlers(store) {
         if (!Array.isArray(filePaths) || filePaths.length === 0) {
           return { ok: false, sheets: [], message: 'Invalid file paths' };
         }
-        const { listSheets } = require('../services/importParsers/xlsx');
+        const { listSheets, describeSheets } = require('../services/importParsers/xlsx');
         const sheets = [];
         for (const filePath of filePaths) {
           const ext = path.extname(filePath).toLowerCase();
           if (ext !== '.xlsx' && ext !== '.xls') {
-            sheets.push({ filePath, sheetNames: [] });
+            sheets.push({ filePath, sheetNames: [], sheetInfo: [] });
             continue;
           }
           try {
-            sheets.push({ filePath, sheetNames: listSheets(filePath) });
+            const info = describeSheets(filePath);
+            sheets.push({
+              filePath,
+              sheetNames: info.map(s => s.name),
+              sheetInfo: info
+            });
           } catch (e) {
-            sheets.push({ filePath, sheetNames: [], error: e.message });
+            // Fall back to plain listing if probing fails for any reason.
+            try {
+              sheets.push({ filePath, sheetNames: listSheets(filePath), sheetInfo: [], error: e.message });
+            } catch (_) {
+              sheets.push({ filePath, sheetNames: [], sheetInfo: [], error: e.message });
+            }
           }
         }
         return { ok: true, sheets };

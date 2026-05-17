@@ -196,6 +196,33 @@ function listSheets(filePath) {
 }
 
 /**
+ * Inspect each sheet in a workbook and tag whether it looks like passenger
+ * data. Used by the renderer to filter / down-rank sheets like
+ * "NAT BREAKDOWN" / "SUMMARY" that don't have a passenger header.
+ *
+ * @returns {Array<{name:string, isPassengerSheet:boolean, score:number, rowCount:number}>}
+ */
+function describeSheets(filePath) {
+  const workbook = XLSX.readFile(filePath, { cellDates: true });
+  const out = [];
+  for (const name of workbook.SheetNames) {
+    const ws = workbook.Sheets[name];
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    const { score } = findHeaderRow(data);
+    out.push({
+      name,
+      score,
+      rowCount: data.length,
+      // 5+ matches the threshold used by parseXlsx itself (passport + name + DOB
+      // + nationality at minimum). Sheets named like "BREAKDOWN"/"SUMMARY"
+      // typically never reach that.
+      isPassengerSheet: score >= 5 && !/\b(BREAKDOWN|SUMMARY|TOTAL|NATIONALITY)\b/i.test(name)
+    });
+  }
+  return out;
+}
+
+/**
  * Parse an Excel file (.xlsx, .xls) and return raw rows.
  * Tolerates:
  *   - decorative banner rows above the header,
@@ -209,17 +236,51 @@ function listSheets(filePath) {
  */
 function parseXlsx(filePath, sheetName) {
   const workbook = XLSX.readFile(filePath, { cellDates: true });
-  const chosen = sheetName && workbook.SheetNames.includes(sheetName)
-    ? sheetName
-    : workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[chosen];
-  const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
-  if (data.length < 2) {
+  // Pick the best sheet. Order of preference:
+  //   1. The sheet the operator explicitly chose, if it exists AND scores as
+  //      passenger data.
+  //   2. The first sheet in the workbook that scores as passenger data.
+  //   3. The first sheet (legacy fallback — will likely throw below).
+  let chosen = null;
+  const candidates = workbook.SheetNames.filter(n =>
+    !/\b(BREAKDOWN|SUMMARY|TOTAL|NATIONALITY)\b/i.test(n)
+  );
+  const orderedTry = [];
+  if (sheetName && workbook.SheetNames.includes(sheetName)) orderedTry.push(sheetName);
+  for (const n of candidates) if (!orderedTry.includes(n)) orderedTry.push(n);
+  for (const n of workbook.SheetNames) if (!orderedTry.includes(n)) orderedTry.push(n);
+
+  let data = null;
+  let chosenInfo = null;
+  for (const n of orderedTry) {
+    const ws = workbook.Sheets[n];
+    const probeData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (probeData.length < 2) continue;
+    const info = findHeaderRow(probeData);
+    if (info.score >= 5 && 'passport_number' in info.headerMap) {
+      chosen = n;
+      data = probeData;
+      chosenInfo = info;
+      break;
+    }
+  }
+  if (!chosen) {
+    // Last resort — use the requested sheet (or the first) so the existing
+    // error-reporting path runs and the user gets a clear "missing columns"
+    // message instead of silent success.
+    chosen = sheetName && workbook.SheetNames.includes(sheetName)
+      ? sheetName
+      : workbook.SheetNames[0];
+    data = XLSX.utils.sheet_to_json(workbook.Sheets[chosen], { header: 1, defval: '' });
+    chosenInfo = findHeaderRow(data || []);
+  }
+
+  if (!data || data.length < 2) {
     throw new Error('File must contain at least one data row (plus header)');
   }
 
-  const { headerRowIndex, headerMap, score } = findHeaderRow(data);
+  const { headerRowIndex, headerMap, score } = chosenInfo;
 
   // A good passenger header should produce at minimum a passport number
   // column and *some* name signal. Anything lower is almost certainly a
@@ -284,6 +345,7 @@ module.exports = {
   parseXlsx,
   mapHeaders,
   listSheets,
+  describeSheets,
   // exported for tests / reuse
   findHeaderRow,
   convertCountryToIso3,
