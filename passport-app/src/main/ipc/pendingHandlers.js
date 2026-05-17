@@ -53,14 +53,7 @@ function createPendingHandlers(store) {
           });
           draft.manifest.push(passenger);
 
-          // 2. Create Boarding Record
-          const boardingRecord = makeBoardingRecord({
-            passenger_id: passenger.id,
-            passport_number_normalized: normalized,
-            scan_event_id: entry.scan_event_id,
-            via: 'pending-approval'
-          });
-          draft.boarding_records[normalized] = boardingRecord;
+          // 2. Do NOT create Boarding Record automatically — new passengers default to pending status per user request
 
           // 3. Mark entry as approved — carry mrz_fields so history always shows the name
           const resolvedEvent = makeScanEvent({
