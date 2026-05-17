@@ -59,9 +59,11 @@ function createSettingsHandlers(store) {
     get: async () => {
       const state = store.getState();
       const settings = state.settings || {};
+      const geminiClient = require('../services/geminiClient');
       return {
         ...settings,
-        geminiEnabled: !!process.env.GEMINI_API_KEY
+        geminiEnabled: !!process.env.GEMINI_API_KEY,
+        geminiStatus: geminiClient.getStatus()
       };
     },
 

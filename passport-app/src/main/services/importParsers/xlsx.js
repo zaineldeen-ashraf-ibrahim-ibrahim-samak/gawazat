@@ -43,34 +43,9 @@ const HEADER_ALIASES = {
   ]
 };
 
-// Map full country names (uppercased) to ISO 3166-1 alpha-3. Covers the cases
-// seen in the cruise manifests and common nationalities; AI / local normalize
-// catches anything else.
-const COUNTRY_TO_ISO3 = {
-  'UNITED KINGDOM': 'GBR', 'GREAT BRITAIN': 'GBR', 'BRITAIN': 'GBR', 'ENGLAND': 'GBR',
-  'UNITED STATES': 'USA', 'UNITED STATES OF AMERICA': 'USA', 'USA': 'USA', 'AMERICA': 'USA',
-  'EGYPT': 'EGY', 'GERMANY': 'DEU', 'AUSTRIA': 'AUT', 'BELGIUM': 'BEL', 'SPAIN': 'ESP',
-  'FRANCE': 'FRA', 'ITALY': 'ITA', 'NETHERLANDS': 'NLD', 'HOLLAND': 'NLD', 'PORTUGAL': 'PRT',
-  'GREECE': 'GRC', 'SWITZERLAND': 'CHE', 'SWEDEN': 'SWE', 'NORWAY': 'NOR', 'DENMARK': 'DNK',
-  'FINLAND': 'FIN', 'POLAND': 'POL', 'ROMANIA': 'ROU', 'BULGARIA': 'BGR', 'CZECH REPUBLIC': 'CZE',
-  'CZECHIA': 'CZE', 'HUNGARY': 'HUN', 'IRELAND': 'IRL', 'ICELAND': 'ISL', 'SLOVAKIA': 'SVK',
-  'SLOVENIA': 'SVN', 'CROATIA': 'HRV', 'SERBIA': 'SRB', 'TURKEY': 'TUR', 'TÜRKIYE': 'TUR',
-  'RUSSIA': 'RUS', 'RUSSIAN FEDERATION': 'RUS', 'UKRAINE': 'UKR', 'BELARUS': 'BLR',
-  'CHINA': 'CHN', 'JAPAN': 'JPN', 'SOUTH KOREA': 'KOR', 'KOREA': 'KOR', 'NORTH KOREA': 'PRK',
-  'INDIA': 'IND', 'PAKISTAN': 'PAK', 'BANGLADESH': 'BGD', 'PHILIPPINES': 'PHL',
-  'INDONESIA': 'IDN', 'MALAYSIA': 'MYS', 'SINGAPORE': 'SGP', 'THAILAND': 'THA', 'VIETNAM': 'VNM',
-  'AUSTRALIA': 'AUS', 'NEW ZEALAND': 'NZL', 'CANADA': 'CAN', 'MEXICO': 'MEX', 'BRAZIL': 'BRA',
-  'ARGENTINA': 'ARG', 'CHILE': 'CHL', 'COLOMBIA': 'COL', 'PERU': 'PER', 'VENEZUELA': 'VEN',
-  'SAUDI ARABIA': 'SAU', 'UNITED ARAB EMIRATES': 'ARE', 'UAE': 'ARE', 'KUWAIT': 'KWT',
-  'QATAR': 'QAT', 'BAHRAIN': 'BHR', 'OMAN': 'OMN', 'JORDAN': 'JOR', 'LEBANON': 'LBN',
-  'SYRIA': 'SYR', 'IRAQ': 'IRQ', 'IRAN': 'IRN', 'ISRAEL': 'ISR', 'PALESTINE': 'PSE',
-  'YEMEN': 'YEM', 'LIBYA': 'LBY', 'TUNISIA': 'TUN', 'ALGERIA': 'DZA', 'MOROCCO': 'MAR',
-  'SUDAN': 'SDN', 'SOUTH SUDAN': 'SSD', 'ETHIOPIA': 'ETH', 'KENYA': 'KEN', 'NIGERIA': 'NGA',
-  'GHANA': 'GHA', 'SOUTH AFRICA': 'ZAF', 'ZIMBABWE': 'ZWE',
-  'AFGHANISTAN': 'AFG', 'ARMENIA': 'ARM', 'AZERBAIJAN': 'AZE', 'GEORGIA': 'GEO',
-  'KAZAKHSTAN': 'KAZ', 'UZBEKISTAN': 'UZB', 'TURKMENISTAN': 'TKM', 'TAJIKISTAN': 'TJK',
-  'KYRGYZSTAN': 'KGZ', 'MONGOLIA': 'MNG', 'SRI LANKA': 'LKA', 'NEPAL': 'NPL'
-};
+const countries = require('i18n-iso-countries');
+countries.registerLocale(require('i18n-iso-countries/langs/en.json'));
+countries.registerLocale(require('i18n-iso-countries/langs/ar.json'));
 
 // Common operator-typed truncations and informal 3-letter codes that are NOT
 // ISO-3166-1 alpha-3. Real-world manifests routinely contain these. Mapping
@@ -112,12 +87,22 @@ function convertCountryToIso3(value) {
   if (!value) return value;
   const s = String(value).trim();
   if (!s) return s;
+
+  // 1. Try automatic library translation (English or Arabic)
+  let iso = countries.getAlpha3Code(s, 'en');
+  if (iso) return iso;
+  
+  iso = countries.getAlpha3Code(s, 'ar');
+  if (iso) return iso;
+
+  // 2. Try common edge cases / truncations
   const upper = s.toUpperCase();
-  // Map known informal/truncated 3-letter codes first — these collide with the
-  // "looks-like-ISO3" shortcut below, so they have to win.
   if (TRUNCATION_TO_ISO3[upper]) return TRUNCATION_TO_ISO3[upper];
+  
+  // 3. Fallback: return if already looks like ISO3
   if (upper.length === 3 && /^[A-Z]{3}$/.test(upper)) return upper;
-  return COUNTRY_TO_ISO3[upper] || s;
+  
+  return s;
 }
 
 function normalizeHeader(str) {

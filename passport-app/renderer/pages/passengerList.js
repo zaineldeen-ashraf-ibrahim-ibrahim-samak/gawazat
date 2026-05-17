@@ -16,9 +16,8 @@ import { showReasonToast } from '../components/reasonToast.js';
 let currentFilter = 'all';
 let currentSearch = '';
 let currentAdvancedFilter = null;  // US7: { gender, nationality, status, source, hasWarning }
-let renderedCount = 0;
-const CHUNK_SIZE = 100;
-let observer = null;
+let currentPage = 1;
+let rowsPerPage = 50;
 let allPassengers = [];   // full server response, filtered client-side
 let currentPassengers = []; // post-filter result
 let containerEl = null;
@@ -56,12 +55,12 @@ function computeVisible() {
   return list;
 }
 
-/** Re-render only the <tbody> and reset the IntersectionObserver */
+/** Re-render only the <tbody> and pagination state */
 function refreshTable() {
-  if (observer) { observer.disconnect(); observer = null; }
-
   currentPassengers = computeVisible();
-  renderedCount = 0;
+
+  const totalPages = Math.ceil(currentPassengers.length / rowsPerPage) || 1;
+  if (currentPage > totalPages) currentPage = totalPages;
 
   // Update filter button active states without touching the input
   containerEl.querySelectorAll('.filter-btn').forEach(btn => {
@@ -80,18 +79,7 @@ function refreshTable() {
     }
   }
 
-  // Reset sentinel
-  const sentinel = document.getElementById('scroll-sentinel');
-  if (sentinel) sentinel.style.display = '';
-
-  renderNextChunk();
-
-  if (sentinel) {
-    observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) renderNextChunk();
-    }, { root: containerEl.querySelector('.table-responsive'), rootMargin: '200px' });
-    observer.observe(sentinel);
-  }
+  renderCurrentPage();
 }
 
 /** First mount: draw the full page shell (search bar, buttons, table structure) */
@@ -156,7 +144,27 @@ async function mountShell(container) {
               <!-- Rendered via JS -->
             </tbody>
           </table>
-          <div id="scroll-sentinel" class="py-3 text-center"></div>
+        </div>
+        <div class="card-footer bg-dark border-secondary d-flex justify-content-between align-items-center p-2">
+          <div class="d-flex align-items-center">
+            <span class="me-2 text-muted small">${t('common.show') || 'عرض'}</span>
+            <select id="select-rows-per-page" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: auto;">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="500">500</option>
+            </select>
+          </div>
+          <div class="d-flex align-items-center">
+            <span id="pagination-info" class="text-muted small me-3"></span>
+            <nav>
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item"><button class="page-link bg-dark text-white border-secondary" id="btn-prev-page">&laquo;</button></li>
+                <li class="page-item"><button class="page-link bg-dark text-white border-secondary" id="btn-next-page">&raquo;</button></li>
+              </ul>
+            </nav>
+          </div>
         </div>
       </div>
     </div>
@@ -175,6 +183,7 @@ async function mountShell(container) {
   container.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       currentFilter = btn.getAttribute('data-filter');
+      currentPage = 1;
       refreshTable();
     });
   });
@@ -182,6 +191,28 @@ async function mountShell(container) {
   // Advanced filter button
   document.getElementById('btn-advanced-filter').addEventListener('click', () => {
     openAdvancedFilterPanel();
+  });
+
+  // Pagination controls
+  document.getElementById('select-rows-per-page').addEventListener('change', (e) => {
+    rowsPerPage = parseInt(e.target.value, 10);
+    currentPage = 1;
+    refreshTable();
+  });
+
+  document.getElementById('btn-prev-page').addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      renderCurrentPage();
+    }
+  });
+
+  document.getElementById('btn-next-page').addEventListener('click', () => {
+    const totalPages = Math.ceil(currentPassengers.length / rowsPerPage);
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderCurrentPage();
+    }
   });
 
   // Export handler
@@ -246,6 +277,7 @@ async function mountShell(container) {
   // US7: Mount the advanced filter offcanvas panel
   mountAdvancedFilterPanel((filterState) => {
     currentAdvancedFilter = filterState;
+    currentPage = 1;
     refreshTable();
   });
 }
@@ -304,23 +336,32 @@ export async function renderPassengerList(container) {
   refreshTable();
 }
 
-function renderNextChunk() {
-  const sentinel = document.getElementById('scroll-sentinel');
+function renderCurrentPage() {
   const tbody = document.getElementById('passenger-tbody');
   if (!tbody) return;
 
-  if (renderedCount >= currentPassengers.length) {
-    if (sentinel) sentinel.style.display = 'none';
-    if (renderedCount === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" class="text-center p-5 text-muted">${t('common.empty')}</td></tr>`;
-    }
+  const total = currentPassengers.length;
+  const totalPages = Math.ceil(total / rowsPerPage) || 1;
+
+  const btnPrev = document.getElementById('btn-prev-page');
+  const btnNext = document.getElementById('btn-next-page');
+  const info = document.getElementById('pagination-info');
+
+  if (total === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center p-5 text-muted">${t('common.empty')}</td></tr>`;
+    if (info) info.textContent = '0 - 0 / 0';
+    if (btnPrev) btnPrev.disabled = true;
+    if (btnNext) btnNext.disabled = true;
     return;
   }
 
-  const chunk = currentPassengers.slice(renderedCount, renderedCount + CHUNK_SIZE);
+  const startIdx = (currentPage - 1) * rowsPerPage;
+  const endIdx = Math.min(startIdx + rowsPerPage, total);
+
+  const chunk = currentPassengers.slice(startIdx, endIdx);
   const rowsHtml = chunk.map((p, i) => `
     <tr class="${p.is_entered ? 'table-success-dim' : ''}">
-      <td class="text-muted text-center small">${renderedCount + i + 1}</td>
+      <td class="text-muted text-center small">${startIdx + i + 1}</td>
       <td><code>${esc(p.passport_number)}</code></td>
       <td class="fw-bold">${esc(p.name)}</td>
       <td>${esc(p.nationality)}</td>
@@ -356,11 +397,10 @@ function renderNextChunk() {
     </tr>
   `).join('');
 
-  if (renderedCount === 0) {
-    tbody.innerHTML = rowsHtml;
-  } else {
-    tbody.insertAdjacentHTML('beforeend', rowsHtml);
-  }
+  tbody.innerHTML = rowsHtml;
 
-  renderedCount += chunk.length;
+  if (info) info.textContent = `${startIdx + 1} - ${endIdx} / ${total}`;
+  if (btnPrev) btnPrev.disabled = currentPage === 1;
+  if (btnNext) btnNext.disabled = currentPage === totalPages;
 }
+

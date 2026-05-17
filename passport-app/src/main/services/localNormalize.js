@@ -27,6 +27,27 @@ function normalizeDate(dobStr) {
   return s; // leave as-is if unrecognized
 }
 
+const ARABIC_NATIONALITIES = {
+  'مصر': 'EGY', 'مصري': 'EGY', 'مصرية': 'EGY',
+  'سوريا': 'SYR', 'سوري': 'SYR', 'سورية': 'SYR',
+  'فلسطين': 'PSE', 'فلسطيني': 'PSE', 'فلسطينية': 'PSE',
+  'السعودية': 'SAU', 'سعودي': 'SAU', 'سعودية': 'SAU',
+  'الاردن': 'JOR', 'اردني': 'JOR', 'اردنية': 'JOR', 'الأردن': 'JOR', 'أردني': 'JOR', 'أردنية': 'JOR',
+  'لبنان': 'LBN', 'لبناني': 'LBN', 'لبنانية': 'LBN',
+  'اليمن': 'YEM', 'يمني': 'YEM', 'يمنية': 'YEM',
+  'العراق': 'IRQ', 'عراقي': 'IRQ', 'عراقية': 'IRQ',
+  'السودان': 'SDN', 'سوداني': 'SDN', 'سودانية': 'SDN',
+  'ليبيا': 'LBY', 'ليبي': 'LBY', 'ليبية': 'LBY',
+  'الكويت': 'KWT', 'كويتي': 'KWT', 'كويتية': 'KWT',
+  'الامارات': 'ARE', 'إماراتي': 'ARE', 'الإمارات': 'ARE', 'اماراتي': 'ARE',
+  'قطر': 'QAT', 'قطري': 'QAT', 'قطرية': 'QAT',
+  'البحرين': 'BHR', 'بحريني': 'BHR', 'بحرينية': 'BHR',
+  'عمان': 'OMN', 'عماني': 'OMN', 'عمانية': 'OMN',
+  'تونس': 'TUN', 'تونسي': 'TUN', 'تونسية': 'TUN',
+  'الجزائر': 'DZA', 'جزائري': 'DZA', 'جزائرية': 'DZA',
+  'المغرب': 'MAR', 'مغربي': 'MAR', 'مغربية': 'MAR'
+};
+
 function normalize(raw) {
   if (!raw || typeof raw !== 'object') return { normalized: raw, confidence: null };
 
@@ -40,8 +61,19 @@ function normalize(raw) {
         normalized[key] = normalizePassportNumber(val);
       } else if (key === 'dob' || key === 'date_of_birth') {
         normalized[key] = normalizeDate(val);
-      } else if (key === 'gender' || key === 'nationality') {
+      } else if (key === 'gender') {
         normalized[key] = val.toUpperCase();
+      } else if (key === 'nationality') {
+        let nat = ARABIC_NATIONALITIES[val];
+        if (!nat) {
+          try {
+            const { convertCountryToIso3 } = require('./importParsers/xlsx');
+            nat = convertCountryToIso3(val);
+          } catch (e) {
+            nat = val.toUpperCase();
+          }
+        }
+        normalized[key] = nat || val.toUpperCase();
       } else if (key === 'name' || key === 'familyName' || key === 'givenName') {
         // Upper-case Latin characters, leave Arabic
         normalized[key] = val.toUpperCase();

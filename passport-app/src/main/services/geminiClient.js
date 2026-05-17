@@ -55,13 +55,14 @@ Return JSON with the following fields extracted and normalized:
 - "givenName"
 - "familyName"
 - "dob" (ISO YYYY-MM-DD)
-- "nationality" (ISO 3166-1 alpha-3 if possible)
+- "nationality" (ISO 3166-1 alpha-3 if possible, e.g. "مصر" -> "EGY", "سوريا" -> "SYR")
 - "gender" (M/F/X)
 - "documentType"
 - "confidence" (number 0..1 representing confidence in extraction)
 
 CRITICAL RULES:
-- Preserve Arabic script as Arabic; do not transliterate unless the input was already Latin.
+- Preserve Arabic script as Arabic for names; do not transliterate unless the input was already Latin.
+- However, for "nationality" you MUST translate Arabic or other languages into the 3-letter ISO code.
 - Do not add markdown backticks around the JSON output, just output raw JSON.
 
 Input Record:
@@ -150,7 +151,7 @@ For EACH input record, return one object with these fields:
 - "familyName"
 - "name"            (full display name; family + given when both available)
 - "dob"             (ISO YYYY-MM-DD)
-- "nationality"     (ISO 3166-1 alpha-3 if at all possible — convert country names like "United Kingdom" → "GBR", "Egypt" → "EGY")
+- "nationality"     (ISO 3166-1 alpha-3 if at all possible — convert country names, EVEN Arabic ones, to 3-letter codes. e.g., "United Kingdom" → "GBR", "Egypt" or "مصر" → "EGY", "سوريا" → "SYR")
 - "gender"          ("M" / "F" / "X"; map "Male"/"Female"/Arabic equivalents)
 - "documentType"
 - "confidence"      (number 0..1)
@@ -158,8 +159,9 @@ For EACH input record, return one object with these fields:
 CRITICAL RULES:
 - Output a JSON ARRAY only — no markdown fences, no prose, same length and order as input.
 - If a field cannot be determined, set it to null (do NOT invent data).
-- Preserve Arabic script as Arabic; do not transliterate unless the input was already Latin.
-- Use cross-row context: if most rows in the batch are EGY and the column for one row says "Egypt", emit "EGY".
+- Preserve Arabic script as Arabic for names; do not transliterate unless the input was already Latin.
+- However, for "nationality" you MUST translate Arabic or other languages into the 3-letter ISO code.
+- Use cross-row context: if most rows in the batch are EGY and the column for one row says "Egypt" or "مصر", emit "EGY".
 
 Input Records (JSON array):
 ${JSON.stringify(records)}
@@ -208,4 +210,13 @@ ${JSON.stringify(records)}
   }
 }
 
-module.exports = { normalize, normalizeBatch, GeminiError };
+function getStatus() {
+  return {
+    hasKey: !!GEMINI_API_KEY,
+    enabled: !disabledForSession,
+    model: GEMINI_MODEL
+  };
+}
+
+module.exports = { normalize, normalizeBatch, GeminiError, getStatus };
+

@@ -153,6 +153,32 @@ export async function renderSettings(container) {
             </div>
           </div>
 
+          <!-- ── AI Normalization ── -->
+          <div class="card border-secondary bg-dark shadow mb-4">
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+              <h5 class="mb-0 text-accent"><i class="bi bi-robot me-2"></i>الذكاء الاصطناعي (AI Normalization)</h5>
+              <span class="badge ${settings.geminiStatus?.enabled ? 'bg-success' : (settings.geminiStatus?.hasKey ? 'bg-danger' : 'bg-secondary')}" style="font-size:0.75rem;">
+                <i class="bi ${settings.geminiStatus?.enabled ? 'bi-check-circle' : 'bi-x-circle'} me-1"></i>
+                ${settings.geminiStatus?.enabled ? 'يعمل' : (settings.geminiStatus?.hasKey ? 'متوقف (يوجد خطأ أو Rate Limit)' : 'معطل (لا يوجد مفتاح)')}
+              </span>
+            </div>
+            <div class="card-body">
+              <p class="text-muted small mb-3">
+                يعمل الذكاء الاصطناعي (Gemini) على تصحيح وتوحيد بيانات الركاب والأسماء والجنسيات بشكل آلي.
+              </p>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label mb-1 text-muted">حالة المفتاح (API Key)</label>
+                  <div>${settings.geminiStatus?.hasKey ? '<span class="text-success"><i class="bi bi-key-fill me-1"></i>متوفر في .env</span>' : '<span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>مفقود في .env</span>'}</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label mb-1 text-muted">النموذج المستخدم (Model)</label>
+                  <div><code class="text-info">${settings.geminiStatus?.model || 'N/A'}</code></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- ── Field Requirements ── -->
           <div class="card border-secondary bg-dark shadow mb-4">
             <div class="card-header border-secondary d-flex justify-content-between align-items-center">
