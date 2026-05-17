@@ -309,8 +309,10 @@ async function handleConfirmImport() {
         const incomingKey = raw.passport_number_normalized || raw.passport_number || '';
 
         // If this incoming row was already decided in an earlier prompt,
-        // re-use that decision without prompting again.
-        let decision = resolvedIncomingKeys.get(incomingKey);
+        // re-use that decision without prompting again. Guarded by a
+        // non-empty key so rows without a passport number don't all collapse
+        // to a single shared cache entry.
+        let decision = incomingKey ? resolvedIncomingKeys.get(incomingKey) : undefined;
         // If we already merged into this existing passenger, skip the
         // prompt — the server-side merge has already consolidated rows.
         if (!decision && resolvedExistingIds.has(existingPassenger.id)) {
@@ -318,32 +320,41 @@ async function handleConfirmImport() {
         }
 
         if (!decision) {
-          decision = await showDuplicateModal(
-            existingPassenger,
-            incomingNormalized,
-            match.differences
-          );
+          try {
+            decision = await showDuplicateModal(
+              existingPassenger,
+              incomingNormalized,
+              match.differences
+            );
+          } catch (err) {
+            console.warn('Duplicate modal failed:', err);
+            decision = 'cancel';
+          }
         }
 
         if (decision !== 'cancel') {
-          await window.api.resolveDuplicate({
-            incomingRaw: {
-              passport_number: raw.passport_number,
-              name: raw.name,
-              gender: raw.gender,
-              nationality: raw.nationality,
-              date_of_birth: raw.date_of_birth,
-              vessel: raw.vessel,
-              seat: raw.seat,
-              source: 'manifest'
-            },
-            incomingNormalized,
-            existingPassengerId: existingPassenger.id,
-            decision: decision
-          });
-          if (decision === 'merge') resolvedExistingIds.add(existingPassenger.id);
-          if (incomingKey) resolvedIncomingKeys.set(incomingKey, decision);
-          resolvedFuzzy++;
+          try {
+            await window.api.resolveDuplicate({
+              incomingRaw: {
+                passport_number: raw.passport_number,
+                name: raw.name,
+                gender: raw.gender,
+                nationality: raw.nationality,
+                date_of_birth: raw.date_of_birth,
+                vessel: raw.vessel,
+                seat: raw.seat,
+                source: 'manifest'
+              },
+              incomingNormalized,
+              existingPassengerId: existingPassenger.id,
+              decision: decision
+            });
+            if (decision === 'merge') resolvedExistingIds.add(existingPassenger.id);
+            if (incomingKey) resolvedIncomingKeys.set(incomingKey, decision);
+            resolvedFuzzy++;
+          } catch (err) {
+            console.warn('resolveDuplicate failed for row', incomingKey, err);
+          }
         } else {
           // Record the cancel so we don't re-prompt for the same incoming.
           if (incomingKey) resolvedIncomingKeys.set(incomingKey, 'cancel');
@@ -351,7 +362,7 @@ async function handleConfirmImport() {
       }
     }
     
-    alert(`${t('import.success')} (Inserted: ${result.inserted + resolvedFuzzy}, Duplicates Blocked: ${result.duplicatesBlocked})`);
+    alert(`${t('import.success')} (Inserted: ${(result.inserted || 0) + resolvedFuzzy}, Duplicates Blocked: ${result.duplicatesBlocked || 0})`);
     window.location.hash = '#/passengers';
   } else {
     showReasonToast({
