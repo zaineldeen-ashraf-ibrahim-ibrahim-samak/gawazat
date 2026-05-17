@@ -12,16 +12,16 @@
 import { t } from '../i18n/index.js';
 import { mountAdvancedFilterPanel, openAdvancedFilterPanel, applyFilterState, countActiveFilters } from '../components/advancedFilterPanel.js';
 
-let currentFilter  = 'all';
-let currentSearch  = '';
+let currentFilter = 'all';
+let currentSearch = '';
 let currentAdvancedFilter = null;  // US7: { gender, nationality, status, source, hasWarning }
-let renderedCount  = 0;
-const CHUNK_SIZE   = 100;
-let observer       = null;
-let allPassengers  = [];   // full server response, filtered client-side
+let renderedCount = 0;
+const CHUNK_SIZE = 100;
+let observer = null;
+let allPassengers = [];   // full server response, filtered client-side
 let currentPassengers = []; // post-filter result
-let containerEl    = null;
-let shellRendered  = false; // US6: render shell only once
+let containerEl = null;
+let shellRendered = false; // US6: render shell only once
 
 /** Escape HTML entities */
 function esc(str) {
@@ -207,8 +207,8 @@ async function mountShell(container) {
   tbody.addEventListener('change', async (e) => {
     if (e.target.classList.contains('status-toggle')) {
       const passport = e.target.getAttribute('data-passport');
-      const entered  = e.target.checked;
-      const result   = await window.api.manifest.toggleEntered({ passport_number_normalized: passport, entered });
+      const entered = e.target.checked;
+      const result = await window.api.manifest.toggleEntered({ passport_number_normalized: passport, entered });
       if (!result.ok) {
         alert(result.message || t('common.error'));
         e.target.checked = !entered;
@@ -265,16 +265,16 @@ function showMissingFieldsModal(fieldsStr) {
           <div class="modal-content bg-dark text-white border-warning">
             <div id="${modalId}-header" class="modal-header border-warning bg-warning bg-opacity-25">
               <h5 id="${modalId}-label" class="modal-title text-warning">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="${modalId}-title-text">${t('missingFieldsModal.title')}</span>
+                <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="${modalId}-title-text" style="color: black;">${t('missingFieldsModal.title')}</span>
               </h5>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-              <p id="${modalId}-prompt" class="fs-5 mb-2">${t('missingFieldsModal.prompt')}</p>
+              <p id="${modalId}-prompt" class="fs-5 mb-2" style="color: black;">${t('missingFieldsModal.prompt')}</p>
               <div id="${modalId}-list" class="p-3 bg-black bg-opacity-50 text-warning rounded border border-secondary fs-5 fw-bold text-center"></div>
             </div>
             <div class="modal-footer border-warning">
-              <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">${t('common.close') || 'إغلاق'}</button>
+              <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">${t('')}</button>
             </div>
           </div>
         </div>
@@ -305,7 +305,7 @@ export async function renderPassengerList(container) {
 
 function renderNextChunk() {
   const sentinel = document.getElementById('scroll-sentinel');
-  const tbody    = document.getElementById('passenger-tbody');
+  const tbody = document.getElementById('passenger-tbody');
   if (!tbody) return;
 
   if (renderedCount >= currentPassengers.length) {
@@ -327,19 +327,19 @@ function renderNextChunk() {
       <td>${esc(p.date_of_birth)}</td>
       <td>
         ${p.source === 'added-at-gate'
-          ? `<span class="badge me-1 text-dark" style="background:#f59e0b;">${t('passengerList.source.new')}</span>`
-          : p.source === 'manual'
-            ? `<span class="badge bg-info text-dark me-1">${t('passengerList.source.manual')}</span>`
-            : `<span class="badge bg-dark border border-secondary text-muted me-1">${t('passengerList.source.original')}</span>`
-        }
+      ? `<span class="badge me-1 text-dark" style="background:#f59e0b;">${t('passengerList.source.new')}</span>`
+      : p.source === 'manual'
+        ? `<span class="badge bg-info text-dark me-1">${t('passengerList.source.manual')}</span>`
+        : `<span class="badge bg-dark border border-secondary text-muted me-1">${t('passengerList.source.original')}</span>`
+    }
         ${p.is_entered
-          ? `<span class="badge bg-success">${t('passengerList.filter.entered')}</span><br><small class="text-muted">${(p.entered_at || '').split('T')[1]?.split('.')[0] || ''}</small>`
-          : `<span class="badge bg-secondary opacity-50">${t('passengerList.filter.pending')}</span>`
-        }
+      ? `<span class="badge bg-success">${t('passengerList.filter.entered')}</span><br><small class="text-muted">${(p.entered_at || '').split('T')[1]?.split('.')[0] || ''}</small>`
+      : `<span class="badge bg-secondary opacity-50">${t('passengerList.filter.pending')}</span>`
+    }
         ${p.missingOptionalFields?.length > 0
-          ? `<br><span class="badge bg-warning text-dark mt-1 missing-fields-badge cursor-pointer" data-missing="${esc(p.missingOptionalFields.join(','))}" title="انقر لعرض التفاصيل"><i class="bi bi-exclamation-circle me-1"></i>مفقود (${p.missingOptionalFields.length})</span>`
-          : ''
-        }
+      ? `<br><span class="badge bg-warning text-dark mt-1 missing-fields-badge cursor-pointer" data-missing="${esc(p.missingOptionalFields.join(','))}" title="انقر لعرض التفاصيل"><i class="bi bi-exclamation-circle me-1"></i>مفقود (${p.missingOptionalFields.length})</span>`
+      : ''
+    }
       </td>
       <td class="text-end">
         <div class="form-check form-switch d-inline-block">
