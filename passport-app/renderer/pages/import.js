@@ -130,7 +130,7 @@ async function handleFilePaths(filePaths) {
 
     
     if (!result.ok && !result.errors) {
-       alert(result.message || t('common.error'));
+       showDetailedError(result.message || t('common.error'), result.stack || result.details || result.message);
        return;
     }
 
@@ -141,26 +141,53 @@ async function handleFilePaths(filePaths) {
     const passengers = result.passengers || [];
     const errors = result.errors || [];
     
-    // If manifest:import committed already, we just show what happened.
-    // But the task says "preview renders... valid rows commit".
-    // This implies a two-step process.
-    
-    // I'll update manifestHandlers.js to add a 'preview' method.
-    // Actually, I'll just use the result from import for now to show the preview.
-    
     renderPreviewRows(passengers, errors);
     
     const validCount = passengers.length;
     confirmBtn.innerHTML = t('import.importButton', { count: validCount });
     confirmBtn.classList.remove('d-none');
     
-    // Since my manifestHandlers.js already committed the change in 'import', 
-    // I should probably have made a separate preview call. 
-    // I will fix the IPC handlers later to separate preview from commit.
-    
   } catch (err) {
     console.error('Import error:', err);
-    alert(t('common.error'));
+    showDetailedError(t('common.error'), err.stack || err.message || String(err));
+  }
+}
+
+function showDetailedError(title, details) {
+  const modalId = 'modal-detailed-error';
+  let modalEl = document.getElementById(modalId);
+  if (!modalEl) {
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content bg-dark text-white border-danger">
+            <div class="modal-header border-danger bg-danger bg-opacity-25">
+              <h5 class="modal-title text-danger" id="${modalId}-label">
+                <i class="bi bi-exclamation-octagon-fill me-2"></i><span id="${modalId}-title"></span>
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+              <p class="fs-5 mb-3">حدث خطأ أثناء معالجة البيانات. يمكنك الاطلاع على التفاصيل التقنية أدناه:</p>
+              <pre id="${modalId}-details" class="p-3 bg-black bg-opacity-50 text-warning rounded border border-secondary overflow-auto" style="max-height: 300px; font-size: 0.85rem; direction: ltr; text-align: left;"></pre>
+            </div>
+            <div class="modal-footer border-danger">
+              <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">${t('common.close') || 'إغلاق'}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(div.firstElementChild);
+    modalEl = document.getElementById(modalId);
+  }
+  document.getElementById(`${modalId}-title`).textContent = title;
+  document.getElementById(`${modalId}-details`).textContent = details || 'لا توجد تفاصيل إضافية.';
+  if (window.bootstrap) {
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  } else {
+    alert(`${title}\n\n${details}`);
   }
 }
 

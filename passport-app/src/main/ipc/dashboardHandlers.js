@@ -37,6 +37,13 @@ function createDashboardHandlers(store) {
         const passengerMap = new Map();
         manifest.forEach(p => passengerMap.set(p.id, p));
 
+        // Nationality breakdown for original manifest
+        const nationalityCounts = {};
+        originalManifest.forEach(p => {
+          const nat = (p.nationality || '???').toUpperCase();
+          nationalityCounts[nat] = (nationalityCounts[nat] || 0) + 1;
+        });
+
         const recentEvents = events.slice(-5).reverse().map(e => {
           const passenger = e.passenger_id ? passengerMap.get(e.passenger_id) : null;
           return {
@@ -56,6 +63,7 @@ function createDashboardHandlers(store) {
           warnings: totalWarnings,
           waiting: waitingCount,
           recentEvents,
+          nationalityCounts,
           ship_name: settings.ship_name || state.voyage?.ship_name || '',
         };
       } catch (err) {

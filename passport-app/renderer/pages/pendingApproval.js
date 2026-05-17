@@ -47,7 +47,7 @@ export async function renderPendingApproval(container) {
                          <td>
                            ${e.mrz_fields.date_of_birth}
                            ${e.missingOptionalFields?.length > 0
-                             ? `<br><span class="badge bg-warning text-dark mt-1" title="حقول مفقودة: ${e.missingOptionalFields.join(', ')}"><i class="bi bi-exclamation-circle me-1"></i>مفقود (${e.missingOptionalFields.length})</span>`
+                             ? `<br><span class="badge bg-warning text-dark mt-1" title="حقول مفقودة: ${e.missingOptionalFields.map(f => t(`import.table.${f}`) || t(`reasons.${f}`) || f).join('، ')}"><i class="bi bi-exclamation-circle me-1"></i>مفقود: ${e.missingOptionalFields.map(f => t(`import.table.${f}`) || t(`reasons.${f}`) || f).join('، ')}</span>`
                              : ''
                            }
                          </td>

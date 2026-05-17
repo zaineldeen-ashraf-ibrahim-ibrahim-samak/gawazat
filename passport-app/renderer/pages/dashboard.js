@@ -20,7 +20,7 @@ export async function renderDashboard(container) {
 
       <!-- Stats Cards -->
       <div class="row g-3 mb-4">
-        ${renderStatCard('كشف المسافرون', stats.total, 'bi-people', 'text-info')}
+        ${renderStatCard('كشف المسافرون', stats.total, 'bi-people', 'text-info', renderNationalityBreakdown(stats.nationalityCounts))}
         ${renderStatCard('مسافرون جدد', stats.totalNew, 'bi-person-plus', 'text-accent')}
         ${renderStatCard(`${t('passengerList.filter.entered')} `, stats.entered, 'bi-check-circle', 'text-success', `${stats.originalEntered} أصلي + ${stats.newEntered} جديد`)}
         ${renderStatCard(t('nav.pendingApproval'), stats.pending, 'bi-hourglass-split', 'text-warning')}
@@ -113,4 +113,22 @@ function getOutcomeBadge(outcome) {
     case 'pending-rejected': return `<span class="badge bg-danger">${t('history.badge.rejectedManual')}</span>`;
     default: return `<span class="badge bg-secondary">${outcome}</span>`;
   }
+}
+
+function renderNationalityBreakdown(counts) {
+  if (!counts || Object.keys(counts).length === 0) return '';
+  const items = Object.entries(counts).map(([nat, count]) => `${nat}: ${count}`).join(' | ');
+  const collapseId = 'collapse-nat-breakdown';
+  return `
+    <div class="mt-1">
+      <a class="text-info text-decoration-none small d-inline-flex align-items-center" data-bs-toggle="collapse" href="#${collapseId}" role="button" aria-expanded="false" aria-controls="${collapseId}">
+        <i class="bi bi-chevron-expand me-1"></i>التفاصيل حسب الجنسية
+      </a>
+      <div class="collapse mt-2" id="${collapseId}">
+        <div class="card card-body bg-black bg-opacity-50 p-2 text-light small border-secondary" style="font-size: 0.75rem;">
+          ${items}
+        </div>
+      </div>
+    </div>
+  `;
 }
