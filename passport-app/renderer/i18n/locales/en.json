@@ -233,6 +233,7 @@
     "confirm": "Confirm",
     "error": "Error",
     "loading": "Loading...",
-    "empty": "No data"
+    "empty": "No data",
+    "close": "Close"
   }
 }

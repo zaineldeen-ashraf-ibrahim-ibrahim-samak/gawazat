@@ -274,7 +274,7 @@ function showMissingFieldsModal(fieldsStr) {
               <div id="${modalId}-list" class="p-3 bg-black bg-opacity-50 text-warning rounded border border-secondary fs-5 fw-bold text-center"></div>
             </div>
             <div class="modal-footer border-warning">
-              <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">${t('')}</button>
+              <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">${t('common.close')}</button>
             </div>
           </div>
         </div>
