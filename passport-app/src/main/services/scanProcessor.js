@@ -53,6 +53,28 @@ async function processMrz(store, rawMrz, mode = 'keyboard') {
       nationality: parsed.nationality
     };
 
+    // T063: Consult settings.fieldRequirements before duplicate matching or pending entry
+    const { validate } = require('../../shared/fieldRequirements');
+    const reqs = store.getState().settings?.fieldRequirements;
+    const validation = validate(parsed, reqs);
+    if (!validation.valid) {
+      const event = makeScanEvent({
+        outcome: 'read-failed',
+        mode,
+        raw_data: rawMrz,
+        mrz_fields: parsed
+      });
+      store.mutate(draft => draft.scan_events.push(event));
+      return {
+        outcome: 'read-failed',
+        reason: 'REQUIRED_FIELD_MISSING',
+        scan_event_id: event.id,
+        passenger: null,
+        mrz_fields: parsed,
+        missingRequired: validation.missingRequired
+      };
+    }
+
     const { detect } = require('./duplicateMatcher');
     const duplicateMatch = detect(normalizedPassenger);
 
@@ -114,29 +136,6 @@ async function processMrz(store, rawMrz, mode = 'keyboard') {
         outcome = 'orange'; // Already pending
         firstEnteredAt = existingPending.created_at;
         pendingId = existingPending.id;
-      } else {
-        // T063: Consult settings.fieldRequirements before creating pending entry
-        const { validate } = require('../../shared/fieldRequirements');
-        const reqs = currentState.settings?.fieldRequirements;
-        const validation = validate(parsed, reqs);
-        if (!validation.valid) {
-          outcome = 'read-failed';
-          const event = makeScanEvent({
-            outcome: 'read-failed',
-            mode,
-            raw_data: rawMrz,
-            mrz_fields: parsed
-          });
-          store.mutate(draft => draft.scan_events.push(event));
-          return {
-            outcome: 'read-failed',
-            reason: 'REQUIRED_FIELD_MISSING',
-            scan_event_id: event.id,
-            passenger: null,
-            mrz_fields: parsed,
-            missingRequired: validation.missingRequired
-          };
-        }
       }
     }
 
