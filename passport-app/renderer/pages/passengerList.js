@@ -328,7 +328,7 @@ function renderNextChunk() {
       <td>${esc(p.date_of_birth)}</td>
       <td>
         ${p.source === 'added-at-gate'
-      ? `<span class="badge me-1 text-dark" style="background:#f59e0b;">${t('passengerList.source.new')}</span>`
+      ? `<span class="badge me-1 text-dark" style="background:var(--accent);">${t('passengerList.source.new')}</span>`
       : p.source === 'manual'
         ? `<span class="badge bg-info text-dark me-1">${t('passengerList.source.manual')}</span>`
         : `<span class="badge bg-dark border border-secondary text-muted me-1">${t('passengerList.source.original')}</span>`
