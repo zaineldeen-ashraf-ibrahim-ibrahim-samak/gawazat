@@ -22,7 +22,7 @@ export async function renderDashboard(container) {
       <div class="row g-3 mb-4">
         ${renderStatCard('كشف المسافرون', stats.total, 'bi-people', 'text-info', renderNationalityBreakdown(stats.nationalityCounts, 'collapse-nat-orig'))}
         ${renderStatCard('مسافرون جدد', stats.totalNew, 'bi-person-plus', 'text-accent', renderNationalityBreakdown(stats.nationalityCountsNew, 'collapse-nat-new'))}
-        ${renderStatCard(`${t('passengerList.filter.entered')} `, stats.entered, 'bi-check-circle', 'text-success', `<div class="mb-1">${stats.originalEntered} أصلي + ${stats.newEntered} جديد</div>` + renderNationalityBreakdown(stats.nationalityCountsEntered, 'collapse-nat-entered'))}
+        ${renderStatCard(`${t('passengerList.filter.entered')} `, stats.entered, 'bi-check-circle', 'text-success', renderNationalityBreakdown(stats.nationalityCountsEntered, 'collapse-nat-entered', `<div class="text-light fw-bold mb-2 pb-1 border-bottom border-secondary d-flex justify-content-between"><span>الأصلي: ${stats.originalEntered}</span><span>الجديد: ${stats.newEntered}</span></div>`))}
         ${renderStatCard(t('nav.pendingApproval'), stats.pending, 'bi-hourglass-split', 'text-warning')}
         ${renderStatCard(t('reports.warnings'), stats.warnings, 'bi-exclamation-triangle', 'text-danger')}
         ${renderStatCard(t('dashboard.waitingNotScanned'), stats.waiting, 'bi-list-ul', 'text-secondary')}
@@ -115,17 +115,20 @@ function getOutcomeBadge(outcome) {
   }
 }
 
-function renderNationalityBreakdown(counts, collapseId) {
+function renderNationalityBreakdown(counts, collapseId, headerContent = '') {
   if (!counts || Object.keys(counts).length === 0) return '';
   const items = Object.entries(counts).map(([nat, count]) => `<span class="badge bg-secondary border border-light border-opacity-25 px-2 py-1">${nat}: ${count}</span>`).join(' ');
   return `
     <div class="mt-2 w-100">
       <a class="text-info text-decoration-none small d-inline-flex align-items-center fw-semibold" data-bs-toggle="collapse" href="#${collapseId}" role="button" aria-expanded="false" aria-controls="${collapseId}">
-        <i class="bi bi-chevron-expand me-1"></i>التفاصيل حسب الجنسية
+        <i class="bi bi-chevron-expand me-1"></i>التفاصيل والإحصائيات
       </a>
       <div class="collapse mt-2 w-100" id="${collapseId}">
-        <div class="d-flex flex-wrap gap-1 bg-black bg-opacity-50 p-2 rounded border border-secondary" style="max-height: 110px; overflow-y: auto;">
-          ${items}
+        <div class="bg-black bg-opacity-50 p-2 rounded border border-secondary" style="max-height: 140px; overflow-y: auto;">
+          ${headerContent}
+          <div class="d-flex flex-wrap gap-1">
+            ${items}
+          </div>
         </div>
       </div>
     </div>
