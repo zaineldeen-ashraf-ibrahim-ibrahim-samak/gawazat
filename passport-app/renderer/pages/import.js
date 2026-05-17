@@ -6,8 +6,10 @@
 import { t } from '../i18n/index.js';
 import { showDuplicateModal } from '../components/duplicateConfirmModal.js';
 import { showReasonToast } from '../components/reasonToast.js';
+import { showSheetPicker } from '../components/sheetPickerModal.js';
 
 let selectedFilePath = null;
+let selectedSheetSelection = {};
 
 export async function renderImport(container) {
   const html = `
@@ -128,8 +130,24 @@ async function handleFilePaths(filePaths) {
     const dropzone = document.getElementById('import-dropzone');
     const confirmBtn = document.getElementById('btn-confirm-import');
 
-    const result = await window.api.manifest.preview({ filePaths });
+    // If any of the selected .xlsx/.xls files has multiple sheets, prompt the
+    // operator to pick which tab to import for each one.
+    let sheetSelection = {};
+    try {
+      const probe = await window.api.manifest.listSheets({ filePaths });
+      if (probe?.ok && Array.isArray(probe.sheets)) {
+        const picked = await showSheetPicker(probe.sheets);
+        if (picked === null) {
+          // operator cancelled
+          return;
+        }
+        sheetSelection = picked || {};
+      }
+    } catch (_) { /* no sheets info — fall back to default first-sheet behavior */ }
+
+    const result = await window.api.manifest.preview({ filePaths, sheetSelection });
     selectedFilePath = filePaths; // Now stores array of paths
+    selectedSheetSelection = sheetSelection;
 
     
     if (!result.ok && !result.errors) {
@@ -262,7 +280,7 @@ async function handleConfirmImport() {
   confirmBtn.disabled = true;
   confirmBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${t('common.loading')}`;
 
-  const result = await window.api.manifest.import({ filePaths: selectedFilePath });
+  const result = await window.api.manifest.import({ filePaths: selectedFilePath, sheetSelection: selectedSheetSelection });
   
   if (result.ok) {
     let resolvedFuzzy = 0;

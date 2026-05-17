@@ -41,11 +41,11 @@ export async function renderPendingApproval(container) {
                       <tr>
                          <td class="text-muted text-center small">${idx + 1}</td>
                          <td><code>${e.passport_number_normalized}</code></td>
-                         <td>${e.mrz_fields.name || `${e.mrz_fields.surname} ${e.mrz_fields.given_names}`}</td>
-                         <td>${e.mrz_fields.gender || e.mrz_fields.sex}</td>
-                         <td>${e.mrz_fields.nationality}</td>
+                         <td>${e.display_name || e.mrz_fields.name || [e.mrz_fields.familyName || e.mrz_fields.surname, e.mrz_fields.givenName || e.mrz_fields.given_names].filter(Boolean).join(' ') || '---'}</td>
+                         <td>${e.mrz_fields.gender || e.mrz_fields.sex || ''}</td>
+                         <td>${e.mrz_fields.nationality || ''}</td>
                          <td>
-                           ${e.mrz_fields.date_of_birth}
+                           ${e.mrz_fields.date_of_birth || e.mrz_fields.dob || ''}
                            ${e.missingOptionalFields?.length > 0
                              ? `<br><span class="badge bg-warning text-dark mt-1" title="حقول مفقودة: ${e.missingOptionalFields.map(f => t(`import.table.${f}`) || t(`reasons.${f}`) || f).join('، ')}"><i class="bi bi-exclamation-circle me-1"></i>مفقود: ${e.missingOptionalFields.map(f => t(`import.table.${f}`) || t(`reasons.${f}`) || f).join('، ')}</span>`
                              : ''

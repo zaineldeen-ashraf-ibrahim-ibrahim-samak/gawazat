@@ -99,4 +99,80 @@ function detect(normalized) {
   return { kind: 'none' };
 }
 
-module.exports = { detect, levenshtein };
+/**
+ * Score a single manifest candidate against the incoming normalized scan.
+ * Lower score = better match. Returns null if the candidate is too dissimilar
+ * (name Levenshtein > 4) to be worth surfacing as a recommendation.
+ *
+ * Scoring rules:
+ *   - Name Levenshtein distance contributes directly to the score.
+ *   - Each mismatching/missing comparable field (DOB, nationality) adds 1.
+ *   - Missing incoming fields are ignored (we can't say they differ).
+ */
+function scoreCandidate(p, normalized) {
+  const { name, dob, nationality, passportNumberKey } = normalized;
+  const differences = [];
+
+  let score = 0;
+
+  // Name Levenshtein
+  const nameDist = (name && p.name)
+    ? levenshtein(String(p.name).toUpperCase(), String(name).toUpperCase())
+    : (name || p.name ? 4 : 0); // one side missing → moderate penalty
+  if (nameDist > 4) return null;
+  score += nameDist;
+  if (nameDist > 0 && (name || p.name)) differences.push('name');
+
+  // DOB
+  if (dob && p.date_of_birth && p.date_of_birth !== dob) {
+    score += 2;
+    differences.push('dob');
+  }
+
+  // Nationality
+  if (nationality && p.nationality && p.nationality !== nationality) {
+    score += 2;
+    differences.push('nationality');
+  }
+
+  // Passport-number near match (same prefix or contains): small bonus toward score
+  if (passportNumberKey && p.passport_number_normalized) {
+    const a = String(passportNumberKey).toUpperCase();
+    const b = String(p.passport_number_normalized).toUpperCase();
+    if (a !== b) {
+      const pnDist = levenshtein(a, b);
+      // Treat very-different passport numbers as weakly informative; cap effect.
+      score += Math.min(pnDist, 3);
+      if (pnDist > 0) differences.push('passportNumber');
+    }
+  }
+
+  return { passenger: p, score, differences };
+}
+
+/**
+ * Return ranked candidate passengers from the manifest that resemble the
+ * incoming scan. Use this BEFORE creating a pending-approval entry to give the
+ * operator a chance to confirm "this is actually <existing passenger>" when
+ * one or two scan fields are missing or slightly off.
+ *
+ * @param {Object} normalized — incoming scan fields (passportNumberKey, name, dob, nationality)
+ * @param {number} limit — max candidates to return
+ * @returns {Array<{passenger, score, differences}>} sorted best-first
+ */
+function detectCandidates(normalized, limit = 5) {
+  if (!normalized) return [];
+  const allPassengers = indices.getAll ? indices.getAll() : [];
+  const candidates = [];
+  for (const p of allPassengers) {
+    if (normalized.id && p.id === normalized.id) continue;
+    // Exact passport hits are handled by scanProcessor's downstream flow.
+    if (normalized.passportNumberKey && p.passport_number_normalized === normalized.passportNumberKey) continue;
+    const scored = scoreCandidate(p, normalized);
+    if (scored) candidates.push(scored);
+  }
+  candidates.sort((a, b) => a.score - b.score);
+  return candidates.slice(0, limit);
+}
+
+module.exports = { detect, detectCandidates, levenshtein };

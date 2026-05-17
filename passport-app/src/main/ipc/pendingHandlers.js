@@ -5,6 +5,7 @@
 
 const { makePassenger, makeBoardingRecord, makeScanEvent } = require('../../shared/entities');
 const { rebuildIndices } = require('../store/indices');
+const { extractDisplayName } = require('../../shared/normalize');
 const logger = require('../services/logger');
 
 /**
@@ -19,7 +20,14 @@ function createPendingHandlers(store) {
      */
     list: async () => {
       const state = store.getState();
-      return (state.pending_approval || []).filter(e => e.state === 'awaiting');
+      // Project a resolved display_name onto each entry so the renderer doesn't
+      // need to know about every possible MRZ/normalized field-name variant.
+      return (state.pending_approval || [])
+        .filter(e => e.state === 'awaiting')
+        .map(e => ({
+          ...e,
+          display_name: extractDisplayName(e.mrz_fields) || '---'
+        }));
     },
 
     /**
@@ -43,12 +51,12 @@ function createPendingHandlers(store) {
         store.mutate(draft => {
           // 1. Create Passenger (source='added-at-gate')
           const passenger = makePassenger({
-            passport_number: mrz.document_number,
+            passport_number: mrz.document_number || mrz.passport_number || mrz.passportNumber,
             passport_number_normalized: normalized,
-            name: mrz.name || `${mrz.surname} ${mrz.given_names}`,
+            name: extractDisplayName(mrz),
             gender: mrz.gender || mrz.sex,
             nationality: mrz.nationality,
-            date_of_birth: mrz.date_of_birth,
+            date_of_birth: mrz.date_of_birth || mrz.dob || mrz.dateOfBirth,
             source: 'added-at-gate'
           });
           draft.manifest.push(passenger);

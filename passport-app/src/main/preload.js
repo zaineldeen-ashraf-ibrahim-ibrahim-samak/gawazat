@@ -10,6 +10,7 @@ const api = {
   manifest: {
     import: (args) => ipcRenderer.invoke('manifest:import', args),
     preview: (args) => ipcRenderer.invoke('manifest:preview', args),
+    listSheets: (args) => ipcRenderer.invoke('manifest:listSheets', args),
     downloadTemplate: (args) => ipcRenderer.invoke('manifest:downloadTemplate', args),
     list: (args) => ipcRenderer.invoke('manifest:list', args),
     exportFiltered: (args) => ipcRenderer.invoke('manifest:exportFiltered', args),
@@ -22,6 +23,7 @@ const api = {
     submitMrz: (args) => ipcRenderer.invoke('scan:submitMrz', args),
     undoLast: (args) => ipcRenderer.invoke('scan:undoLast', args),
     submitManual: (args) => ipcRenderer.invoke('scan:submitManual', args),
+    resolveRecommendation: (args) => ipcRenderer.invoke('scan:resolveRecommendation', args),
   },
 
   // Regula device control

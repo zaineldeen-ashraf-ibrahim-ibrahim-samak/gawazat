@@ -4,6 +4,7 @@
  */
 
 const logger = require('../services/logger');
+const { extractDisplayName } = require('../../shared/normalize');
 
 /**
  * Create history handlers
@@ -25,13 +26,14 @@ function createHistoryHandlers(store) {
         const passengerMap = new Map();
         manifest.forEach(p => passengerMap.set(p.id, p));
 
-        // Return events with passenger names
+        // Return events with passenger names — try manifest first, then MRZ
+        // fields, then any normalized variants that may be present.
         return events.map(e => {
           const passenger = e.passenger_id ? passengerMap.get(e.passenger_id) : null;
-          return {
-            ...e,
-            passenger_name: passenger ? passenger.name : (e.mrz_fields?.surname ? `${e.mrz_fields.surname} ${e.mrz_fields.given_names}` : '---')
-          };
+          const name = (passenger && extractDisplayName(passenger))
+            || extractDisplayName(e.mrz_fields)
+            || '---';
+          return { ...e, passenger_name: name };
         }).reverse(); // Most recent first
       } catch (err) {
         logger.error(`History list failed: ${err.message}`);
@@ -60,12 +62,15 @@ function createHistoryHandlers(store) {
 
         events.forEach(e => {
           const passenger = e.passenger_id ? passengerMap.get(e.passenger_id) : null;
+          const name = (passenger && extractDisplayName(passenger))
+            || extractDisplayName(e.mrz_fields)
+            || '';
           data.push([
             e.at,
             e.outcome,
             e.mode,
             e.passport_number_normalized || '',
-            passenger ? passenger.name : (e.mrz_fields?.surname ? `${e.mrz_fields.surname} ${e.mrz_fields.given_names}` : '')
+            name
           ]);
         });
 

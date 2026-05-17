@@ -468,9 +468,11 @@ async function parseTxtFile(filePath, requirements) {
  * Dispatches by extension: .txt → MRZ parser, otherwise uses correct parser.
  * @param {string} filePath - Path to file
  * @param {Object} [requirements] - Field requirements map
+ * @param {Object} [options]
+ * @param {string} [options.sheetName] - For .xlsx/.xls: which sheet to read
  * @returns {Object} - { rows: ParsedRow[], errors: ImportError[], duplicates: string[] }
  */
-async function parseFile(filePath, requirements) {
+async function parseFile(filePath, requirements, options = {}) {
   const ext = path.extname(filePath).toLowerCase();
 
   if (ext === '.txt') {
@@ -482,7 +484,7 @@ async function parseFile(filePath, requirements) {
 
     if (ext === '.xlsx' || ext === '.xls') {
       const { parseXlsx } = require('./importParsers/xlsx');
-      rawRows = parseXlsx(filePath);
+      rawRows = parseXlsx(filePath, options.sheetName);
     } else if (ext === '.csv') {
       const { parseCsv } = require('./importParsers/csv');
       rawRows = parseCsv(filePath);

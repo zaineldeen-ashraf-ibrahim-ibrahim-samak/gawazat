@@ -6,6 +6,7 @@
 import { t } from '../i18n/index.js';
 import { initAudio, setSoundEnabled, playSuccess, playWarning } from '../components/audio.js';
 import { showDuplicateModal } from '../components/duplicateConfirmModal.js';
+import { showRecommendationsModal } from '../components/recommendationsModal.js';
 import { showReasonToast } from '../components/reasonToast.js';
 
 let resetTimer = null;
@@ -228,6 +229,21 @@ async function showScanResult(result, autoResetSeconds) {
   if (result.outcome === 'rejected' && result.reason === 'DUPLICATE_PASSPORT') {
     showReasonToast({ code: 'DUPLICATE_PASSPORT', message: t('reasons.DUPLICATE_PASSPORT'), suggestion: 'تحقق من وثيقة المسافر' }, 'warning');
     playWarning();
+    clearScan();
+    return;
+  }
+
+  if (result.outcome === 'recommend') {
+    playWarning();
+    const choice = await showRecommendationsModal(result.normalizedPassenger || result.mrz_fields, result.candidates || []);
+    const resolveRes = await window.api.scan.resolveRecommendation({
+      decision: choice.decision,
+      candidateId: choice.candidateId || null,
+      mrz_fields: result.mrz_fields,
+      normalizedPassenger: result.normalizedPassenger
+    });
+    if (resolveRes?.ok && resolveRes.outcome === 'green') playSuccess();
+    else playWarning();
     clearScan();
     return;
   }

@@ -56,7 +56,11 @@
       "status": "Status"
     },
     "success": "Data imported successfully",
-    "noValidRows": "No valid rows to import"
+    "noValidRows": "No valid rows to import",
+    "sheetPicker": {
+      "title": "Choose the sheet to import",
+      "prompt": "This workbook has multiple sheets. Pick the correct sheet for each file:"
+    }
   },
   "pending": {
     "approve": "Approve",
@@ -189,6 +193,15 @@
     "field": "Field",
     "existing": "Existing",
     "new": "New (Scanned)"
+  },
+  "recommend": {
+    "title": "Matching candidates",
+    "prompt": "No exact match found. Is the passenger one of these?",
+    "scanned": "Scanned data",
+    "useThis": "This is the one",
+    "toPending": "Send to pending",
+    "cancel": "Cancel (error)",
+    "differs": "differs"
   },
   "filters": {
     "title": "Advanced Filters",

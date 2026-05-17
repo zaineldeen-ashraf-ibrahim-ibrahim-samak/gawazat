@@ -42,14 +42,28 @@ function mapHeaders(headers) {
 }
 
 /**
+ * List sheet names in an Excel file. Used by the renderer to prompt the
+ * operator which tab to import when a workbook contains multiple sheets.
+ * @param {string} filePath
+ * @returns {string[]}
+ */
+function listSheets(filePath) {
+  const workbook = XLSX.readFile(filePath, { bookSheets: true });
+  return Array.isArray(workbook.SheetNames) ? workbook.SheetNames.slice() : [];
+}
+
+/**
  * Parse an Excel file (.xlsx, .xls) and return raw rows
- * @param {string} filePath 
+ * @param {string} filePath
+ * @param {string} [sheetName] - optional sheet to read; defaults to the first
  * @returns {Array<Object>}
  */
-function parseXlsx(filePath) {
+function parseXlsx(filePath, sheetName) {
   const workbook = XLSX.readFile(filePath, { cellDates: true });
-  const sheetName = workbook.SheetNames[0]; // Use first sheet
-  const worksheet = workbook.Sheets[sheetName];
+  const chosen = sheetName && workbook.SheetNames.includes(sheetName)
+    ? sheetName
+    : workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[chosen];
   const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Get as array of arrays
 
   if (data.length < 2) {
@@ -86,4 +100,4 @@ function parseXlsx(filePath) {
   return rows;
 }
 
-module.exports = { parseXlsx, mapHeaders };
+module.exports = { parseXlsx, mapHeaders, listSheets };

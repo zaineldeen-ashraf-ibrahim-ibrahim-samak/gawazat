@@ -179,6 +179,27 @@ async function processMrz(store, rawMrz, mode = 'keyboard') {
         outcome = 'orange'; // Already pending
         firstEnteredAt = existingPending.created_at;
         pendingId = existingPending.id;
+      } else {
+        // Before falling through to "yellow" (pending approval), look for
+        // manifest candidates that resemble this scan and surface them so the
+        // operator can pick one (continue as that passenger), send to pending,
+        // or reject. Helps cases where scan data is slightly off / incomplete.
+        const { detectCandidates } = require('./duplicateMatcher');
+        const candidates = detectCandidates(normalizedPassenger, 5);
+        if (candidates.length > 0) {
+          return {
+            outcome: 'recommend',
+            scan_event_id: null,
+            passenger: null,
+            mrz_fields: parsed,
+            normalizedPassenger,
+            candidates: candidates.map(c => ({
+              passenger: c.passenger,
+              score: c.score,
+              differences: c.differences
+            }))
+          };
+        }
       }
     }
 
@@ -240,6 +261,16 @@ async function processMrz(store, rawMrz, mode = 'keyboard') {
 
   } catch (err) {
     logger.error(`Error processing MRZ: ${err.message}`);
+    // Record the failure in scan_events so it shows up in scan history.
+    try {
+      const errorEvent = makeScanEvent({
+        outcome: 'read-failed',
+        mode,
+        raw_data: rawMrz,
+        mrz_fields: { error: err.message }
+      });
+      store.mutate(draft => draft.scan_events.push(errorEvent));
+    } catch (_) { /* don't mask the original error */ }
     throw err;
   }
 }

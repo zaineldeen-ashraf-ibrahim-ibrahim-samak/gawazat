@@ -39,6 +39,7 @@ function registerAllHandlers(handlers) {
   if (manifestHandlers) {
     ipcMain.handle('manifest:import', (event, args) => manifestHandlers.import(args));
     ipcMain.handle('manifest:preview', (event, args) => manifestHandlers.preview(args));
+    ipcMain.handle('manifest:listSheets', (event, args) => manifestHandlers.listSheets(args));
     ipcMain.handle('manifest:downloadTemplate', (event, args) => manifestHandlers.downloadTemplate(args));
     ipcMain.handle('manifest:list', (event, args) => manifestHandlers.list(args));
     ipcMain.handle('manifest:toggleEntered', (event, args) => manifestHandlers.toggleEntered(args));
@@ -52,6 +53,7 @@ function registerAllHandlers(handlers) {
     ipcMain.handle('scan:submitMrz', (event, args) => scanHandlers.submitMrz(args));
     ipcMain.handle('scan:undoLast', (event, args) => scanHandlers.undoLast(args));
     ipcMain.handle('scan:submitManual', (event, args) => scanHandlers.submitManual(args));
+    ipcMain.handle('scan:resolveRecommendation', (event, args) => scanHandlers.resolveRecommendation(args));
     ipcMain.handle('regula:setMode', (event, args) => scanHandlers.setMode(args));
   }
 

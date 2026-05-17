@@ -25,10 +25,11 @@ function createManifestHandlers(store) {
      */
     import: async (args) => {
       try {
-        const { filePaths } = args;
+        const { filePaths, sheetSelection } = args;
         if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
           return { ok: false, message: 'Invalid file paths' };
         }
+        const sheets = sheetSelection && typeof sheetSelection === 'object' ? sheetSelection : {};
 
         const state = store.getState();
         const existingManifest = state.manifest || [];
@@ -44,7 +45,9 @@ function createManifestHandlers(store) {
 
         for (const filePath of filePaths) {
           logger.info(`Importing manifest from ${filePath}`);
-          const parseResult = await parseFile(filePath, state.settings?.fieldRequirements);
+          const parseResult = await parseFile(filePath, state.settings?.fieldRequirements, {
+            sheetName: sheets[filePath]
+          });
           
           for (const err of parseResult.errors) {
             rowErrors.push({ rowIndex: err.rowIndex, reason: 'IMPORT_JSON_BAD_ELEMENT', message: err.message }); // simplistic mapping
@@ -134,15 +137,49 @@ function createManifestHandlers(store) {
     },
 
     /**
-     * Preview Excel manifest files without importing
+     * Inspect a set of files and report which ones have multiple sheets, so the
+     * renderer can prompt the operator to pick which tab to import.
      * @param {{filePaths: string[]}} args
+     * @returns {Promise<{ok: boolean, sheets: Array<{filePath, sheetNames}>}>}
+     */
+    listSheets: async (args) => {
+      try {
+        const { filePaths } = args || {};
+        if (!Array.isArray(filePaths) || filePaths.length === 0) {
+          return { ok: false, sheets: [], message: 'Invalid file paths' };
+        }
+        const { listSheets } = require('../services/importParsers/xlsx');
+        const sheets = [];
+        for (const filePath of filePaths) {
+          const ext = path.extname(filePath).toLowerCase();
+          if (ext !== '.xlsx' && ext !== '.xls') {
+            sheets.push({ filePath, sheetNames: [] });
+            continue;
+          }
+          try {
+            sheets.push({ filePath, sheetNames: listSheets(filePath) });
+          } catch (e) {
+            sheets.push({ filePath, sheetNames: [], error: e.message });
+          }
+        }
+        return { ok: true, sheets };
+      } catch (err) {
+        logger.error(`listSheets failed: ${err.message}`);
+        return { ok: false, sheets: [], message: err.message };
+      }
+    },
+
+    /**
+     * Preview Excel manifest files without importing
+     * @param {{filePaths: string[], sheetSelection?: Object<string,string>}} args
      */
     preview: async (args) => {
       try {
-        const { filePaths } = args;
+        const { filePaths, sheetSelection } = args;
         if (!filePaths || !Array.isArray(filePaths)) {
            return { ok: false, message: 'Invalid file paths' };
         }
+        const sheets = sheetSelection && typeof sheetSelection === 'object' ? sheetSelection : {};
 
         const state = store.getState();
         const existingManifest = state.manifest || [];
@@ -152,7 +189,9 @@ function createManifestHandlers(store) {
         let allErrors = [];
 
         for (const filePath of filePaths) {
-          const parseResult = await parseFile(filePath);
+          const parseResult = await parseFile(filePath, state.settings?.fieldRequirements, {
+            sheetName: sheets[filePath]
+          });
           
           const fileErrors = parseResult.errors.map(e => ({
             ...e,

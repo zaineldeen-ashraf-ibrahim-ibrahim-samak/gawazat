@@ -39,6 +39,22 @@ function createScanHandlers(store) {
         return result;
       } catch (err) {
         logger.error(`submitMrz failed: ${err.message}`);
+        // Make sure the failure is captured in scan history even when the
+        // exception escaped scanProcessor before it could record one.
+        try {
+          const state = store.getState();
+          const already = err.__scanEventRecorded || (state.scan_events || []).some(ev =>
+            ev.outcome === 'read-failed' && ev.mrz_fields?.error === err.message);
+          if (!already) {
+            const errEvent = makeScanEvent({
+              outcome: 'read-failed',
+              mode: 'keyboard',
+              raw_data: args?.rawMrz || '',
+              mrz_fields: { error: err.message }
+            });
+            store.mutate(draft => draft.scan_events.push(errEvent));
+          }
+        } catch (_) { /* swallow */ }
         return {
           outcome: 'read-failed',
           message: err.message
@@ -72,7 +88,15 @@ function createScanHandlers(store) {
         const duplicateMatch = detect(normalizedPassenger);
 
         if (duplicateMatch.kind === 'exact') {
-          return { outcome: 'rejected', reason: 'DUPLICATE_PASSPORT', duplicateMatch };
+          const rejEvent = makeScanEvent({
+            outcome: 'orange',
+            mode: 'manual',
+            passport_number_normalized: normalized,
+            passenger_id: duplicateMatch.existingPassengerId,
+            mrz_fields
+          });
+          store.mutate(draft => draft.scan_events.push(rejEvent));
+          return { outcome: 'rejected', reason: 'DUPLICATE_PASSPORT', scan_event_id: rejEvent.id, duplicateMatch, mrz_fields };
         } else if (duplicateMatch.kind === 'fuzzy') {
           const existingPassenger = store.getState().manifest.find(p => p.id === duplicateMatch.existingPassengerId);
           return { outcome: 'fuzzy', mrz_fields, normalizedPassenger, duplicateMatch, existingPassenger };
@@ -89,6 +113,24 @@ function createScanHandlers(store) {
             outcome = 'green';
           }
         } else {
+          // Offer candidate recommendations from the manifest before
+          // defaulting to pending or rejecting. Operator can pick one of
+          // these (continue as that passenger), send to pending, or cancel.
+          const { detectCandidates } = require('../services/duplicateMatcher');
+          const candidates = detectCandidates(normalizedPassenger, 5);
+          if (candidates.length > 0) {
+            return {
+              outcome: 'recommend',
+              mrz_fields,
+              normalizedPassenger,
+              candidates: candidates.map(c => ({
+                passenger: c.passenger,
+                score: c.score,
+                differences: c.differences
+              }))
+            };
+          }
+
           const { validate } = require('../../shared/fieldRequirements');
           const reqs = store.getState().settings?.fieldRequirements;
           const validation = validate(mrz_fields, reqs);
@@ -113,11 +155,20 @@ function createScanHandlers(store) {
                 };
               }
             }
+            const failEvent = makeScanEvent({
+              outcome: 'read-failed',
+              mode: 'manual',
+              passport_number_normalized: normalized,
+              mrz_fields
+            });
+            store.mutate(draft => draft.scan_events.push(failEvent));
             return {
               outcome: 'read-failed',
               reason: 'REQUIRED_FIELD_MISSING',
+              scan_event_id: failEvent.id,
               message: `الحقول المطلوبة مفقودة: ${validation.missingRequired.join(', ')}`,
-              missingRequired: validation.missingRequired
+              missingRequired: validation.missingRequired,
+              mrz_fields
             };
           }
         }
@@ -149,7 +200,107 @@ function createScanHandlers(store) {
         return { outcome, scan_event_id: scanEvent.id, passenger: passenger || { passport_number: passport, name, gender, nationality, date_of_birth }, mrz_fields, first_entered_at: firstEnteredAt };
       } catch (err) {
         logger.error(`submitManual failed: ${err.message}`);
+        try {
+          const errEvent = makeScanEvent({
+            outcome: 'read-failed',
+            mode: 'manual',
+            mrz_fields: { error: err.message, ...(args || {}) }
+          });
+          store.mutate(draft => draft.scan_events.push(errEvent));
+        } catch (_) { /* swallow */ }
         return { outcome: 'read-failed', message: err.message };
+      }
+    },
+
+    /**
+     * Commit the operator's choice from the recommendation modal.
+     * decision:
+     *   'select-existing' — board the chosen manifest passenger and merge any
+     *                       non-empty incoming fields onto their record.
+     *   'pending'         — file the scan into the pending-approval queue.
+     *   'cancel'          — record a read-failed event and walk away.
+     */
+    resolveRecommendation: async (args) => {
+      try {
+        const { decision, candidateId, mrz_fields, normalizedPassenger } = args || {};
+        if (!['select-existing', 'pending', 'cancel'].includes(decision)) {
+          return { ok: false, message: 'Invalid decision' };
+        }
+        const normalized = normalizedPassenger?.passportNumberKey
+          || (mrz_fields ? normalizePassportNumber(mrz_fields.document_number || mrz_fields.passport_number || mrz_fields.passportNumber || '') : '');
+
+        if (decision === 'select-existing') {
+          if (!candidateId) return { ok: false, message: 'candidateId required' };
+          const existing = store.getState().manifest.find(p => p.id === candidateId);
+          if (!existing) return { ok: false, message: 'Candidate not found' };
+
+          const scanEvent = makeScanEvent({
+            outcome: 'green',
+            mode: 'recommend-confirm',
+            passport_number_normalized: existing.passport_number_normalized || normalized,
+            passenger_id: existing.id,
+            mrz_fields: mrz_fields || {}
+          });
+
+          store.mutate(draft => {
+            const passenger = draft.manifest.find(p => p.id === candidateId);
+            if (passenger) {
+              const incomingMerged = { ...(mrz_fields || {}), ...(normalizedPassenger || {}) };
+              for (const [k, v] of Object.entries(incomingMerged)) {
+                if (v === undefined || v === null || (typeof v === 'string' && v.trim() === '')) continue;
+                passenger[k] = v;
+              }
+              passenger.duplicateFlag = 'merged';
+            }
+            draft.scan_events.push(scanEvent);
+            const boardingKey = existing.passport_number_normalized || normalized;
+            if (boardingKey && !draft.boarding_records[boardingKey]) {
+              draft.boarding_records[boardingKey] = makeBoardingRecord({
+                passenger_id: existing.id,
+                passport_number_normalized: boardingKey,
+                scan_event_id: scanEvent.id,
+                via: 'recommend-confirm'
+              });
+            }
+          });
+          rebuildIndices(store.getState());
+          lastUndoableScanId = scanEvent.id;
+          return { ok: true, outcome: 'green', scan_event_id: scanEvent.id, passenger_id: existing.id };
+        }
+
+        if (decision === 'pending') {
+          const scanEvent = makeScanEvent({
+            outcome: 'yellow',
+            mode: 'recommend-pending',
+            passport_number_normalized: normalized,
+            mrz_fields: mrz_fields || {}
+          });
+          const pendingEntry = makePendingApprovalEntry({
+            scan_event_id: scanEvent.id,
+            passport_number_normalized: normalized,
+            mrz_fields: mrz_fields || {},
+            state: 'awaiting'
+          });
+          store.mutate(draft => {
+            draft.scan_events.push(scanEvent);
+            draft.pending_approval.push(pendingEntry);
+          });
+          rebuildIndices(store.getState());
+          return { ok: true, outcome: 'yellow', scan_event_id: scanEvent.id, pending_id: pendingEntry.id };
+        }
+
+        // cancel
+        const failEvent = makeScanEvent({
+          outcome: 'read-failed',
+          mode: 'recommend-cancel',
+          passport_number_normalized: normalized,
+          mrz_fields: mrz_fields || {}
+        });
+        store.mutate(draft => draft.scan_events.push(failEvent));
+        return { ok: true, outcome: 'read-failed', scan_event_id: failEvent.id };
+      } catch (err) {
+        logger.error(`resolveRecommendation failed: ${err.message}`);
+        return { ok: false, message: err.message };
       }
     },
 
