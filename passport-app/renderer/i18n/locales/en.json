@@ -222,6 +222,11 @@
     "message": "Passenger names and dates of birth will be securely sent to the configured AI service for normalization. No sensitive document numbers are transmitted.",
     "acknowledge": "I Understand"
   },
+  "missingFieldsModal": {
+    "title": "Missing Fields Details",
+    "prompt": "This passenger was accepted with the following optional fields missing:",
+    "empty": "No fields specified."
+  },
   "common": {
     "ok": "OK",
     "cancel": "Cancel",

@@ -223,7 +223,7 @@ async function mountShell(container) {
     const badge = e.target.closest('.missing-fields-badge');
     if (badge) {
       const missingKeys = badge.getAttribute('data-missing').split(',').filter(Boolean);
-      const localizedNames = missingKeys.map(f => t(`import.table.${f}`) || t(`reasons.${f}`) || f).join('، ');
+      const localizedNames = missingKeys.map(f => t(`fieldRequirements.${f}`) || t(`import.table.${f}`) || f).join('، ');
       showMissingFieldsModal(localizedNames);
       return;
     }
@@ -263,14 +263,14 @@ function showMissingFieldsModal(fieldsStr) {
       <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}-label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content bg-dark text-white border-warning">
-            <div class="modal-header border-warning bg-warning bg-opacity-25">
-              <h5 class="modal-title text-warning" id="${modalId}-label">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>تفاصيل الحقول المفقودة
+            <div id="${modalId}-header" class="modal-header border-warning bg-warning bg-opacity-25">
+              <h5 id="${modalId}-label" class="modal-title text-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="${modalId}-title-text">${t('missingFieldsModal.title')}</span>
               </h5>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-              <p class="fs-5 mb-2">تم قبول هذا المسافر مع وجود الحقول الاختيارية التالية مفقودة:</p>
+              <p id="${modalId}-prompt" class="fs-5 mb-2">${t('missingFieldsModal.prompt')}</p>
               <div id="${modalId}-list" class="p-3 bg-black bg-opacity-50 text-warning rounded border border-secondary fs-5 fw-bold text-center"></div>
             </div>
             <div class="modal-footer border-warning">
@@ -282,12 +282,16 @@ function showMissingFieldsModal(fieldsStr) {
     `;
     document.body.appendChild(div.firstElementChild);
     modalEl = document.getElementById(modalId);
+  } else {
+    // Update dynamic text if locale changed
+    document.getElementById(`${modalId}-title-text`).textContent = t('missingFieldsModal.title');
+    document.getElementById(`${modalId}-prompt`).textContent = t('missingFieldsModal.prompt');
   }
-  document.getElementById(`${modalId}-list`).textContent = fieldsStr || 'لا توجد حقول محددة.';
+  document.getElementById(`${modalId}-list`).textContent = fieldsStr || t('missingFieldsModal.empty');
   if (window.bootstrap) {
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   } else {
-    alert(`تفاصيل الحقول المفقودة:\n\n${fieldsStr}`);
+    alert(`${t('missingFieldsModal.title')}:\n\n${fieldsStr}`);
   }
 }
 
