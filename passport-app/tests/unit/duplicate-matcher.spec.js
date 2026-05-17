@@ -17,7 +17,7 @@ describe('Duplicate Matcher', () => {
     expect(res).to.deep.equal({ kind: 'none' });
   });
 
-  it('detect returns kind: exact on matching passportNumberKey', () => {
+  it('detect returns kind: none on exact passportNumberKey match against manifest (handled by scanProcessor as green/orange)', () => {
     indices.insert({
       id: 'p1',
       passport_number_normalized: 'A123',
@@ -32,8 +32,7 @@ describe('Duplicate Matcher', () => {
       dob: '1990-01-01',
       nationality: 'EGY'
     });
-    expect(res.kind).to.equal('exact');
-    expect(res.existingPassengerId).to.equal('p1');
+    expect(res.kind).to.equal('none');
   });
 
   it('detect returns kind: fuzzy on matching name+DOB+nationality with different passport', () => {

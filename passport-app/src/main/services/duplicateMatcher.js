@@ -36,14 +36,12 @@ function levenshtein(a, b) {
  */
 function detect(normalized) {
   const { passportNumberKey, name, dob, nationality } = normalized;
-  
-  // Exact match by passport number key
-  if (passportNumberKey) {
-    const existingExact = indices.getByPassportKey(passportNumberKey);
-    if (existingExact) {
-      return { kind: 'exact', existingPassengerId: existingExact.id };
-    }
-  }
+
+  // NOTE: An exact passport-number match against the manifest is NOT a duplicate —
+  // manifest entries are the *expected* passengers to be scanned. scanProcessor
+  // handles that case (green outcome) and also flags re-scans against boarding/pending
+  // records (orange outcome). Only fuzzy matches are surfaced here so the operator
+  // can be prompted with "Is this <existing passenger>?" for near-matches.
 
   // Fuzzy match candidates based on indices (e.g. searching by name/dob/nationality)
   // For simplicity, we iterate over all session passengers if indices don't provide a direct fuzzy map,
@@ -55,6 +53,11 @@ function detect(normalized) {
   for (const p of allPassengers) {
     // skip self if somehow in there
     if (normalized.id && p.id === normalized.id) continue;
+
+    // Passport-number exact matches are handled downstream in scanProcessor
+    // (manifest match → green, already boarded/pending → orange). Don't surface
+    // them as a fuzzy prompt.
+    if (passportNumberKey && p.passport_number_normalized === passportNumberKey) continue;
 
     let diffCount = 0;
     const differences = [];
