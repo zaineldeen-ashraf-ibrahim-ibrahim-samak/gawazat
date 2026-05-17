@@ -5,6 +5,7 @@
 
 import { t } from '../i18n/index.js';
 import { getCurrentAdvancedFilter } from '../components/advancedFilterPanel.js';
+import { showReasonToast } from '../components/reasonToast.js';
 
 export async function renderReports(container) {
   const html = `
@@ -41,7 +42,7 @@ export async function renderReports(container) {
         btn.disabled = false;
         
         if (exportResult.ok) alert(t('import.success'));
-        else alert(exportResult.message || t('common.error'));
+        else showReasonToast({ code: exportResult.reason || 'IMPORT_PDF_NO_TABLE', message: exportResult.message || t('common.error'), suggestion: 'تحقق من مسار حفظ الملف وصلاحيات الكتابة' }, 'danger');
       }
     };
   });
@@ -54,7 +55,7 @@ export async function renderReports(container) {
       const result = await window.api.reports.print({ kind, filterState });
       btn.disabled = false;
       
-      if (!result.ok) alert(result.message || t('common.error'));
+      if (!result.ok) showReasonToast({ code: result.reason || 'IMPORT_PDF_NO_TABLE', message: result.message || t('common.error'), suggestion: 'تحقق من اتصال الطابعة وإعدادات النظام' }, 'danger');
     };
   });
 }

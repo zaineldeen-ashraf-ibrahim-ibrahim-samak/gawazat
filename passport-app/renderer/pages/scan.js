@@ -6,38 +6,11 @@
 import { t } from '../i18n/index.js';
 import { initAudio, setSoundEnabled, playSuccess, playWarning } from '../components/audio.js';
 import { showDuplicateModal } from '../components/duplicateConfirmModal.js';
+import { showReasonToast } from '../components/reasonToast.js';
 
 let resetTimer = null;
 let inputBuffer = '';
 let lastKeyTime = 0;
-
-function showToast(message) {
-  let container = document.getElementById('toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toast-container';
-    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-    container.style.zIndex = '1100';
-    document.body.appendChild(container);
-  }
-  const toastEl = document.createElement('div');
-  toastEl.className = 'toast align-items-center text-bg-danger border-0';
-  toastEl.setAttribute('role', 'alert');
-  toastEl.setAttribute('aria-live', 'assertive');
-  toastEl.setAttribute('aria-atomic', 'true');
-  toastEl.innerHTML = `
-    <div class="d-flex">
-      <div class="toast-body fs-5 fw-bold py-3">
-        <i class="bi bi-exclamation-octagon me-2"></i> ${message}
-      </div>
-      <button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-  `;
-  container.appendChild(toastEl);
-  const tInstance = new window.bootstrap.Toast(toastEl, { delay: 5000 });
-  tInstance.show();
-  toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-}
 
 export async function renderScan(container) {
   const settings = await window.api.settings.get();
@@ -253,7 +226,7 @@ async function showScanResult(result, autoResetSeconds) {
   if (resetTimer) clearTimeout(resetTimer);
 
   if (result.outcome === 'rejected' && result.reason === 'DUPLICATE_PASSPORT') {
-    showToast(t('reasons.DUPLICATE_PASSPORT') || 'Already scanned');
+    showReasonToast({ code: 'DUPLICATE_PASSPORT', message: t('reasons.DUPLICATE_PASSPORT'), suggestion: 'تحقق من وثيقة المسافر' }, 'warning');
     playWarning();
     clearScan();
     return;
@@ -329,6 +302,13 @@ async function showScanResult(result, autoResetSeconds) {
     iconHtml = '<i class="bi bi-x-circle-fill display-1 text-red"></i>';
     title.innerText = t('scan.readFailed.title');
     subtitle.innerText = t('scan.readFailed.subtitle');
+    if (result.reason) {
+      showReasonToast({
+        code: result.reason,
+        message: result.message || t(`reasons.${result.reason}`),
+        suggestion: result.missingRequired ? `الحقول المطلوبة مفقودة: ${result.missingRequired.join('، ')}` : 'تحقق من صحة البيانات وحاول مجدداً'
+      }, 'danger');
+    }
     playWarning();
   }
 

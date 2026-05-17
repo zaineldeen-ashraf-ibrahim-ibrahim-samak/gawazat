@@ -5,6 +5,7 @@
 
 import { t } from '../i18n/index.js';
 import { showDuplicateModal } from '../components/duplicateConfirmModal.js';
+import { showReasonToast } from '../components/reasonToast.js';
 
 let selectedFilePath = null;
 
@@ -305,7 +306,11 @@ async function handleConfirmImport() {
     alert(`${t('import.success')} (Inserted: ${result.inserted + resolvedFuzzy}, Duplicates Blocked: ${result.duplicatesBlocked})`);
     window.location.hash = '#/passengers';
   } else {
-    alert(result.message || t('common.error'));
+    showReasonToast({
+      code: result.reason || 'IMPORT_FILE_UNREADABLE',
+      message: result.message || t('common.error'),
+      suggestion: 'تأكد من تنسيق الملف وصلاحية الحقول المطلوبة'
+    }, 'danger');
     confirmBtn.disabled = false;
     confirmBtn.innerHTML = t('import.importButton', { count: result.passengers?.length || 0 });
   }

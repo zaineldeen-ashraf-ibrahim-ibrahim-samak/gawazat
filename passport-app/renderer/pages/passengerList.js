@@ -11,6 +11,7 @@
 
 import { t } from '../i18n/index.js';
 import { mountAdvancedFilterPanel, openAdvancedFilterPanel, applyFilterState, countActiveFilters } from '../components/advancedFilterPanel.js';
+import { showReasonToast } from '../components/reasonToast.js';
 
 let currentFilter = 'all';
 let currentSearch = '';
@@ -198,7 +199,7 @@ async function mountShell(container) {
         savePath: result.filePath
       });
       if (exportResult.ok) alert(t('import.success'));
-      else alert(exportResult.message || t('common.error'));
+      else showReasonToast({ code: exportResult.reason || 'IPC_INVALID_ARGS', message: exportResult.message || t('common.error'), suggestion: 'تحقق من مسار حفظ الملف وصلاحيات الكتابة' }, 'danger');
     }
   });
 
@@ -210,7 +211,7 @@ async function mountShell(container) {
       const entered = e.target.checked;
       const result = await window.api.manifest.toggleEntered({ passport_number_normalized: passport, entered });
       if (!result.ok) {
-        alert(result.message || t('common.error'));
+        showReasonToast({ code: result.reason || 'IPC_INVALID_ARGS', message: result.message || t('common.error'), suggestion: 'تحقق من حالة المسافر في النظام' }, 'danger');
         e.target.checked = !entered;
       } else {
         await loadData();
@@ -234,7 +235,7 @@ async function mountShell(container) {
       if (!confirm(t('common.confirm'))) return;
       const result = await window.api.manifest.delete({ passport_number_normalized: passport });
       if (!result.ok) {
-        alert(result.message || t('common.error'));
+        showReasonToast({ code: result.reason || 'IPC_INVALID_ARGS', message: result.message || t('common.error'), suggestion: 'تعذر حذف المسافر، قد يكون مرتبطاً بسجلات أخرى' }, 'danger');
       } else {
         await loadData();
         refreshTable();

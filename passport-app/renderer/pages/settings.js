@@ -1,4 +1,5 @@
 import { t } from '../i18n/index.js';
+import { showReasonToast } from '../components/reasonToast.js';
 
 export async function renderSettings(container) {
   const settings = await window.api.settings.get();
@@ -152,70 +153,75 @@ export async function renderSettings(container) {
             </div>
           </div>
 
-          <!-- ── Field Requirements (US8) ── -->
+          <!-- ── Field Requirements ── -->
           <div class="card border-secondary bg-dark shadow mb-4">
             <div class="card-header border-secondary d-flex justify-content-between align-items-center">
-              <h5 class="mb-0 text-accent"><i class="bi bi-ui-checks me-2"></i>إعدادات الحقول المطلوبة (Field Requirements)</h5>
-              <button type="button" id="btn-save-field-reqs" class="btn btn-sm btn-primary">
-                <i class="bi bi-save me-1"></i>حفظ الحقول
-              </button>
+              <h5 class="mb-0 text-accent"><i class="bi bi-card-checklist me-2"></i>تخصيص الحقول المطلوبة</h5>
+              <span class="badge bg-info text-dark">متطلبات النظام</span>
             </div>
             <div class="card-body">
               <p class="text-muted small mb-3">
-                حدد الحقول الإلزامية عند المسح الضوئي أو الاستيراد. الحقول غير المحددة ستُعتبر اختيارية وستظهر بشارة "مفقود" إذا لم تتوفر.
+                حدد الحقول الإلزامية التي يجب توفرها في بيانات المسافر (سواء عبر الاستيراد من ملف أو المسح المباشر).
+                إذا كان الحقل غير مفعل هنا، يُعتبر اختيارياً ولن يمنع تسجيل المسافر إذا كان مفقوداً.
               </p>
+
               <div class="table-responsive">
                 <table class="table table-dark table-hover align-middle mb-0" id="table-field-reqs">
                   <thead>
                     <tr>
-                      <th>الحقل (Field Key)</th>
-                      <th class="text-end">مطلوب (Required)</th>
+                      <th>اسم الحقل</th>
+                      <th class="text-end">مطلوب (إلزامي)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <!-- Will be populated dynamically -->
+                    <!-- Injected dynamically -->
                   </tbody>
                 </table>
+              </div>
+
+              <div class="d-flex justify-content-end mt-3">
+                <button type="button" id="btn-save-field-reqs" class="btn btn-primary px-4">
+                  <i class="bi bi-save me-2"></i>حفظ الحقول
+                </button>
               </div>
             </div>
           </div>
 
+        </div>
+
+        <div class="col-md-4">
           <!-- ── Danger Zone ── -->
-          <div class="card border-danger bg-dark shadow mb-4">
-            <div class="card-header border-danger">
-              <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>${t('settings.clearSession')}</h5>
+          <div class="card bg-dark border-danger shadow mb-4">
+            <div class="card-header border-danger bg-danger bg-opacity-25">
+              <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>منطقة الخطر</h5>
             </div>
-            <div class="card-body">
-              <p class="text-muted small">${t('settings.help.clearSession')}</p>
-              <button id="btn-clear-session" class="btn btn-outline-danger">
+            <div class="card-body text-center p-4">
+              <p class="text-muted small mb-4">${t('settings.help.clearSession')}</p>
+              <button id="btn-clear-session" class="btn btn-outline-danger w-100">
                 <i class="bi bi-trash me-2"></i>${t('settings.clearSession')}
               </button>
             </div>
           </div>
-
         </div>
       </div>
-    </div>
 
-    <!-- ── Clear Session Modal ── -->
-    <div class="modal fade" id="clearModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-dark border-danger text-white">
-          <div class="modal-header border-danger">
-            <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>${t('settings.clearSession')}</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <p class="text-muted small mb-3">${t('settings.help.clearSession')}</p>
-            <label class="form-label fw-semibold">كلمة المرور</label>
-            <input type="password" class="form-control" id="input-clear-password" placeholder="أدخل كلمة المرور...">
-            <div id="clear-error" class="text-danger small mt-2 d-none">كلمة المرور غير صحيحة</div>
-          </div>
-          <div class="modal-footer border-secondary">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
-            <button type="button" id="btn-confirm-clear" class="btn btn-danger">
-              <i class="bi bi-trash me-1"></i>مسح البيانات
-            </button>
+      <!-- Password Modal for Clear Session -->
+      <div class="modal fade" id="clearModal" tabindex="-1" aria-labelledby="clearModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content bg-dark text-white border-danger">
+            <div class="modal-header border-danger bg-danger bg-opacity-25">
+              <h5 class="modal-title text-danger" id="clearModalLabel"><i class="bi bi-shield-lock-fill me-2"></i>تأكيد مسح البيانات</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+              <p class="mb-3">يرجى إدخال كلمة مرور المشرف لتأكيد مسح كافة بيانات الرحلة والسجلات الحالية:</p>
+              <input type="password" id="input-clear-password" class="form-control bg-black bg-opacity-50 text-white border-secondary mb-2" placeholder="كلمة المرور">
+              <div id="clear-error" class="text-danger small d-none">كلمة المرور غير صحيحة</div>
+            </div>
+            <div class="modal-footer border-danger">
+              <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">${t('common.cancel')}</button>
+              <button type="button" id="btn-confirm-clear" class="btn btn-danger px-4"><i class="bi bi-trash me-1"></i>مسح البيانات</button>
+            </div>
           </div>
         </div>
       </div>
@@ -224,19 +230,20 @@ export async function renderSettings(container) {
 
   container.innerHTML = html;
 
-  // Toggle device-specific rows on scan mode change
-  document.getElementById('select-scan-mode').addEventListener('change', function () {
-    const mode = this.value;
-    document.getElementById('regula-settings').style.display = (mode === 'regula' || mode === 'api') ? 'flex' : 'none';
-    document.getElementById('penta-settings').style.display  = mode === 'penta' ? 'flex' : 'none';
-  });
+  // Toggle scan mode settings visibility
+  const selectScanMode = document.getElementById('select-scan-mode');
+  selectScanMode.onchange = () => {
+    const val = selectScanMode.value;
+    document.getElementById('regula-settings').style.display = (val === 'regula' || val === 'api') ? 'flex' : 'none';
+    document.getElementById('penta-settings').style.display  = val === 'penta' ? 'flex' : 'none';
+  };
 
-  // Device URL test buttons
+  // Test URL buttons
   container.querySelectorAll('.btn-test-url').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const inputId = btn.getAttribute('data-target');
-      const badgeId = btn.getAttribute('data-badge');
-      const url = document.getElementById(inputId).value.trim();
+      const targetId = btn.getAttribute('data-target');
+      const badgeId  = btn.getAttribute('data-badge');
+      const url = document.getElementById(targetId).value.trim();
       const badge = document.getElementById(badgeId);
 
       btn.disabled = true;
@@ -284,7 +291,7 @@ export async function renderSettings(container) {
       alert(t('import.success'));
       window.api.regula.setMode({ mode: newSettings.scan_mode });
     } else {
-      alert(result.message || t('common.error'));
+      showReasonToast({ code: result.reason || 'IPC_INVALID_ARGS', message: result.message || t('common.error'), suggestion: 'تحقق من صحة القيم المدخلة' }, 'danger');
     }
   };
 
@@ -314,7 +321,7 @@ export async function renderSettings(container) {
         badge.innerHTML = `<i class="bi ${enabled ? 'bi-eye' : 'bi-eye-slash'} me-1"></i>${enabled ? 'مفعّلة' : 'متوقفة'}`;
       }
     } else {
-      alert(result.message || t('common.error'));
+      showReasonToast({ code: result.reason || 'IPC_INVALID_ARGS', message: result.message || t('common.error'), suggestion: 'تأكد من مسار المجلد وصلاحيات الوصول' }, 'danger');
     }
   };
 
@@ -392,12 +399,11 @@ export async function renderSettings(container) {
       if (res.ok) {
         alert('تم حفظ إعدادات الحقول بنجاح');
       } else {
-        alert(res.message || t('common.error'));
+        showReasonToast({ code: res.reason || 'IPC_INVALID_ARGS', message: res.message || t('common.error'), suggestion: 'تحقق من صحة مفاتيح الحقول المطلوبة' }, 'danger');
       }
     } catch (err) {
       btn.disabled = false;
       btn.innerHTML = `<i class="bi bi-save me-1"></i>حفظ الحقول`;
-      alert(err.message || t('common.error'));
     }
   };
 }
