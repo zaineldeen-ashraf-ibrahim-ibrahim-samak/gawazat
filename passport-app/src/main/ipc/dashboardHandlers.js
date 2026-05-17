@@ -44,6 +44,20 @@ function createDashboardHandlers(store) {
           nationalityCounts[nat] = (nationalityCounts[nat] || 0) + 1;
         });
 
+        // Nationality breakdown for new passengers (added at gate)
+        const nationalityCountsNew = {};
+        newPassengers.forEach(p => {
+          const nat = (p.nationality || '???').toUpperCase();
+          nationalityCountsNew[nat] = (nationalityCountsNew[nat] || 0) + 1;
+        });
+
+        // Nationality breakdown for entered passengers
+        const nationalityCountsEntered = {};
+        manifest.filter(p => boarding[p.passport_number_normalized]).forEach(p => {
+          const nat = (p.nationality || '???').toUpperCase();
+          nationalityCountsEntered[nat] = (nationalityCountsEntered[nat] || 0) + 1;
+        });
+
         const recentEvents = events.slice(-5).reverse().map(e => {
           const passenger = e.passenger_id ? passengerMap.get(e.passenger_id) : null;
           return {
@@ -64,6 +78,8 @@ function createDashboardHandlers(store) {
           waiting: waitingCount,
           recentEvents,
           nationalityCounts,
+          nationalityCountsNew,
+          nationalityCountsEntered,
           ship_name: settings.ship_name || state.voyage?.ship_name || '',
         };
       } catch (err) {

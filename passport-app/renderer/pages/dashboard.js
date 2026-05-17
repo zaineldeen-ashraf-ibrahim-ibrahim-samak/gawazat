@@ -20,9 +20,9 @@ export async function renderDashboard(container) {
 
       <!-- Stats Cards -->
       <div class="row g-3 mb-4">
-        ${renderStatCard('كشف المسافرون', stats.total, 'bi-people', 'text-info', renderNationalityBreakdown(stats.nationalityCounts))}
-        ${renderStatCard('مسافرون جدد', stats.totalNew, 'bi-person-plus', 'text-accent')}
-        ${renderStatCard(`${t('passengerList.filter.entered')} `, stats.entered, 'bi-check-circle', 'text-success', `${stats.originalEntered} أصلي + ${stats.newEntered} جديد`)}
+        ${renderStatCard('كشف المسافرون', stats.total, 'bi-people', 'text-info', renderNationalityBreakdown(stats.nationalityCounts, 'collapse-nat-orig'))}
+        ${renderStatCard('مسافرون جدد', stats.totalNew, 'bi-person-plus', 'text-accent', renderNationalityBreakdown(stats.nationalityCountsNew, 'collapse-nat-new'))}
+        ${renderStatCard(`${t('passengerList.filter.entered')} `, stats.entered, 'bi-check-circle', 'text-success', `<div class="mb-1">${stats.originalEntered} أصلي + ${stats.newEntered} جديد</div>` + renderNationalityBreakdown(stats.nationalityCountsEntered, 'collapse-nat-entered'))}
         ${renderStatCard(t('nav.pendingApproval'), stats.pending, 'bi-hourglass-split', 'text-warning')}
         ${renderStatCard(t('reports.warnings'), stats.warnings, 'bi-exclamation-triangle', 'text-danger')}
         ${renderStatCard(t('dashboard.waitingNotScanned'), stats.waiting, 'bi-list-ul', 'text-secondary')}
@@ -84,16 +84,16 @@ export async function renderDashboard(container) {
 
 function renderStatCard(title, value, icon, colorClass, subtitle = '') {
   return `
-    <div class="col">
+    <div class="col-md-4 col-sm-6">
       <div class="card bg-dark border-secondary shadow-sm h-100">
-        <div class="card-body d-flex align-items-center p-3">
-          <div class="rounded-circle bg-black bg-opacity-25 p-3 me-3">
+        <div class="card-body d-flex align-items-start p-3">
+          <div class="rounded-circle bg-black bg-opacity-25 p-3 me-3 mt-1">
             <i class="bi ${icon} fs-2 ${colorClass}"></i>
           </div>
-          <div>
+          <div class="flex-grow-1 overflow-hidden">
             <div class="text-muted small">${title}</div>
             <div class="fs-2 fw-bold">${value}</div>
-            ${subtitle ? `<div class="text-muted" style="font-size:0.72rem;">${subtitle}</div>` : ''}
+            ${subtitle ? `<div class="text-muted mt-1" style="font-size:0.75rem;">${subtitle}</div>` : ''}
           </div>
         </div>
       </div>
@@ -115,17 +115,16 @@ function getOutcomeBadge(outcome) {
   }
 }
 
-function renderNationalityBreakdown(counts) {
+function renderNationalityBreakdown(counts, collapseId) {
   if (!counts || Object.keys(counts).length === 0) return '';
-  const items = Object.entries(counts).map(([nat, count]) => `${nat}: ${count}`).join(' | ');
-  const collapseId = 'collapse-nat-breakdown';
+  const items = Object.entries(counts).map(([nat, count]) => `<span class="badge bg-secondary border border-light border-opacity-25 px-2 py-1">${nat}: ${count}</span>`).join(' ');
   return `
-    <div class="mt-1">
-      <a class="text-info text-decoration-none small d-inline-flex align-items-center" data-bs-toggle="collapse" href="#${collapseId}" role="button" aria-expanded="false" aria-controls="${collapseId}">
+    <div class="mt-2 w-100">
+      <a class="text-info text-decoration-none small d-inline-flex align-items-center fw-semibold" data-bs-toggle="collapse" href="#${collapseId}" role="button" aria-expanded="false" aria-controls="${collapseId}">
         <i class="bi bi-chevron-expand me-1"></i>التفاصيل حسب الجنسية
       </a>
-      <div class="collapse mt-2" id="${collapseId}">
-        <div class="card card-body bg-black bg-opacity-50 p-2 text-light small border-secondary" style="font-size: 0.75rem;">
+      <div class="collapse mt-2 w-100" id="${collapseId}">
+        <div class="d-flex flex-wrap gap-1 bg-black bg-opacity-50 p-2 rounded border border-secondary" style="max-height: 110px; overflow-y: auto;">
           ${items}
         </div>
       </div>
