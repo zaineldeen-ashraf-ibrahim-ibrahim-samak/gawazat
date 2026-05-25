@@ -8,10 +8,12 @@
  *   nationality: string (3-letter ISO, '' = any),
  *   status: 'entered' | 'pending' | 'duplicate' | '' ,
  *   source: 'manifest' | 'manual' | 'added-at-gate' | '',
+ *   dobExact: string (YYYY-MM-DD, '' = any), // exact date of birth match
  *   dobFrom: string (YYYY-MM-DD, '' = any),
  *   dobTo: string (YYYY-MM-DD, '' = any),
  *   ageMin: number | '',
  *   ageMax: number | '',
+ *   ageExact: number | '',   // filter by a specific single age
  * }
  */
 
@@ -90,6 +92,18 @@ export function mountAdvancedFilterPanel(onApply) {
           </div>
         </div>
 
+        <!-- ── Exact Date of Birth ── -->
+        <div>
+          <label class="form-label fw-semibold text-info-emphasis small text-uppercase" for="af-dob-exact">
+            <i class="bi bi-calendar-check me-1"></i>${t('filters.dobExact') || 'Exact Date of Birth'}
+          </label>
+          <input type="date" id="af-dob-exact"
+                 class="form-control form-control-sm bg-dark text-white border-secondary">
+          <div class="form-text text-muted small mt-1">
+            <i class="bi bi-info-circle me-1"></i>${t('filters.dobExactHint') || 'Overrides the date range below'}
+          </div>
+        </div>
+
         <!-- ── DOB Range ── -->
         <div>
           <label class="form-label fw-semibold text-info-emphasis small text-uppercase">
@@ -127,6 +141,19 @@ export function mountAdvancedFilterPanel(onApply) {
                      class="form-control form-control-sm bg-dark text-white border-secondary"
                      placeholder="120">
             </div>
+          </div>
+        </div>
+
+        <!-- ── Exact Age ── -->
+        <div>
+          <label class="form-label fw-semibold text-info-emphasis small text-uppercase" for="af-age-exact">
+            <i class="bi bi-123 me-1"></i>${t('filters.ageExact') || 'Exact Age'}
+          </label>
+          <input type="number" id="af-age-exact" min="0" max="120"
+                 class="form-control form-control-sm bg-dark text-white border-secondary"
+                 placeholder="${t('filters.ageExactPlaceholder') || 'e.g. 25'}">
+          <div class="form-text text-muted small mt-1">
+            <i class="bi bi-info-circle me-1"></i>${t('filters.ageExactHint') || 'Overrides the age range above'}
           </div>
         </div>
 
@@ -182,7 +209,7 @@ export function mountAdvancedFilterPanel(onApply) {
   });
 
   // Auto-apply on text/number/date/switch inputs
-  ['af-nationality', 'af-dob-from', 'af-dob-to', 'af-age-min', 'af-age-max'].forEach(id => {
+  ['af-nationality', 'af-dob-exact', 'af-dob-from', 'af-dob-to', 'af-age-min', 'af-age-max', 'af-age-exact'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', e => {
       if (id === 'af-nationality') {
         const pos = e.target.selectionStart;
@@ -213,10 +240,12 @@ function _resetUI() {
     btn.classList.toggle('active', btn.dataset.val === '');
   });
   document.getElementById('af-nationality').value = '';
+  document.getElementById('af-dob-exact').value = '';
   document.getElementById('af-dob-from').value = '';
   document.getElementById('af-dob-to').value = '';
   document.getElementById('af-age-min').value = '';
   document.getElementById('af-age-max').value = '';
+  document.getElementById('af-age-exact').value = '';
   document.getElementById('af-has-warning').checked = false;
 }
 
@@ -228,16 +257,19 @@ function _emit() {
   const sources = Array.from(document.querySelectorAll('#af-source-group .af-toggle-btn.active'))
     .map(b => b.dataset.val).filter(Boolean);
 
-  const nationality = (document.getElementById('af-nationality')?.value || '').trim().toUpperCase();
-  const dobFrom     = document.getElementById('af-dob-from')?.value || '';
-  const dobTo       = document.getElementById('af-dob-to')?.value || '';
-  const ageMinRaw   = document.getElementById('af-age-min')?.value;
-  const ageMaxRaw   = document.getElementById('af-age-max')?.value;
-  const ageMin      = ageMinRaw !== '' ? parseInt(ageMinRaw, 10) : '';
-  const ageMax      = ageMaxRaw !== '' ? parseInt(ageMaxRaw, 10) : '';
-  const hasWarning  = document.getElementById('af-has-warning')?.checked || false;
+  const nationality  = (document.getElementById('af-nationality')?.value || '').trim().toUpperCase();
+  const dobExact     = document.getElementById('af-dob-exact')?.value || '';
+  const dobFrom      = document.getElementById('af-dob-from')?.value || '';
+  const dobTo        = document.getElementById('af-dob-to')?.value || '';
+  const ageMinRaw    = document.getElementById('af-age-min')?.value;
+  const ageMaxRaw    = document.getElementById('af-age-max')?.value;
+  const ageExactRaw  = document.getElementById('af-age-exact')?.value;
+  const ageMin       = ageMinRaw   !== '' ? parseInt(ageMinRaw, 10)   : '';
+  const ageMax       = ageMaxRaw   !== '' ? parseInt(ageMaxRaw, 10)   : '';
+  const ageExact     = ageExactRaw !== '' ? parseInt(ageExactRaw, 10) : '';
+  const hasWarning   = document.getElementById('af-has-warning')?.checked || false;
 
-  onApplyCallback?.({ genders, statuses, sources, nationality, dobFrom, dobTo, ageMin, ageMax, hasWarning });
+  onApplyCallback?.({ genders, statuses, sources, nationality, dobExact, dobFrom, dobTo, ageMin, ageMax, ageExact, hasWarning });
 }
 
 /** Open the panel programmatically */
@@ -258,16 +290,19 @@ export function getCurrentAdvancedFilter() {
   const sources = Array.from(document.querySelectorAll('#af-source-group .af-toggle-btn.active'))
     .map(b => b.dataset.val).filter(Boolean);
 
-  const nationality = (document.getElementById('af-nationality')?.value || '').trim().toUpperCase();
-  const dobFrom     = document.getElementById('af-dob-from')?.value || '';
-  const dobTo       = document.getElementById('af-dob-to')?.value || '';
-  const ageMinRaw   = document.getElementById('af-age-min')?.value;
-  const ageMaxRaw   = document.getElementById('af-age-max')?.value;
-  const ageMin      = ageMinRaw !== '' ? parseInt(ageMinRaw, 10) : '';
-  const ageMax      = ageMaxRaw !== '' ? parseInt(ageMaxRaw, 10) : '';
-  const hasWarning  = document.getElementById('af-has-warning')?.checked || false;
+  const nationality  = (document.getElementById('af-nationality')?.value || '').trim().toUpperCase();
+  const dobExact     = document.getElementById('af-dob-exact')?.value || '';
+  const dobFrom      = document.getElementById('af-dob-from')?.value || '';
+  const dobTo        = document.getElementById('af-dob-to')?.value || '';
+  const ageMinRaw    = document.getElementById('af-age-min')?.value;
+  const ageMaxRaw    = document.getElementById('af-age-max')?.value;
+  const ageExactRaw  = document.getElementById('af-age-exact')?.value;
+  const ageMin       = ageMinRaw   !== '' ? parseInt(ageMinRaw, 10)   : '';
+  const ageMax       = ageMaxRaw   !== '' ? parseInt(ageMaxRaw, 10)   : '';
+  const ageExact     = ageExactRaw !== '' ? parseInt(ageExactRaw, 10) : '';
+  const hasWarning   = document.getElementById('af-has-warning')?.checked || false;
 
-  return { genders, statuses, sources, nationality, dobFrom, dobTo, ageMin, ageMax, hasWarning };
+  return { genders, statuses, sources, nationality, dobExact, dobFrom, dobTo, ageMin, ageMax, ageExact, hasWarning };
 }
 
 /**
@@ -277,15 +312,19 @@ export function getCurrentAdvancedFilter() {
  */
 export function countActiveFilters(filterState) {
   if (!filterState) return 0;
-  const { genders, statuses, sources, nationality, dobFrom, dobTo, ageMin, ageMax, hasWarning } = filterState;
+  const { genders, statuses, sources, nationality, dobExact, dobFrom, dobTo, ageMin, ageMax, ageExact, hasWarning } = filterState;
   let count = 0;
   if (genders && genders.length > 0) count += genders.length;
   if (statuses && statuses.length > 0) count += statuses.length;
   if (sources && sources.length > 0) count += sources.length;
   if (nationality) count++;
-  if (dobFrom || dobTo) count++;   // DOB range counts as 1 criterion
-  if (ageMin !== '' && ageMin != null) count++;
-  if (ageMax !== '' && ageMax != null) count++;
+  if (dobExact) count++;                    // exact DOB counts as 1 criterion
+  else if (dobFrom || dobTo) count++;       // DOB range counts as 1 criterion
+  if (ageExact !== '' && ageExact != null) count++;  // exact age overrides range
+  else {
+    if (ageMin !== '' && ageMin != null) count++;
+    if (ageMax !== '' && ageMax != null) count++;
+  }
   if (hasWarning) count++;
   return count;
 }
@@ -298,9 +337,11 @@ export function countActiveFilters(filterState) {
  */
 export function applyFilterState(passengers, filterState) {
   if (!filterState) return passengers;
-  const { genders, statuses, sources, nationality, dobFrom, dobTo, ageMin, ageMax, hasWarning } = filterState;
+  const { genders, statuses, sources, nationality, dobExact, dobFrom, dobTo, ageMin, ageMax, ageExact, hasWarning } = filterState;
 
   const today = new Date();
+  const hasExactAge = ageExact !== '' && ageExact != null;
+  const hasExactDob = dobExact && dobExact.trim() !== '';
 
   return passengers.filter(p => {
     // Gender (OR logic within genders array)
@@ -326,12 +367,28 @@ export function applyFilterState(passengers, filterState) {
     // Has Warning flag
     if (hasWarning && !p.is_duplicate) return false;
 
-    // DOB range
-    if (dobFrom && p.date_of_birth && p.date_of_birth < dobFrom) return false;
-    if (dobTo   && p.date_of_birth && p.date_of_birth > dobTo)   return false;
+    // Exact DOB (takes precedence over DOB range when set)
+    if (hasExactDob) {
+      if (!p.date_of_birth) return false;
+      // Normalize to YYYY-MM-DD for comparison
+      const pDob = p.date_of_birth.substring(0, 10);
+      if (pDob !== dobExact) return false;
+    } else {
+      // DOB range
+      if (dobFrom && p.date_of_birth && p.date_of_birth < dobFrom) return false;
+      if (dobTo   && p.date_of_birth && p.date_of_birth > dobTo)   return false;
+    }
 
-    // Age range (computed from DOB)
-    if ((ageMin !== '' && ageMin != null) || (ageMax !== '' && ageMax != null)) {
+    // Exact age (takes precedence over age range when set)
+    if (hasExactAge) {
+      if (!p.date_of_birth) return false;
+      const dob = new Date(p.date_of_birth);
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+      if (age !== ageExact) return false;
+    } else if ((ageMin !== '' && ageMin != null) || (ageMax !== '' && ageMax != null)) {
+      // Age range (computed from DOB)
       if (!p.date_of_birth) return false;
       const dob = new Date(p.date_of_birth);
       let age = today.getFullYear() - dob.getFullYear();

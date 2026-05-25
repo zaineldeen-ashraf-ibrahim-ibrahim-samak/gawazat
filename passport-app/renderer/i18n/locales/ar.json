@@ -209,12 +209,17 @@
     "noWarning": "بدون تحذيرات",
     "duplicate": "مكرر",
     "source": "المصدر",
+    "dobExact": "تاريخ ميلاد محدد",
+    "dobExactHint": "يلغي نطاق التواريخ أدناه عند التحديد",
     "dobRange": "فترة تاريخ الميلاد",
     "from": "من",
     "to": "إلى",
     "ageRange": "الفئة العمرية",
     "ageMin": "الحد الأدنى",
-    "ageMax": "الحد الأقصى"
+    "ageMax": "الحد الأقصى",
+    "ageExact": "عمر محدد",
+    "ageExactPlaceholder": "مثال: 25",
+    "ageExactHint": "يلغي نطاق العمر أعلاه عند التحديد"
   },
   "fieldRequirements": {
     "title": "متطلبات الحقول",

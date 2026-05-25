@@ -211,12 +211,17 @@
     "noWarning": "No Warnings",
     "duplicate": "Duplicate",
     "source": "Source",
+    "dobExact": "Exact Date of Birth",
+    "dobExactHint": "Overrides the date range below",
     "dobRange": "Date of Birth Range",
     "from": "From",
     "to": "To",
     "ageRange": "Age Range",
     "ageMin": "Min Age",
-    "ageMax": "Max Age"
+    "ageMax": "Max Age",
+    "ageExact": "Exact Age",
+    "ageExactPlaceholder": "e.g. 25",
+    "ageExactHint": "Overrides the age range above"
   },
   "fieldRequirements": {
     "title": "Field Requirements",
