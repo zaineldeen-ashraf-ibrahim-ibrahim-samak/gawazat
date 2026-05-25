@@ -1,0 +1,105 @@
+name: Build Windows App
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Package (Windows)
+    runs-on: windows-latest
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Node.js ────────────────────────────────────────────────────────
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: passport-app/package-lock.json
+
+      # ── 3. Install dependencies ───────────────────────────────────────────
+      - name: Install dependencies
+        working-directory: passport-app
+        run: npm ci --ignore-scripts
+
+      # Run post-install scripts that copy vendor assets
+      - name: Run post-install scripts
+        working-directory: passport-app
+        run: |
+          node scripts/copy-vendor.js
+          node scripts/download-assets.js
+        continue-on-error: true
+
+      # ── 4. Write .env from GitHub Secrets ────────────────────────────────
+      - name: Create .env from secrets
+        working-directory: passport-app
+        shell: bash
+        run: |
+          cat > .env << 'EOF'
+          NODE_ENV=production
+          APP_NAME=${{ secrets.APP_NAME || 'بوابة المسافرين' }}
+          APP_NAME_EN=${{ secrets.APP_NAME_EN || 'Passenger Gate' }}
+          APP_ICON=renderer/assets/icon.ico
+          APP_ID=${{ secrets.APP_ID || 'eg.portsaid.gawazat' }}
+          REGULA_URL=${{ secrets.REGULA_URL || 'http://localhost:8080' }}
+          PENTA_URL=${{ secrets.PENTA_URL || 'http://localhost:8085' }}
+          CLEAR_DATA_PASSWORD=${{ secrets.CLEAR_DATA_PASSWORD || '12345678' }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL=${{ secrets.GEMINI_MODEL || 'gemini-flash-latest' }}
+          GEMINI_TIMEOUT_MS=${{ secrets.GEMINI_TIMEOUT_MS || '2000' }}
+          GEMINI_MAX_RETRIES=${{ secrets.GEMINI_MAX_RETRIES || '2' }}
+          EOF
+
+      # ── 5. Build Windows packages ─────────────────────────────────────────
+      - name: Build Windows installer + portable
+        working-directory: passport-app
+        run: npm run build-win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 6. List build outputs ─────────────────────────────────────────────
+      - name: List dist directory
+        working-directory: passport-app
+        shell: bash
+        run: ls -lh dist/
+
+      # ── 7. Upload artifacts (every build) ────────────────────────────────
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-${{ github.sha }}
+          path: |
+            passport-app/dist/*.exe
+          retention-days: 30
+
+      # ── 8. Create GitHub Release on version tags ──────────────────────────
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            passport-app/dist/*.exe
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Passenger Gate ${{ github.ref_name }}
+
+            ### Download
+            | File | Description |
+            |------|-------------|
+            | `*-Setup.exe` | Windows Installer (with wizard, shortcuts & uninstaller) |
+            | `* Portable.exe` | Portable — run directly, no installation needed |
+
+            ### Requirements
+            - Windows 10 / 11 (x64)
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

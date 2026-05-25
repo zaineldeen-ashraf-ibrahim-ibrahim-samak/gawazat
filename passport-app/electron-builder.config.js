@@ -8,8 +8,16 @@ module.exports = {
     output: 'dist',
   },
   win: {
-    target: ['portable'],
+    target: ['nsis', 'portable'],
     icon: process.env.APP_ICON || 'renderer/assets/icon.ico',
+  },
+  nsis: {
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
+    installerLanguages: ['ar', 'en'],
+    perMachine: false,
+    shortcutName: process.env.APP_NAME || process.env.APP_NAME_EN || 'Passenger Gate',
+    uninstallDisplayName: '${productName} ${version}',
   },
   asar: true,
   asarUnpack: ['.env'],
